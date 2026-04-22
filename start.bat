@@ -1,9 +1,17 @@
 @echo off
 echo Starting ProposalAI...
 
+:: ── Check .env exists ─────────────────────────────────────────────────────────
+if not exist "%~dp0backend\.env" (
+    echo ERROR: backend\.env file not found.
+    echo Copy backend\.env and fill in your API keys before running.
+    pause
+    exit /b 1
+)
+
 :: ── Backend ──────────────────────────────────────────────────────────────────
 echo [1/4] Setting up Python virtual environment...
-cd backend
+cd "%~dp0backend"
 if not exist .venv (
     python -m venv .venv
 )

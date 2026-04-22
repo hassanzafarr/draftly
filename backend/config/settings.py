@@ -132,11 +132,13 @@ else:
     MEDIA_URL = "/media/"
     MEDIA_ROOT = BASE_DIR / "media"
 
-# AI keys
-OPENAI_API_KEY = config("OPENAI_API_KEY")
-ANTHROPIC_API_KEY = config("ANTHROPIC_API_KEY")
+# AI keys — free tiers, no credit card required
+GOOGLE_AI_API_KEY = config("GOOGLE_AI_API_KEY")
+GROQ_API_KEY = config("GROQ_API_KEY", default="")
 
-# Embedding model — fixed per deployment (changing requires re-embedding all chunks)
-EMBEDDING_MODEL = "text-embedding-3-small"
-EMBEDDING_DIMS = 1536
-CLAUDE_MODEL = "claude-sonnet-4-6"
+# Generation model (Google AI Studio free tier)
+GEMINI_MODEL = config("GEMINI_MODEL", default="gemini-2.0-flash-exp")
+
+# Embeddings — local sentence-transformers, no API key needed
+EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+EMBEDDING_DIMS = 384
