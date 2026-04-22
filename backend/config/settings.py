@@ -57,16 +57,21 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": config("DB_NAME", default="rfp_db"),
-        "USER": config("DB_USER", default="rfp_user"),
-        "PASSWORD": config("DB_PASSWORD"),
-        "HOST": config("DB_HOST", default="localhost"),
-        "PORT": config("DB_PORT", default="5432"),
+_database_url = config("DATABASE_URL", default="")
+if _database_url:
+    import dj_database_url
+    DATABASES = {"default": dj_database_url.parse(_database_url, conn_max_age=600)}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": config("DB_NAME", default="rfp_db"),
+            "USER": config("DB_USER", default="rfp_user"),
+            "PASSWORD": config("DB_PASSWORD", default="rfp_pass"),
+            "HOST": config("DB_HOST", default="localhost"),
+            "PORT": config("DB_PORT", default="5432"),
+        }
     }
-}
 
 AUTH_USER_MODEL = "accounts.User"
 
@@ -119,14 +124,19 @@ CELERY_RESULT_BACKEND = config("REDIS_URL", default="redis://localhost:6379/0")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 
-# File storage — local by default, swap to S3 in prod
-USE_S3 = config("USE_S3", default=False, cast=bool)
-if USE_S3:
+# File storage — local by default, Supabase Storage in production
+USE_SUPABASE_STORAGE = config("USE_SUPABASE_STORAGE", default=False, cast=bool)
+if USE_SUPABASE_STORAGE:
     DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-    AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID")
-    AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY")
-    AWS_STORAGE_BUCKET_NAME = config("AWS_STORAGE_BUCKET_NAME")
-    AWS_S3_REGION_NAME = config("AWS_S3_REGION_NAME", default="us-east-1")
+
+    # Supabase Storage uses an S3-compatible API
+    AWS_ACCESS_KEY_ID = config("SUPABASE_STORAGE_ACCESS_KEY")
+    AWS_SECRET_ACCESS_KEY = config("SUPABASE_STORAGE_SECRET_KEY")
+    AWS_STORAGE_BUCKET_NAME = config("SUPABASE_STORAGE_BUCKET")
+    AWS_S3_REGION_NAME = config("SUPABASE_STORAGE_REGION", default="us-east-1")
+    AWS_S3_ENDPOINT_URL = config("SUPABASE_STORAGE_ENDPOINT", default="")
+    AWS_S3_ADDRESSING_STYLE = "path"
+    AWS_S3_SIGNATURE_VERSION = "s3v4"
     AWS_DEFAULT_ACL = "private"
 else:
     MEDIA_URL = "/media/"

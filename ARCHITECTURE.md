@@ -27,10 +27,10 @@ A multi-tenant SaaS RAG application. SMEs upload historical proposals and case s
 │   organizations │ users │ documents │ chunks │ rfps │ proposals  │
 └─────────────────────────────────────────────────────────────────┘
      │
-┌────▼──────────────┐     ┌───────────────┐
-│   Redis (Celery   │     │  Object Store │
-│   broker/backend) │     │  (S3/R2 files)│
-└───────────────────┘     └───────────────┘
+┌────▼──────────────┐     ┌──────────────────────────┐
+│   Redis (Celery   │     │      Object Storage      │
+│   broker/backend) │     │       (Supabase)         │
+└───────────────────┘     └──────────────────────────┘
 ```
 
 ---
@@ -133,7 +133,7 @@ rfp-generator/
 | org | FK → Organization | |
 | uploaded_by | FK → User | |
 | title | varchar | |
-| file_key | varchar | S3/R2 object key |
+| file_key | varchar | Supabase object key |
 | file_type | enum | pdf / docx / txt |
 | status | enum | pending / processing / processed / failed |
 | chunk_count | int | set after ingestion |
@@ -177,7 +177,7 @@ rfp-generator/
 
 ### Ingestion (async, per Document)
 ```
-Upload → S3 store → Celery task triggered
+Upload → Supabase Storage → Celery task triggered
   → Extract text (PyMuPDF / python-docx)
   → Split into ~500-token chunks (50-token overlap)
   → Batch embed via OpenAI text-embedding-3-small
@@ -239,7 +239,7 @@ Enforced via `OrgQuotaPermission` middleware on upload and generate endpoints.
 | LLM | Claude Sonnet 4.6 | High quality long-form generation, streaming |
 | Task queue | Celery + Redis | Async ingestion without blocking request thread |
 | Auth | SimpleJWT | Stateless, easy React integration |
-| File storage | AWS S3 / Cloudflare R2 | Scalable object storage |
+| File storage | Supabase Storage (S3-compatible) | Scalable object storage with local dev fallback |
 | Frontend | React + Vite + Tailwind | Fast DX, no SSR needed |
 | State | Zustand | Lightweight, no boilerplate |
 | Containerization | Docker Compose | Local dev parity |

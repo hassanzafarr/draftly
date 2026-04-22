@@ -8,7 +8,18 @@
 ## 1. Configure environment
 ```bash
 cp .env.example .env
-# Edit .env and set OPENAI_API_KEY and ANTHROPIC_API_KEY
+# Edit .env and set GOOGLE_AI_API_KEY
+```
+
+Optional: enable Supabase Storage for uploaded files.
+
+```bash
+USE_SUPABASE_STORAGE=True
+SUPABASE_STORAGE_ENDPOINT=https://<project-ref>.supabase.co/storage/v1/s3
+SUPABASE_STORAGE_BUCKET=<bucket-name>
+SUPABASE_STORAGE_ACCESS_KEY=<s3-access-key>
+SUPABASE_STORAGE_SECRET_KEY=<s3-secret-key>
+SUPABASE_STORAGE_REGION=us-east-1
 ```
 
 ## 2. Start all services
