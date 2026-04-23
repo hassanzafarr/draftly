@@ -150,7 +150,7 @@ GOOGLE_AI_API_KEY = config("GOOGLE_AI_API_KEY")
 GROQ_API_KEY = config("GROQ_API_KEY", default="")
 
 # Generation model (Google AI Studio free tier)
-GEMINI_MODEL = config("GEMINI_MODEL", default="gemini-2.0-flash-exp")
+GEMINI_MODEL = config("GEMINI_MODEL", default="gemini-2.5-flash")
 
 # Embeddings — Google AI Studio (free tier, same key as generation)
 EMBEDDING_MODEL = "models/gemini-embedding-001"
