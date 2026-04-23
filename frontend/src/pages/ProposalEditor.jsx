@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { Save, CheckCircle, Loader, AlertCircle } from "lucide-react";
+import { Save, CheckCircle, Loader, AlertCircle, Download } from "lucide-react";
+import jsPDF from "jspdf";
 import api from "../api/client";
 import ProposalSection from "../components/ProposalSection";
 
@@ -17,6 +18,19 @@ const SECTION_ORDER = [
   "why_us",
   "appendix",
 ];
+
+const SECTION_LABELS = {
+  executive_summary: "Executive Summary",
+  understanding_requirements: "Understanding of Requirements",
+  proposed_solution: "Proposed Solution / Technical Approach",
+  relevant_experience: "Relevant Experience & Case Studies",
+  team_qualifications: "Team & Qualifications",
+  project_timeline: "Project Timeline",
+  methodology: "Methodology",
+  pricing: "Pricing / Commercial Proposal",
+  why_us: "Why Us",
+  appendix: "Appendix / Supporting Materials",
+};
 
 export default function ProposalEditor() {
   const { id } = useParams();
@@ -51,6 +65,67 @@ export default function ProposalEditor() {
 
   const handleSectionChange = (key, content) => {
     setSections((s) => ({ ...s, [key]: content }));
+  };
+
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 48;
+    const contentWidth = pageWidth - margin * 2;
+    let y = margin;
+
+    const ensureSpace = (needed) => {
+      if (y + needed > pageHeight - margin) {
+        doc.addPage();
+        y = margin;
+      }
+    };
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    const titleLines = doc.splitTextToSize(proposal.rfp_title || "Proposal", contentWidth);
+    titleLines.forEach((line) => {
+      ensureSpace(26);
+      doc.text(line, margin, y);
+      y += 24;
+    });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(120);
+    doc.text(
+      `Status: ${proposal.status === "final" ? "Finalized" : "Draft"}  •  Generated ${new Date().toLocaleDateString()}`,
+      margin,
+      y
+    );
+    y += 24;
+    doc.setTextColor(0);
+
+    SECTION_ORDER.forEach((key) => {
+      const body = (sections[key] || "").trim();
+      if (!body) return;
+
+      ensureSpace(40);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.text(SECTION_LABELS[key] || key, margin, y);
+      y += 18;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      const lines = doc.splitTextToSize(body, contentWidth);
+      lines.forEach((line) => {
+        ensureSpace(16);
+        doc.text(line, margin, y);
+        y += 15;
+      });
+      y += 12;
+    });
+
+    const safeTitle = (proposal.rfp_title || "proposal").replace(/[^a-z0-9]+/gi, "_").toLowerCase();
+    doc.save(`${safeTitle}.pdf`);
+    toast.success("PDF downloaded.");
   };
 
   const handleSave = async (finalize = false) => {
@@ -110,6 +185,13 @@ export default function ProposalEditor() {
         </div>
         <div className="flex items-center gap-3">
           <button
+            onClick={handleDownloadPDF}
+            className="flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50"
+          >
+            <Download size={14} />
+            Download PDF
+          </button>
+          <button
             onClick={() => handleSave(false)}
             disabled={saving}
             className="flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-60"
@@ -142,6 +224,13 @@ export default function ProposalEditor() {
       </div>
 
       <div className="mt-8 flex justify-end gap-3">
+        <button
+          onClick={handleDownloadPDF}
+          className="flex items-center gap-2 border border-gray-300 text-gray-700 px-5 py-2.5 rounded-lg font-medium hover:bg-gray-50"
+        >
+          <Download size={15} />
+          Download PDF
+        </button>
         <button
           onClick={() => handleSave(false)}
           disabled={saving}

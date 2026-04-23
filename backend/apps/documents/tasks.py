@@ -66,4 +66,6 @@ def ingest_document(self, document_id: str):
             doc.save(update_fields=["status", "error_message"])
         except Document.DoesNotExist:
             pass
+        if "429" in str(exc) or "quota" in str(exc).lower() or "rate" in str(exc).lower():
+            return
         raise self.retry(exc=exc, countdown=60)

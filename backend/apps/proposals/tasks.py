@@ -26,4 +26,7 @@ def generate_proposal_task(self, proposal_id: str):
             proposal.save(update_fields=["status", "error_message"])
         except Proposal.DoesNotExist:
             pass
+        # Don't retry on quota/rate-limit errors — retries just burn more of the limit.
+        if "429" in str(exc) or "quota" in str(exc).lower() or "rate" in str(exc).lower():
+            return
         raise self.retry(exc=exc, countdown=30)
