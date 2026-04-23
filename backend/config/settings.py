@@ -60,7 +60,10 @@ WSGI_APPLICATION = "config.wsgi.application"
 _database_url = config("DATABASE_URL", default="")
 if _database_url:
     import dj_database_url
-    DATABASES = {"default": dj_database_url.parse(_database_url, conn_max_age=600)}
+    DATABASES = {"default": dj_database_url.parse(_database_url, conn_max_age=0)}
+    DATABASES["default"].setdefault("OPTIONS", {})
+    DATABASES["default"]["OPTIONS"]["options"] = "-c statement_timeout=30000"
+    DATABASES["default"]["DISABLE_SERVER_SIDE_CURSORS"] = True
 else:
     DATABASES = {
         "default": {
@@ -149,6 +152,6 @@ GROQ_API_KEY = config("GROQ_API_KEY", default="")
 # Generation model (Google AI Studio free tier)
 GEMINI_MODEL = config("GEMINI_MODEL", default="gemini-2.0-flash-exp")
 
-# Embeddings — local sentence-transformers, no API key needed
-EMBEDDING_MODEL = "all-MiniLM-L6-v2"
-EMBEDDING_DIMS = 384
+# Embeddings — Google AI Studio (free tier, same key as generation)
+EMBEDDING_MODEL = "models/text-embedding-004"
+EMBEDDING_DIMS = 768

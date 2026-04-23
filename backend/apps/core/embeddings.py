@@ -1,25 +1,32 @@
-from openai import OpenAI
+import google.generativeai as genai
 from django.conf import settings
 
-_client = None
+_configured = False
 
 
-def _get_client():
-    global _client
-    if _client is None:
-        _client = OpenAI(api_key=settings.OPENAI_API_KEY)
-    return _client
+def _ensure_configured():
+    global _configured
+    if not _configured:
+        genai.configure(api_key=settings.GOOGLE_AI_API_KEY)
+        _configured = True
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
-    """Batch embed a list of strings. Returns list of 1536-dim vectors."""
-    client = _get_client()
-    response = client.embeddings.create(
+    """Batch embed a list of strings. Returns list of 768-dim vectors."""
+    _ensure_configured()
+    result = genai.embed_content(
         model=settings.EMBEDDING_MODEL,
-        input=texts,
+        content=texts,
+        task_type="retrieval_document",
     )
-    return [item.embedding for item in response.data]
+    return result["embedding"]
 
 
 def embed_text(text: str) -> list[float]:
-    return embed_texts([text])[0]
+    _ensure_configured()
+    result = genai.embed_content(
+        model=settings.EMBEDDING_MODEL,
+        content=text,
+        task_type="retrieval_query",
+    )
+    return result["embedding"]

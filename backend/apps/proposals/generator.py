@@ -1,4 +1,6 @@
-import anthropic
+import json
+import re
+import google.generativeai as genai
 from django.conf import settings
 from pgvector.django import CosineDistance
 from apps.documents.models import Chunk
@@ -24,6 +26,15 @@ Rules:
 - Return valid JSON only — no markdown fences, no extra text outside the JSON object.
 """
 
+_configured = False
+
+
+def _ensure_configured():
+    global _configured
+    if not _configured:
+        genai.configure(api_key=settings.GOOGLE_AI_API_KEY)
+        _configured = True
+
 
 def retrieve_context(org_id: str, query_text: str, top_k: int = 20) -> str:
     query_vector = embed_text(query_text)
@@ -40,12 +51,10 @@ def retrieve_context(org_id: str, query_text: str, top_k: int = 20) -> str:
 
 
 def generate_proposal_sync(rfp_text: str, org_id: str) -> dict:
-    """Retrieve context and call Claude. Returns parsed sections dict."""
-    import json
+    """Retrieve context and call Gemini. Returns parsed sections dict."""
+    _ensure_configured()
 
     context = retrieve_context(org_id, rfp_text)
-
-    client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
 
     system_prompt = (
         "You are an expert proposal writer for a professional services firm. "
@@ -59,22 +68,25 @@ def generate_proposal_sync(rfp_text: str, org_id: str) -> dict:
         "Generate the proposal JSON now."
     )
 
-    message = client.messages.create(
-        model=settings.CLAUDE_MODEL,
-        max_tokens=8192,
-        system=system_prompt,
-        messages=[{"role": "user", "content": user_message}],
+    model = genai.GenerativeModel(
+        model_name=settings.GEMINI_MODEL,
+        system_instruction=system_prompt,
+        generation_config={
+            "max_output_tokens": 8192,
+            "response_mime_type": "application/json",
+        },
     )
 
-    raw = message.content[0].text
+    response = model.generate_content(user_message)
+    raw = response.text
+
     try:
         sections = json.loads(raw)
     except json.JSONDecodeError:
-        import re
         match = re.search(r"\{.*\}", raw, re.DOTALL)
         if match:
             sections = json.loads(match.group())
         else:
-            raise ValueError("Claude did not return valid JSON.")
+            raise ValueError("Gemini did not return valid JSON.")
 
     return sections

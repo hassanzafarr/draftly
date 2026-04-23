@@ -7,8 +7,7 @@ psycopg2-binary==2.9.9
 pgvector==0.3.2
 celery==5.4.0
 redis==5.0.8
-anthropic==0.34.0
-openai==1.45.0
+google-generativeai==0.8.3
 pymupdf==1.24.10
 python-docx==1.1.2
 python-decouple==3.8

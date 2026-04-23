@@ -39,7 +39,7 @@ class Chunk(models.Model):
     document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name="chunks")
     org = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="chunks")
     content = models.TextField()
-    embedding = VectorField(dimensions=1536)
+    embedding = VectorField(dimensions=768)
     metadata = models.JSONField(default=dict)
     created_at = models.DateTimeField(auto_now_add=True)
 
