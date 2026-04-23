@@ -16,7 +16,9 @@ def ingest_document(self, document_id: str):
         doc.status = Document.Status.PROCESSING
         doc.save(update_fields=["status"])
 
-        text = extract_text(doc.file.path, doc.file_type)
+        with doc.file.open("rb") as fh:
+            data = fh.read()
+        text = extract_text(data, doc.file_type)
 
         chunks_data = list(chunk_text(text))
         if not chunks_data:

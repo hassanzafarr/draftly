@@ -18,6 +18,7 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
         model=settings.EMBEDDING_MODEL,
         content=texts,
         task_type="retrieval_document",
+        output_dimensionality=settings.EMBEDDING_DIMS,
     )
     return result["embedding"]
 
@@ -28,5 +29,6 @@ def embed_text(text: str) -> list[float]:
         model=settings.EMBEDDING_MODEL,
         content=text,
         task_type="retrieval_query",
+        output_dimensionality=settings.EMBEDDING_DIMS,
     )
     return result["embedding"]

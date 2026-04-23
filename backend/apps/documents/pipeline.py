@@ -1,28 +1,25 @@
-import re
+import io
 from typing import Generator
 
 
-def extract_text_from_pdf(file_path: str) -> str:
+def extract_text_from_pdf(data: bytes) -> str:
     import fitz  # PyMuPDF
-    doc = fitz.open(file_path)
-    pages = []
-    for page in doc:
-        pages.append(page.get_text())
+    doc = fitz.open(stream=data, filetype="pdf")
+    pages = [page.get_text() for page in doc]
     return "\n".join(pages)
 
 
-def extract_text_from_docx(file_path: str) -> str:
+def extract_text_from_docx(data: bytes) -> str:
     from docx import Document
-    doc = Document(file_path)
+    doc = Document(io.BytesIO(data))
     return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
 
 
-def extract_text_from_txt(file_path: str) -> str:
-    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-        return f.read()
+def extract_text_from_txt(data: bytes) -> str:
+    return data.decode("utf-8", errors="ignore")
 
 
-def extract_text(file_path: str, file_type: str) -> str:
+def extract_text(data: bytes, file_type: str) -> str:
     extractors = {
         "pdf": extract_text_from_pdf,
         "docx": extract_text_from_docx,
@@ -31,7 +28,7 @@ def extract_text(file_path: str, file_type: str) -> str:
     extractor = extractors.get(file_type)
     if not extractor:
         raise ValueError(f"Unsupported file type: {file_type}")
-    return extractor(file_path)
+    return extractor(data)
 
 
 def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> Generator[dict, None, None]:
