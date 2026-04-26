@@ -1,0 +1,6 @@
+{
+  "css.lint.unknownAtRules": "ignore",
+  "css.lint.validProperties": ["mask-composite"],
+  "css.validate": false,
+  "scss.validate": false
+}
