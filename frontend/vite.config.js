@@ -13,4 +13,21 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    target: "es2020",
+    cssCodeSplit: true,
+    sourcemap: false,
+    chunkSizeWarningLimit: 800,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "react-vendor": ["react", "react-dom", "react-router-dom"],
+          recharts: ["recharts"],
+          jspdf: ["jspdf"],
+          "framer-motion": ["framer-motion"],
+          "lucide-react": ["lucide-react"],
+        },
+      },
+    },
+  },
 });
