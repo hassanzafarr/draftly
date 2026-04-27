@@ -227,30 +227,12 @@ export function Generator() {
                                             { ring: "ring-magenta/40", text: "text-magenta", color: "var(--magenta)" },
                                         ][i % 3];
                                         return (
-                                            <motion.div
+                                            <FeatureCard
                                                 key={f.id}
-                                                initial={{ opacity: 0, y: 12 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ delay: 0.1 + i * 0.08 }}
-                                                whileHover={{ y: -4 }}
-                                                className={`glass group relative cursor-pointer overflow-hidden rounded-2xl p-4 ring-1 ${accents.ring}`}
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <span
-                                                        className={`flex h-9 w-9 items-center justify-center rounded-xl bg-surface-2 ring-1 ${accents.ring} ${accents.text}`}
-                                                    >
-                                                        <Sparkles className="h-4 w-4" />
-                                                    </span>
-                                                    <div>
-                                                        <p className="text-sm font-semibold text-foreground">{f.title}</p>
-                                                        <p className="text-xs text-muted-foreground">{f.caption}</p>
-                                                    </div>
-                                                </div>
-                                                <span
-                                                    className="pointer-events-none absolute -bottom-10 -right-10 h-28 w-28 rounded-full opacity-30 blur-2xl transition group-hover:opacity-70"
-                                                    style={{ background: accents.color }}
-                                                />
-                                            </motion.div>
+                                                feature={f}
+                                                accents={accents}
+                                                index={i}
+                                            />
                                         );
                                     })}
                                 </div>
@@ -426,6 +408,56 @@ export function Generator() {
                 </div>
             </div>
         </div>
+    );
+}
+
+/* ============ FEATURE CARD ============ */
+
+function FeatureCard({ feature, accents, index }) {
+    const ref = useRef(null);
+    const [glow, setGlow] = useState({ x: 50, y: 50, active: false });
+
+    function handleMove(e) {
+        const rect = ref.current?.getBoundingClientRect();
+        if (!rect) return;
+        setGlow({
+            x: ((e.clientX - rect.left) / rect.width) * 100,
+            y: ((e.clientY - rect.top) / rect.height) * 100,
+            active: true,
+        });
+    }
+
+    return (
+        <motion.div
+            ref={ref}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 + index * 0.08 }}
+            whileHover={{ y: -4 }}
+            onMouseMove={handleMove}
+            onMouseLeave={() => setGlow((g) => ({ ...g, active: false }))}
+            className={`glass group relative cursor-pointer overflow-hidden rounded-2xl p-4 ring-1 ${accents.ring}`}
+        >
+            <span
+                className="pointer-events-none absolute inset-0 z-[1] rounded-2xl transition-opacity duration-300"
+                style={{
+                    opacity: glow.active ? 0.35 : 0,
+                    background: `radial-gradient(140px circle at ${glow.x}% ${glow.y}%, ${accents.color}, transparent 70%)`,
+                    mixBlendMode: "screen",
+                }}
+            />
+            <div className="relative z-[2] flex items-center gap-3">
+                <span
+                    className={`flex h-9 w-9 items-center justify-center rounded-xl bg-surface-2 ring-1 ${accents.ring} ${accents.text}`}
+                >
+                    <Sparkles className="h-4 w-4" />
+                </span>
+                <div>
+                    <p className="text-sm font-semibold text-foreground">{feature.title}</p>
+                    <p className="text-xs text-muted-foreground">{feature.caption}</p>
+                </div>
+            </div>
+        </motion.div>
     );
 }
 
