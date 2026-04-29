@@ -125,6 +125,13 @@ CORS_ALLOWED_ORIGINS = [
     )
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://draftly.software",
+    "https://draftly-three.vercel.app",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
 # Celery
 CELERY_BROKER_URL = config("REDIS_URL", default="redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = config("REDIS_URL", default="redis://localhost:6379/0")
