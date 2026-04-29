@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
+import { Analytics as VercelAnalytics } from "@vercel/analytics/react";
 import useAuthStore from "./store/auth";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { AppShell } from "./components/AppShell";
@@ -42,6 +43,7 @@ export default function App() {
     <ThemeProvider>
       <BrowserRouter>
         <Toaster position="top-right" />
+        <VercelAnalytics />
         <Suspense fallback={<PageFallback />}>
           <Routes>
             <Route path="/login" element={<Login />} />
