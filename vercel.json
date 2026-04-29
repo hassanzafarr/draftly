@@ -2,10 +2,6 @@
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://YOUR_RAILWAY_BACKEND_URL/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
-  ],
-  "env": {
-    "VITE_API_URL": "https://YOUR_RAILWAY_BACKEND_URL"
-  }
+  ]
 }
