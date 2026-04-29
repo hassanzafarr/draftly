@@ -120,7 +120,7 @@ CORS_ALLOWED_ORIGINS = [
     origin.rstrip("/")
     for origin in config(
         "CORS_ALLOWED_ORIGINS",
-        default="https://draftly-three.vercel.app,http://localhost:5173,http://127.0.0.1:5173",
+        default="https://draftly.software,https://draftly-three.vercel.app,http://localhost:5173,http://127.0.0.1:5173",
         cast=Csv(),
     )
 ]
