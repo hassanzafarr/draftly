@@ -116,14 +116,14 @@ SIMPLE_JWT = {
 }
 
 # CORS
-CORS_ALLOWED_ORIGINS = [
-    origin.rstrip("/")
-    for origin in config(
-        "CORS_ALLOWED_ORIGINS",
-        default="https://draftly.software,https://draftly-three.vercel.app,http://localhost:5173,http://127.0.0.1:5173",
-        cast=Csv(),
-    )
-]
+_cors_origins = config(
+    "CORS_ALLOWED_ORIGINS",
+    default="https://draftly.software,https://draftly-three.vercel.app,http://localhost:5173,http://127.0.0.1:5173",
+)
+if _cors_origins.strip() == "*":
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOWED_ORIGINS = [o.rstrip("/") for o in _cors_origins.split(",") if o.strip()]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://draftly.software",
