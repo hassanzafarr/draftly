@@ -6,7 +6,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config("SECRET_KEY")
 DEBUG = config("DEBUG", default=False, cast=bool)
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1,backend", cast=Csv())
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1,backend,draftly.software,.up.railway.app", cast=Csv())
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -116,11 +116,21 @@ SIMPLE_JWT = {
 }
 
 # CORS
-CORS_ALLOWED_ORIGINS = config(
+_cors_origins = config(
     "CORS_ALLOWED_ORIGINS",
-    default="http://localhost:5173,http://127.0.0.1:5173",
-    cast=Csv(),
+    default="https://draftly.software,https://draftly-three.vercel.app,http://localhost:5173,http://127.0.0.1:5173",
 )
+if _cors_origins.strip() == "*":
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOWED_ORIGINS = [o.rstrip("/") for o in _cors_origins.split(",") if o.strip()]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://draftly.software",
+    "https://draftly-three.vercel.app",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
 
 # Celery
 CELERY_BROKER_URL = config("REDIS_URL", default="redis://localhost:6379/0")
