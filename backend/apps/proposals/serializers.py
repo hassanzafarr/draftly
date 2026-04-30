@@ -13,8 +13,13 @@ class RFPSerializer(serializers.ModelSerializer):
 
 class RFPCreateSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=500)
-    raw_text = serializers.CharField()
+    raw_text = serializers.CharField(required=False, allow_blank=True)
     file = serializers.FileField(required=False)
+
+    def validate(self, attrs):
+        if not attrs.get("raw_text", "").strip() and not attrs.get("file"):
+            raise serializers.ValidationError("Provide RFP text or upload an RFP file.")
+        return attrs
 
 
 class ProposalSerializer(serializers.ModelSerializer):

@@ -20,6 +20,10 @@ function docToUiStatus(status) {
   return "Processing";
 }
 
+function isIndexing(doc) {
+  return doc.status === "pending" || doc.status === "processing";
+}
+
 export default function Knowledge() {
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,9 +40,13 @@ export default function Knowledge() {
 
   useEffect(() => {
     fetchDocs();
+  }, [fetchDocs]);
+
+  useEffect(() => {
+    if (!docs.some(isIndexing)) return undefined;
     const interval = setInterval(fetchDocs, 5000);
     return () => clearInterval(interval);
-  }, [fetchDocs]);
+  }, [docs, fetchDocs]);
 
   const handleAdd = async (fileList) => {
     if (!fileList?.length) return;

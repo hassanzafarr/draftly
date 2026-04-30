@@ -8,6 +8,7 @@ from .serializers import (
     ProposalSerializer, ProposalUpdateSerializer,
 )
 from .tasks import generate_proposal_task
+from apps.documents.pipeline import extract_text
 
 
 @api_view(["GET", "POST"])
@@ -20,12 +21,23 @@ def rfp_list(request):
     serializer = RFPCreateSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
+    raw_text = serializer.validated_data.get("raw_text", "").strip()
+    file = serializer.validated_data.get("file")
+    if file:
+        ext = file.name.rsplit(".", 1)[-1].lower()
+        extracted_text = extract_text(file.read(), ext).strip()
+        file.seek(0)
+        if raw_text:
+            raw_text = f"{raw_text}\n\n--- ATTACHED RFP FILE TEXT ---\n\n{extracted_text}"
+        else:
+            raw_text = extracted_text
+
     rfp = RFP.objects.create(
         org=request.user.org,
         created_by=request.user,
         title=serializer.validated_data["title"],
-        raw_text=serializer.validated_data["raw_text"],
-        file=serializer.validated_data.get("file"),
+        raw_text=raw_text,
+        file=file,
     )
     return Response(RFPSerializer(rfp).data, status=status.HTTP_201_CREATED)
 

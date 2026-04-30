@@ -48,6 +48,7 @@ export function Generator() {
             id: `${Date.now()}-${i}`,
             name: f.name,
             size: `${(f.size / 1024).toFixed(0)} KB`,
+            file: f,
         }));
         setFiles((p) => [...p, ...next]);
     }
@@ -57,17 +58,24 @@ export function Generator() {
     }
 
     async function generate() {
-        if (!input.trim()) return;
+        if (!input.trim() && files.length === 0) return;
         setPhase("thinking");
         setStepIdx(0);
         setProgress(0);
         setProposalId(null);
 
         try {
-            const { data: rfp } = await api.post("/rfps/", {
-                title: input.trim().slice(0, 80) || "Untitled Proposal",
-                raw_text: input.trim(),
-            });
+            const title = input.trim().slice(0, 80) || files[0]?.name?.replace(/\.[^/.]+$/, "") || "Untitled Proposal";
+            let rfpPayload = { title, raw_text: input.trim() };
+            let rfpConfig;
+            if (files[0]?.file) {
+                rfpPayload = new FormData();
+                rfpPayload.append("title", title);
+                rfpPayload.append("raw_text", input.trim());
+                rfpPayload.append("file", files[0].file);
+                rfpConfig = { headers: { "Content-Type": "multipart/form-data" } };
+            }
+            const { data: rfp } = await api.post("/rfps/", rfpPayload, rfpConfig);
             toast.success("RFP saved — generating proposal…");
             const { data: proposal } = await api.post(`/rfps/${rfp.id}/generate/`);
             setProposalId(proposal.id);

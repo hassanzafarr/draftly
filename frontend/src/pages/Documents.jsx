@@ -5,6 +5,10 @@ import api from "../api/client";
 import DocumentCard from "../components/DocumentCard";
 import UploadZone from "../components/UploadZone";
 
+function isIndexing(doc) {
+  return doc.status === "pending" || doc.status === "processing";
+}
+
 export default function Documents() {
   const [docs, setDocs] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -18,9 +22,13 @@ export default function Documents() {
 
   useEffect(() => {
     fetchDocs();
+  }, [fetchDocs]);
+
+  useEffect(() => {
+    if (!docs.some(isIndexing)) return undefined;
     const interval = setInterval(fetchDocs, 5000);
     return () => clearInterval(interval);
-  }, [fetchDocs]);
+  }, [docs, fetchDocs]);
 
   const handleDrop = async ([file]) => {
     if (!file) return;

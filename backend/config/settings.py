@@ -149,6 +149,7 @@ else:
 # AI keys — free tiers, no credit card required
 GOOGLE_AI_API_KEY = config("GOOGLE_AI_API_KEY")
 GROQ_API_KEY = config("GROQ_API_KEY", default="")
+GROQ_MODEL = config("GROQ_MODEL", default="llama-3.1-8b-instant")
 
 # Generation model (Google AI Studio free tier)
 GEMINI_MODEL = config("GEMINI_MODEL", default="gemini-2.5-flash")
