@@ -115,22 +115,30 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
 }
 
-# CORS
-_cors_origins = config(
-    "CORS_ALLOWED_ORIGINS",
-    default="https://draftly.software,https://draftly-three.vercel.app,http://localhost:5173,http://127.0.0.1:5173",
-)
-if _cors_origins.strip() == "*":
-    CORS_ALLOW_ALL_ORIGINS = True
-else:
-    CORS_ALLOWED_ORIGINS = [o.rstrip("/") for o in _cors_origins.split(",") if o.strip()]
-
-CSRF_TRUSTED_ORIGINS = [
+DEFAULT_CORS_ALLOWED_ORIGINS = [
     "https://draftly.software",
+    "https://www.draftly.software",
     "https://draftly-three.vercel.app",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
+
+# CORS
+_cors_origins = config(
+    "CORS_ALLOWED_ORIGINS",
+    default=",".join(DEFAULT_CORS_ALLOWED_ORIGINS),
+)
+if _cors_origins.strip() == "*":
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    configured_cors_origins = [
+        o.strip().rstrip("/") for o in _cors_origins.split(",") if o.strip()
+    ]
+    CORS_ALLOWED_ORIGINS = list(
+        dict.fromkeys([*DEFAULT_CORS_ALLOWED_ORIGINS, *configured_cors_origins])
+    )
+
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(DEFAULT_CORS_ALLOWED_ORIGINS))
 
 # Celery
 CELERY_BROKER_URL = config("REDIS_URL", default="redis://localhost:6379/0")

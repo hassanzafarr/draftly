@@ -1,8 +1,15 @@
 import axios from "axios";
 
+const configuredApiUrl = import.meta.env.VITE_API_URL;
+const normalizedApiUrl = configuredApiUrl?.replace(/\/+$/, "");
+const baseURL = normalizedApiUrl
+  ? normalizedApiUrl.endsWith("/api")
+    ? normalizedApiUrl
+    : `${normalizedApiUrl}/api`
+  : "/api";
+
 const api = axios.create({
-  // baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "/api",
-  baseURL: `https://web-production-a0fce.up.railway.app/api`,
+  baseURL,
   headers: { "Content-Type": "application/json" },
 });
 
@@ -16,13 +23,16 @@ api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !original._retry) {
+    if (error.response?.status === 401 && original && !original._retry) {
       original._retry = true;
       const refresh = localStorage.getItem("refresh_token");
       if (refresh) {
         try {
-          const { data } = await axios.post("/api/auth/token/refresh/", { refresh });
+          const { data } = await axios.post(`${baseURL}/auth/token/refresh/`, {
+            refresh,
+          });
           localStorage.setItem("access_token", data.access);
+          original.headers = original.headers || {};
           original.headers.Authorization = `Bearer ${data.access}`;
           return api(original);
         } catch {
