@@ -1,12 +1,33 @@
 from pathlib import Path
 from decouple import config, Csv
 from datetime import timedelta
+from corsheaders.defaults import default_headers
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config("SECRET_KEY")
 DEBUG = config("DEBUG", default=False, cast=bool)
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1,backend,draftly.software,.up.railway.app", cast=Csv())
+SENTRY_DSN = config("SENTRY_DSN", default="")
+
+if SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.celery import CeleryIntegration
+    from sentry_sdk.integrations.django import DjangoIntegration
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=config(
+            "SENTRY_ENVIRONMENT",
+            default="development" if DEBUG else "production",
+        ),
+        integrations=[
+            DjangoIntegration(),
+            CeleryIntegration(),
+        ],
+        traces_sample_rate=config("SENTRY_TRACES_SAMPLE_RATE", default=0, cast=float),
+        send_default_pii=config("SENTRY_SEND_DEFAULT_PII", default=False, cast=bool),
+    )
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -139,6 +160,10 @@ else:
     )
 
 CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(DEFAULT_CORS_ALLOWED_ORIGINS))
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "baggage",
+    "sentry-trace",
+]
 
 # Celery
 CELERY_BROKER_URL = config("REDIS_URL", default="redis://localhost:6379/0")

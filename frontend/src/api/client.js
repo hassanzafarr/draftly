@@ -1,4 +1,5 @@
 import axios from "axios";
+import * as Sentry from "@sentry/react";
 
 const configuredApiUrl = import.meta.env.VITE_API_URL;
 const normalizedApiUrl = configuredApiUrl?.replace(/\/+$/, "");
@@ -40,6 +41,9 @@ api.interceptors.response.use(
           window.location.href = "/login";
         }
       }
+    }
+    if (error.response?.status >= 500 || !error.response) {
+      Sentry.captureException(error);
     }
     return Promise.reject(error);
   }

@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@sentry/react": "^10.51.0",
     "@tailwindcss/vite": "^4.2.4",
     "@tiptap/react": "^2.6.6",
     "@tiptap/starter-kit": "^2.6.6",
