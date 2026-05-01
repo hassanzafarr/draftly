@@ -60,9 +60,14 @@ def generate_proposal(request, rfp_pk):
     except RFP.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
+    tone = request.data.get("tone", Proposal.Tone.PROFESSIONAL)
+    if tone not in Proposal.Tone.values:
+        tone = Proposal.Tone.PROFESSIONAL
+
     proposal = Proposal.objects.create(
         rfp=rfp,
         org=request.user.org,
+        tone=tone,
         status=Proposal.Status.GENERATING,
     )
     generate_proposal_task.delay(str(proposal.id))

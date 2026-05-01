@@ -27,7 +27,7 @@ class ProposalSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Proposal
-        fields = ["id", "rfp", "rfp_title", "sections", "status", "error_message", "created_at", "updated_at"]
+        fields = ["id", "rfp", "rfp_title", "tone", "sections", "status", "error_message", "created_at", "updated_at"]
         read_only_fields = ["id", "rfp", "status", "created_at", "updated_at"]
 
 

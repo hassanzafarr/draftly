@@ -26,6 +26,13 @@ class Proposal(models.Model):
         FINAL = "final", "Final"
         FAILED = "failed", "Failed"
 
+    class Tone(models.TextChoices):
+        PROFESSIONAL = "professional", "Professional"
+        FORMAL = "formal", "Formal"
+        PERSUASIVE = "persuasive", "Persuasive"
+        FRIENDLY = "friendly", "Friendly"
+        TECHNICAL = "technical", "Technical"
+
     SECTION_KEYS = [
         "executive_summary",
         "understanding_requirements",
@@ -42,6 +49,7 @@ class Proposal(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     rfp = models.ForeignKey(RFP, on_delete=models.CASCADE, related_name="proposals")
     org = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="proposals")
+    tone = models.CharField(max_length=20, choices=Tone.choices, default=Tone.PROFESSIONAL)
     sections = models.JSONField(default=dict)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.GENERATING)
     error_message = models.TextField(blank=True)
