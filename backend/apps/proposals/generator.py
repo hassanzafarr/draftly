@@ -70,10 +70,21 @@ def retrieve_context(org_id: str, query_text: str, top_k: int = 20) -> str:
     return "\n\n---\n\n".join(parts)
 
 
-def _build_prompts(context: str, rfp_text: str) -> tuple[str, str]:
+TONE_INSTRUCTIONS = {
+    "professional": "Write in a professional tone — balanced, credible, and polished with clear business language.",
+    "formal": "Write in a formal tone — structured, precise, and authoritative with no colloquialisms.",
+    "persuasive": "Write in a persuasive tone — confident and client-focused, emphasizing value, outcomes, and why we are the best choice.",
+    "friendly": "Write in a friendly tone — warm, approachable, and conversational while remaining competent and helpful.",
+    "technical": "Write in a technical tone — detailed and precise, using domain-specific terminology and emphasizing methodology, specs, and implementation depth.",
+}
+
+
+def _build_prompts(context: str, rfp_text: str, tone: str = "professional") -> tuple[str, str]:
+    tone_instruction = TONE_INSTRUCTIONS.get(tone, TONE_INSTRUCTIONS["professional"])
     system_prompt = (
         "You are an expert proposal writer for a professional services firm. "
         "You write highly tailored, technically accurate proposals based strictly on provided context. "
+        f"TONE INSTRUCTION: {tone_instruction} "
         + SECTION_INSTRUCTIONS
     )
     user_message = (
@@ -135,10 +146,10 @@ def _generate_with_groq(system_prompt: str, user_message: str) -> dict:
     return _parse_sections(raw, "Groq")
 
 
-def generate_proposal_sync(rfp_text: str, org_id: str) -> dict:
+def generate_proposal_sync(rfp_text: str, org_id: str, tone: str = "professional") -> dict:
     """Retrieve context and generate proposal JSON, falling back to Groq on Gemini quota errors."""
     context = retrieve_context(org_id, rfp_text)
-    system_prompt, user_message = _build_prompts(context, rfp_text)
+    system_prompt, user_message = _build_prompts(context, rfp_text, tone)
 
     try:
         return _generate_with_gemini(system_prompt, user_message)

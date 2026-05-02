@@ -11,7 +11,7 @@ def generate_proposal_task(self, proposal_id: str):
 
     try:
         proposal = Proposal.objects.select_related("rfp", "org").get(id=proposal_id)
-        sections = generate_proposal_sync(proposal.rfp.raw_text, str(proposal.org_id))
+        sections = generate_proposal_sync(proposal.rfp.raw_text, str(proposal.org_id), proposal.tone)
         proposal.sections = sections
         proposal.status = Proposal.Status.DRAFT
         proposal.save(update_fields=["sections", "status"])

@@ -16,7 +16,7 @@ export const tones = [
   "Persuasive",
   "Professional",
   "Formal",
-  "Conversational",
+  "Friendly",
   "Technical",
 ];
 

@@ -77,7 +77,7 @@ export function Generator() {
             }
             const { data: rfp } = await api.post("/rfps/", rfpPayload, rfpConfig);
             toast.success("RFP saved — generating proposal…");
-            const { data: proposal } = await api.post(`/rfps/${rfp.id}/generate/`);
+            const { data: proposal } = await api.post(`/rfps/${rfp.id}/generate/`, { tone: tone.toLowerCase() });
             setProposalId(proposal.id);
 
             pollRef.current = setInterval(async () => {
