@@ -70,6 +70,44 @@ def retrieve_context(org_id: str, query_text: str, top_k: int = 20) -> str:
     return "\n\n---\n\n".join(parts)
 
 
+RFP_ANALYSIS_PROMPT = """
+Analyze the RFP/project brief below and return a JSON object with these exact keys:
+- client_name: string — name of the client or organization issuing the RFP
+- industry: string — specific industry/domain (e.g. "mental health services", "fintech", "government procurement")
+- compliance_requirements: array of strings — regulations, standards, certifications required (e.g. "HIPAA", "SOC 2", "ISO 27001")
+- key_requirements: array of strings — core deliverables and must-have features explicitly stated
+- evaluation_criteria: array of strings — how the proposal will be scored/evaluated (extract from scoring rubric if present)
+- budget_signals: string — any budget range, pricing expectations, or cost constraints mentioned (or "not specified")
+- timeline: string — project timeline, deadlines, or phasing mentioned (or "not specified")
+- emphasized_sections: array of strings — which of these proposal sections the RFP emphasizes most (from: executive_summary, understanding_requirements, proposed_solution, relevant_experience, team_qualifications, project_timeline, methodology, pricing, why_us, appendix)
+- red_flags: array of strings — disqualifiers, exclusions, or strict requirements that must not be missed
+- tone_preference: string — inferred preferred tone from RFP language (professional/formal/persuasive/technical/friendly)
+
+Return valid JSON only. No markdown fences.
+"""
+
+
+def _analyze_rfp(rfp_text: str) -> dict:
+    """Pass 1: extract structured understanding of the RFP before writing."""
+    _ensure_configured()
+    model = genai.GenerativeModel(
+        model_name=settings.GEMINI_MODEL,
+        generation_config={
+            "max_output_tokens": 1024,
+            "response_mime_type": "application/json",
+        },
+    )
+    prompt = f"{RFP_ANALYSIS_PROMPT}\n\nRFP TEXT:\n\n{rfp_text}"
+    response = model.generate_content(prompt)
+    try:
+        return json.loads(response.text)
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", response.text, re.DOTALL)
+        if match:
+            return json.loads(match.group())
+        return {}
+
+
 TONE_INSTRUCTIONS = {
     "professional": "Write in a professional tone — balanced, credible, and polished with clear business language.",
     "formal": "Write in a formal tone — structured, precise, and authoritative with no colloquialisms.",
@@ -79,7 +117,10 @@ TONE_INSTRUCTIONS = {
 }
 
 
-def _build_prompts(context: str, rfp_text: str, tone: str = "professional") -> tuple[str, str]:
+def _build_prompts(context: str, rfp_text: str, tone: str = "professional", rfp_brief: dict | None = None) -> tuple[str, str]:
+    # Use tone from Pass 1 analysis if not overridden
+    if rfp_brief and tone == "professional":
+        tone = rfp_brief.get("tone_preference", "professional")
     tone_instruction = TONE_INSTRUCTIONS.get(tone, TONE_INSTRUCTIONS["professional"])
     system_prompt = (
         "You are an expert proposal writer for a professional services firm. "
@@ -87,7 +128,24 @@ def _build_prompts(context: str, rfp_text: str, tone: str = "professional") -> t
         f"TONE INSTRUCTION: {tone_instruction} "
         + SECTION_INSTRUCTIONS
     )
+
+    brief_block = ""
+    if rfp_brief:
+        brief_block = (
+            "RFP ANALYSIS (use this to guide every section):\n"
+            f"- Client: {rfp_brief.get('client_name', 'Unknown')}\n"
+            f"- Industry/Domain: {rfp_brief.get('industry', 'Unknown')}\n"
+            f"- Compliance Requirements: {', '.join(rfp_brief.get('compliance_requirements', [])) or 'None stated'}\n"
+            f"- Key Requirements: {'; '.join(rfp_brief.get('key_requirements', []))}\n"
+            f"- Evaluation Criteria: {'; '.join(rfp_brief.get('evaluation_criteria', []))}\n"
+            f"- Budget Signals: {rfp_brief.get('budget_signals', 'Not specified')}\n"
+            f"- Timeline: {rfp_brief.get('timeline', 'Not specified')}\n"
+            f"- Emphasized Sections: {', '.join(rfp_brief.get('emphasized_sections', []))}\n"
+            f"- Red Flags / Must-Nots: {'; '.join(rfp_brief.get('red_flags', [])) or 'None'}\n\n"
+        )
+
     user_message = (
+        f"{brief_block}"
         f"CONTEXT FROM OUR HISTORICAL PROPOSALS AND CASE STUDIES:\n\n{context}\n\n"
         f"---\n\nNEW RFP / PROJECT BRIEF:\n\n{rfp_text}\n\n"
         "Generate the proposal JSON now."
@@ -147,9 +205,16 @@ def _generate_with_groq(system_prompt: str, user_message: str) -> dict:
 
 
 def generate_proposal_sync(rfp_text: str, org_id: str, tone: str = "professional") -> dict:
-    """Retrieve context and generate proposal JSON, falling back to Groq on Gemini quota errors."""
+    """Two-pass proposal generation: analyze RFP first, then write using structured brief."""
+    # Pass 1: analyze RFP — extract domain, compliance, scoring criteria, red flags
+    try:
+        rfp_brief = _analyze_rfp(rfp_text)
+    except Exception:
+        rfp_brief = {}  # non-fatal — degrade to single-pass if analysis fails
+
+    # Pass 2: retrieve context + generate proposal informed by Pass 1 brief
     context = retrieve_context(org_id, rfp_text)
-    system_prompt, user_message = _build_prompts(context, rfp_text, tone)
+    system_prompt, user_message = _build_prompts(context, rfp_text, tone, rfp_brief=rfp_brief)
 
     try:
         return _generate_with_gemini(system_prompt, user_message)
