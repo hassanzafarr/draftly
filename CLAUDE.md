@@ -65,9 +65,11 @@ PostgreSQL (Supabase) + pgvector extension
 
 External APIs:
   Google AI  → models/text-embedding-004 (768-dim vectors for chunks)
-  Google AI  → gemini-2.0-flash-exp (proposal section generation)
+  Google AI  → gemini-2.5-flash (proposal section generation, primary)
+  Groq       → llama-3.1-8b-instant (fallback on Gemini 429)
 
 File storage: local disk in dev (/media/), Supabase S3-compatible in prod
+Error monitoring: Sentry (frontend + backend + Celery)
 ```
 
 ### Multi-Tenancy
@@ -82,7 +84,7 @@ Subscription quotas are enforced by `OrgDocQuotaPermission` and `OrgProposalQuot
 | growth  | 200             | 25             |
 | agency  | unlimited       | unlimited      |
 
-Monthly quota resets on the 1st of each month (UTC). Only `status=processed` documents count toward the doc quota.
+Monthly quota resets on the 1st of each month (UTC). Only `status=processed` documents count toward the doc quota. **No payment/billing integration exists** — tiers are set manually.
 
 ### Key Async Flows
 
@@ -97,13 +99,16 @@ Monthly quota resets on the 1st of each month (UTC). Only `status=processed` doc
 1. Embed the full RFP text via Google AI (task type: `retrieval_query`)
 2. pgvector cosine distance search → top 20 chunks scoped to the org
 3. Build context string: `[Source N: {doc_title}]\n{chunk_content}` for all 20 chunks
-4. Call Gemini 2.0 Flash with system + user prompt; expect JSON with 10 keys
-5. Parse JSON (fallback: regex search for `{...}` pattern) → store in `Proposal.sections` (JSONField); set `status = draft`
-6. On error → `status = failed`
+4. Call Gemini 2.5 Flash with domain-aware system prompt; expect JSON with 10 keys
+5. On Gemini 429 → fall back to Groq `llama-3.1-8b-instant`
+6. Parse JSON (fallback: regex search for `{...}` pattern) → store in `Proposal.sections` (JSONField); set `status = draft`
+7. On error → `status = failed`; quota errors skip Celery retry
 
 Both tasks use Celery retry (max 2 retries, 30-second countdown).
 
-**Frontend polling**: `ProposalEditor` polls `GET /api/proposals/{id}/` every 3 seconds while `status === "generating"` until complete.
+**Frontend polling**:
+- `ProposalEditor` polls `GET /api/proposals/{id}/` every 3 seconds while `status === "generating"`
+- `Documents` page polls `GET /api/documents/` every 5 seconds while any doc is `status === "processing"`
 
 ### Proposal Sections
 
@@ -123,12 +128,12 @@ These keys are rendered as individual Tiptap rich-text editors in `ProposalEdito
 
 | Path | Purpose |
 |------|---------|
-| `config/settings.py` | Django settings; `GEMINI_MODEL`, `EMBEDDING_MODEL`, `EMBEDDING_DIMS` constants |
+| `config/settings.py` | Django settings; `GEMINI_MODEL`, `EMBEDDING_MODEL`, `EMBEDDING_DIMS` constants; Sentry init |
 | `config/celery.py` | Celery app config wired to Redis |
-| `apps/accounts/` | `Organization`, `User` (custom AbstractBaseUser), JWT registration/login |
-| `apps/documents/` | `Document`, `Chunk` models; `ingest_document` Celery task; `pipeline.py` text extraction |
-| `apps/proposals/` | `RFP`, `Proposal` models; `generate_proposal_task` Celery task; `generator.py` core logic |
-| `apps/core/` | Shared utilities: embedding helpers, custom DRF permissions, storage backends |
+| `apps/accounts/` | `Organization` (tiers + quotas), `User` (admin/member roles), JWT register/login/me |
+| `apps/documents/` | `Document`, `Chunk` models; `ingest_document` Celery task; `pipeline.py` text extraction + chunking |
+| `apps/proposals/` | `RFP`, `Proposal` models; `generate_proposal_task` Celery task; `generator.py` RAG + Gemini/Groq logic |
+| `apps/core/` | `embeddings.py` (Google AI batch embed); `permissions.py` (IsOrgMember, quota permissions) |
 
 Django apps are declared under `apps/` namespace (e.g., `apps.accounts`).
 
@@ -136,10 +141,44 @@ Django apps are declared under `apps/` namespace (e.g., `apps.accounts`).
 
 | Path | Purpose |
 |------|---------|
-| `api/` | Axios instance with JWT request interceptor and 401→refresh response interceptor |
-| `store/` | Zustand `useAuthStore` (user, login, logout, fetchMe); tokens persisted in `localStorage` |
-| `pages/` | `Login`, `Register`, `Dashboard`, `Documents`, `NewRFP`, `ProposalEditor` |
-| `components/` | `Navbar`, `Layout`, `DocumentCard`, `UploadZone`, `ProposalSection` |
+| `api/client.js` | Axios instance with JWT request interceptor and 401→refresh response interceptor |
+| `store/auth.js` | Zustand `useAuthStore` (user, login, logout, fetchMe); tokens in `localStorage` |
+| `instrument.js` | Sentry frontend initialization |
+| `lib/mock-data.js` | Mock data for Analytics and Templates pages |
+| `pages/Login.jsx` | Login form |
+| `pages/Register.jsx` | Registration form |
+| `pages/Dashboard.jsx` | Home: doc/proposal counts, recent proposals, org info, subscription tier |
+| `pages/Documents.jsx` | Upload zone, document list with status polling (5s while processing), delete |
+| `pages/NewRFP.jsx` | Create RFP (title + text or file upload), triggers proposal generation |
+| `pages/ProposalEditor.jsx` | 10-section proposal editor, polling while generating, PDF export (jsPDF), save/finalize |
+| `pages/Editor.jsx` | Alternative/enhanced proposal editor (similar structure to ProposalEditor) |
+| `pages/Analytics.jsx` | Mock analytics dashboard with Recharts (monthly perf, win rate, proposals by category) |
+| `pages/Templates.jsx` | Template gallery with category filtering (mock data only) |
+| `pages/knowledge.jsx` | Knowledge base management (similar to Documents, adds category badges) |
+| `pages/NotFound.jsx` | 404 page |
+| `components/AppShell.jsx` | Main app wrapper with sidebar + navbar layout |
+| `components/Sidebar.jsx` | Left nav sidebar |
+| `components/Navbar.jsx` | Top navigation bar |
+| `components/AuthShell.jsx` | Auth page wrapper (no sidebar) |
+| `components/AuthForm.jsx` | Reusable login/signup form |
+| `components/Generator.jsx` | Proposal generation wizard UI |
+| `components/UploadZone.jsx` | Drag-drop file upload |
+| `components/DocumentCard.jsx` | Single document card (status, delete) |
+| `components/ProposalSection.jsx` | Editable proposal section with Tiptap |
+| `components/ThemeProvider.jsx` | Dark/light theme context |
+
+### Frontend Routes (`App.jsx`)
+
+| Route | Component |
+|-------|-----------|
+| `/login` | Login |
+| `/register` | Register |
+| `/` | Dashboard |
+| `/templates` | Templates |
+| `/knowledge` | Knowledge (doc management with categories) |
+| `/analytics` | Analytics (mock) |
+| `/rfps/new` | NewRFP |
+| `/proposals/:id` | ProposalEditor |
 
 Vite proxies `/api` requests to the backend in development (target set via `VITE_API_URL` env var).
 
@@ -150,9 +189,11 @@ Vite proxies `/api` requests to the backend in development (target set via `VITE
 Copy `.env.example` to `.env` and fill in at minimum:
 
 ```
-GOOGLE_AI_API_KEY    # for both chunk embeddings and proposal generation (Gemini)
+GOOGLE_AI_API_KEY    # chunk embeddings + Gemini proposal generation
+GROQ_API_KEY         # fallback LLM on Gemini rate limit
 SECRET_KEY           # Django secret key
 DATABASE_URL         # Supabase Postgres connection string (includes pgvector)
+SENTRY_DSN           # optional — Sentry error monitoring
 ```
 
 For local dev outside Docker set `DB_HOST=localhost`. Database defaults target Docker service names.
@@ -161,11 +202,31 @@ JWT tokens: 8-hour access, 7-day refresh (rotate-refresh enabled via `SIMPLE_JWT
 
 ---
 
+## Implemented Features
+
+- Multi-tenant orgs with subscription tiers (starter / growth / agency)
+- User auth: JWT register, login, refresh, `/me` endpoint; admin/member roles per org
+- Document management: PDF/DOCX/TXT upload, async ingestion, chunking, pgvector embedding, quota enforcement
+- RFP submission: text input or file upload (text extracted server-side)
+- AI proposal generation: RAG (top-20 chunks) → Gemini 2.5 Flash → domain-aware 10-section JSON
+- Groq fallback on Gemini 429 rate limit
+- Proposal editing: 10-section Tiptap editors, save draft, finalize
+- PDF export via jsPDF (client-side)
+- Conditional frontend polling (docs + proposals)
+- Sentry error monitoring (React + Django + Celery)
+- Docker Compose for local dev; Railway (backend) + Vercel (frontend) for prod
+
+---
+
 ## Known Gaps
 
-- **No SSE streaming**: Frontend uses polling (every 3s); no streaming endpoint is implemented.
+- **No Stripe/billing**: Subscription tiers enforced by permissions but no payment flow.
+- **No team invitations**: User model supports admin/member roles and multiple users per org, but no invite endpoint or UI exists.
+- **No SSE/WebSocket**: Frontend uses polling (3s proposals, 5s docs); no streaming endpoint.
 - **No tests**: Neither pytest nor Jest is configured.
-- **No CI/CD**: No GitHub Actions workflows exist.
-- **No PDF/DOCX export** for generated proposals.
-- **No multi-user org onboarding**: Only one admin per org; no invitation flow.
-- **Chunking is word-based**, not token-based — chunk size may vary significantly for non-English or code-heavy documents.
+- **No CI/CD**: Dockerfiles and Railway/Vercel configs exist but no GitHub Actions workflows.
+- **No DOCX export**: PDF export only (jsPDF, client-side).
+- **Analytics/Templates are mock**: No real data — uses `lib/mock-data.js`.
+- **Knowledge page is duplicate**: `knowledge.jsx` overlaps with `Documents.jsx`; no backend distinction.
+- **Word-based chunking**: Chunk sizes vary for non-English or code-heavy docs.
+- **Editor.jsx vs ProposalEditor.jsx**: Two similar editor pages — unclear which is canonical.
