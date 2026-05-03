@@ -19,7 +19,7 @@ export function Sidebar() {
 
   return (
     <aside
-      className="relative z-20 flex h-dvh w-[78px] shrink-0 flex-col items-center justify-between border-r border-hairline py-6 backdrop-blur-xl"
+      className="sticky top-0 z-20 flex h-dvh w-[78px] shrink-0 flex-col items-center justify-between border-r border-hairline py-6 backdrop-blur-xl"
       style={{ background: "var(--sidebar-bg)" }}
     >
       <Link to="/" className="group relative flex h-11 w-11 items-center justify-center rounded-xl">
