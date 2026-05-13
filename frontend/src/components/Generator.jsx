@@ -57,8 +57,46 @@ export function Generator() {
         setFiles((p) => p.filter((f) => f.id !== id));
     }
 
+    const MIN_CHARS = 200;
+    const MIN_WORDS = 30;
+    const ALLOWED_EXTS = ["pdf", "docx", "txt"];
+    const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
     async function generate() {
-        if (!input.trim() && files.length === 0) return;
+        const trimmed = input.trim();
+        const hasFile = files.length > 0 && !!files[0]?.file;
+
+        if (!trimmed && !hasFile) {
+            toast.error("Type an RFP brief or attach a file.");
+            return;
+        }
+
+        if (hasFile) {
+            const f = files[0].file;
+            const ext = f.name.split(".").pop()?.toLowerCase() || "";
+            if (!ALLOWED_EXTS.includes(ext)) {
+                toast.error(`Unsupported file type .${ext}. Allowed: pdf, docx, txt.`);
+                return;
+            }
+            if (f.size === 0) {
+                toast.error("Uploaded file is empty.");
+                return;
+            }
+            if (f.size > MAX_FILE_BYTES) {
+                toast.error("File exceeds 10 MB limit.");
+                return;
+            }
+        } else {
+            if (trimmed.length < MIN_CHARS) {
+                toast.error(`RFP too short. Need at least ${MIN_CHARS} characters describing scope and requirements.`);
+                return;
+            }
+            if (trimmed.split(/\s+/).length < MIN_WORDS) {
+                toast.error(`RFP too short. Need at least ${MIN_WORDS} words describing scope and requirements.`);
+                return;
+            }
+        }
+
         setPhase("thinking");
         setStepIdx(0);
         setProgress(0);

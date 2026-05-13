@@ -194,9 +194,28 @@ GOOGLE_AI_API_KEY = config("GOOGLE_AI_API_KEY")
 GROQ_API_KEY = config("GROQ_API_KEY", default="")
 GROQ_MODEL = config("GROQ_MODEL", default="llama-3.1-8b-instant")
 
+# Cohere Rerank — free trial tier: 1000 calls/month, 10 req/min
+COHERE_API_KEY = config("COHERE_API_KEY", default="")
+COHERE_RERANK_MODEL = config("COHERE_RERANK_MODEL", default="rerank-english-v3.0")
+RERANK_ENABLED = config("RERANK_ENABLED", default=True, cast=bool)
+RERANK_FETCH_TOP_K = config("RERANK_FETCH_TOP_K", default=50, cast=int)
+RERANK_KEEP_TOP_K = config("RERANK_KEEP_TOP_K", default=10, cast=int)
+
 # Generation model (Google AI Studio free tier)
 GEMINI_MODEL = config("GEMINI_MODEL", default="gemini-2.5-flash")
+
+# Anthropic Claude — primary provider (Haiku 4.5 default, ~$0.008/proposal)
+ANTHROPIC_API_KEY = config("ANTHROPIC_API_KEY", default="")
+CLAUDE_MODEL = config("CLAUDE_MODEL", default="claude-haiku-4-5-20251001")
+CLAUDE_ENABLED = config("CLAUDE_ENABLED", default=True, cast=bool)
 
 # Embeddings — Google AI Studio (free tier, same key as generation)
 EMBEDDING_MODEL = "models/gemini-embedding-001"
 EMBEDDING_DIMS = 768
+
+# RFP input validation thresholds
+RFP_MIN_CHARS = config("RFP_MIN_CHARS", default=200, cast=int)
+RFP_MIN_WORDS = config("RFP_MIN_WORDS", default=30, cast=int)
+RFP_MAX_CHARS = config("RFP_MAX_CHARS", default=200_000, cast=int)
+RFP_INTENT_CHECK_ENABLED = config("RFP_INTENT_CHECK_ENABLED", default=True, cast=bool)
+RFP_INTENT_MIN_CONFIDENCE = config("RFP_INTENT_MIN_CONFIDENCE", default=0.7, cast=float)

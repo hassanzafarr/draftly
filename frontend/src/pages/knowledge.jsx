@@ -8,10 +8,12 @@ import {
 import api from "../api/client";
 
 const CATEGORIES = [
-  { id: "Company Profile",  label: "Company Profile",  description: "Brand guidelines, about us, team bios", icon: Briefcase, hex: "var(--cyan)" },
-  { id: "Past Proposals",   label: "Past Proposals",   description: "Previously submitted proposals",         icon: Layers,    hex: "var(--magenta)" },
-  { id: "Case Studies",     label: "Case Studies",     description: "Success stories and project outcomes",   icon: Briefcase, hex: "var(--emerald)" },
+  { id: "company_profile", label: "Company Profile", description: "Brand guidelines, about us, team bios", icon: Briefcase, hex: "var(--cyan)" },
+  { id: "past_proposals",  label: "Past Proposals",  description: "Previously submitted proposals",         icon: Layers,    hex: "var(--magenta)" },
+  { id: "case_studies",    label: "Case Studies",    description: "Success stories and project outcomes",   icon: Briefcase, hex: "var(--emerald)" },
 ];
+
+const CATEGORY_LABELS = CATEGORIES.reduce((acc, c) => { acc[c.id] = c.label; return acc; }, {});
 
 function docToUiStatus(status) {
   if (status === "processed") return "Ready";
@@ -28,7 +30,8 @@ export default function Knowledge() {
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [active, setActive] = useState("Company Profile");
+  const [active, setActive] = useState("company_profile");
+  const [filter, setFilter] = useState("all");
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef(null);
 
@@ -57,6 +60,7 @@ export default function Knowledge() {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("title", file.name.replace(/\.[^/.]+$/, ""));
+        formData.append("category", active);
         try {
           await api.post("/documents/", formData, {
             headers: { "Content-Type": "multipart/form-data" },
@@ -83,6 +87,7 @@ export default function Knowledge() {
   };
 
   const totalIndexed = docs.filter((d) => d.status === "processed").length;
+  const visibleDocs = filter === "all" ? docs : docs.filter((d) => d.category === filter);
 
   return (
     <div className="px-8 py-10">
@@ -149,7 +154,7 @@ export default function Knowledge() {
               <p className="text-xs text-muted-foreground">
                 {uploading
                   ? "Please wait"
-                  : <>or click to browse · PDF, DOCX, TXT · adds to <span className="text-cyan">{active}</span></>
+                  : <>or click to browse · PDF, DOCX, TXT · adds to <span className="text-cyan">{CATEGORY_LABELS[active]}</span></>
                 }
               </p>
               {dragging && (
@@ -262,8 +267,24 @@ export default function Knowledge() {
                   <p className="font-display text-sm font-semibold text-foreground">Uploaded Files</p>
                 </div>
                 <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  {docs.length} total
+                  {visibleDocs.length} / {docs.length}
                 </span>
+              </div>
+
+              <div className="mb-3 flex flex-wrap gap-1.5">
+                <FilterPill active={filter === "all"} onClick={() => setFilter("all")}>
+                  All
+                </FilterPill>
+                {CATEGORIES.map((c) => (
+                  <FilterPill
+                    key={c.id}
+                    active={filter === c.id}
+                    onClick={() => setFilter(c.id)}
+                    hex={c.hex}
+                  >
+                    {c.label}
+                  </FilterPill>
+                ))}
               </div>
 
               <div className="space-y-2">
@@ -273,16 +294,18 @@ export default function Knowledge() {
                   </div>
                 ) : (
                   <AnimatePresence mode="popLayout">
-                    {docs.length === 0 ? (
+                    {visibleDocs.length === 0 ? (
                       <motion.p
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         className="px-3 py-10 text-center text-sm text-muted-foreground"
                       >
-                        No files yet. Drop one to feed the brain.
+                        {docs.length === 0
+                          ? "No files yet. Drop one to feed the brain."
+                          : `No files in ${filter === "all" ? "this view" : CATEGORY_LABELS[filter]}.`}
                       </motion.p>
                     ) : (
-                      docs.map((doc, i) => {
+                      visibleDocs.map((doc, i) => {
                         const uiStatus = docToUiStatus(doc.status);
                         return (
                           <motion.div
@@ -301,6 +324,7 @@ export default function Knowledge() {
                               <div className="min-w-0 flex-1">
                                 <p className="truncate text-sm font-medium text-foreground">{doc.title}</p>
                                 <p className="font-mono text-[10px] text-muted-foreground">
+                                  {CATEGORY_LABELS[doc.category] || "Uncategorized"} ·{" "}
                                   {doc.status === "failed" && doc.error_message
                                     ? doc.error_message
                                     : doc.status}
@@ -338,6 +362,22 @@ export default function Knowledge() {
         </div>
       </div>
     </div>
+  );
+}
+
+function FilterPill({ active, onClick, hex, children }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-full border px-2.5 py-1 text-[10px] font-medium transition ${
+        active
+          ? "border-violet/60 bg-violet/15 text-foreground"
+          : "border-hairline bg-surface/40 text-muted-foreground hover:border-violet/30"
+      }`}
+      style={active && hex ? { borderColor: hex, color: hex, background: `color-mix(in oklab, ${hex} 14%, transparent)` } : undefined}
+    >
+      {children}
+    </button>
   );
 }
 

@@ -10,8 +10,8 @@ class Organization(models.Model):
         AGENCY = "agency", "Agency"
 
     QUOTA = {
-        "starter": {"docs": 50, "proposals": 5},
-        "growth": {"docs": 200, "proposals": 25},
+        "starter": {"docs": 50, "proposals": 50},
+        "growth": {"docs": 200, "proposals": 55},
         "agency": {"docs": 999999, "proposals": 999999},
     }
 

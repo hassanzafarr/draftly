@@ -16,12 +16,18 @@ class Document(models.Model):
         PROCESSED = "processed", "Processed"
         FAILED = "failed", "Failed"
 
+    class Category(models.TextChoices):
+        COMPANY_PROFILE = "company_profile", "Company Profile"
+        PAST_PROPOSALS = "past_proposals", "Past Proposals"
+        CASE_STUDIES = "case_studies", "Case Studies"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     org = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="documents")
     uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="documents")
     title = models.CharField(max_length=500)
     file = models.FileField(upload_to="documents/%Y/%m/")
     file_type = models.CharField(max_length=10, choices=FileType.choices)
+    category = models.CharField(max_length=32, choices=Category.choices, default=Category.COMPANY_PROFILE)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     chunk_count = models.IntegerField(default=0)
     error_message = models.TextField(blank=True)

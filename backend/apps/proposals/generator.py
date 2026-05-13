@@ -1,11 +1,14 @@
 import json
 import re
+import time
 from urllib import error, request
 import google.generativeai as genai
 from django.conf import settings
 from pgvector.django import CosineDistance
 from apps.documents.models import Chunk
 from apps.core.embeddings import embed_text
+from .reranker import rerank_chunks
+from . import claude_provider
 
 SECTION_INSTRUCTIONS = """
 Generate a professional 10-section proposal in JSON format with these exact keys:
@@ -23,10 +26,11 @@ Generate a professional 10-section proposal in JSON format with these exact keys
 Rules:
 - Treat the NEW RFP / PROJECT BRIEF as the primary source of truth.
 - Use context chunks only as supporting company proof, case studies, or reusable capability language.
+- Each context chunk is labeled by source type: "Company Profile" (brand, team, capabilities — use for executive_summary, team_qualifications, why_us), "Past Proposal" (prior winning language, pricing, methodology — use for methodology, pricing, proposed_solution), "Case Study" (concrete client outcomes — use for relevant_experience, proposed_solution, why_us). Weight chunks by source type when writing each section; do not pull pricing from Company Profile or team bios from Case Studies.
 - Mirror the buyer's industry, terminology, compliance needs, must-have features, and explicit instructions.
 - If the RFP is healthcare, mental health, finance, legal, or another regulated field, include the relevant compliance and safety requirements throughout the proposal.
 - Do not replace the buyer's domain with a generic business domain such as visitors, generic callers, or office reception.
-- Each section should be 2-4 detailed paragraphs.
+- Each section should be 2-3 paragraphs maximum. Keep total proposal under 4000 words.
 - Use professional business language.
 - Return valid JSON only — no markdown fences, no extra text outside the JSON object.
 """
@@ -56,18 +60,66 @@ def _parse_sections(raw: str, provider: str) -> dict:
         raise ValueError(f"{provider} did not return valid JSON.")
 
 
-def retrieve_context(org_id: str, query_text: str, top_k: int = 20) -> str:
-    query_vector = embed_text(query_text)
-    chunks = (
-        Chunk.objects.filter(org_id=org_id)
-        .annotate(distance=CosineDistance("embedding", query_vector))
-        .order_by("distance")[:top_k]
-    )
+CATEGORY_LABELS = {
+    "company_profile": "Company Profile",
+    "past_proposals": "Past Proposal",
+    "case_studies": "Case Study",
+}
+
+
+def _format_context(chunks: list) -> str:
     parts = []
     for i, chunk in enumerate(chunks, 1):
         source = chunk.metadata.get("source_title", "Unknown")
-        parts.append(f"[Source {i}: {source}]\n{chunk.content}")
+        category = CATEGORY_LABELS.get(chunk.metadata.get("category"), "Reference")
+        parts.append(f"[Source {i} | {category}: {source}]\n{chunk.content}")
     return "\n\n---\n\n".join(parts)
+
+
+def retrieve_chunks_with_metrics(org_id: str, query_text: str, top_k: int | None = None) -> tuple[list, dict]:
+    """Fetch via vector search, rerank, return chunks + telemetry."""
+    fetch_k = top_k or settings.RERANK_FETCH_TOP_K
+
+    started = time.perf_counter()
+    query_vector = embed_text(query_text)
+    vector_chunks = list(
+        Chunk.objects.filter(org_id=org_id)
+        .annotate(distance=CosineDistance("embedding", query_vector))
+        .order_by("distance")[:fetch_k]
+    )
+    vector_rank_by_id = {str(c.id): i for i, c in enumerate(vector_chunks)}
+
+    reranked, rerank_meta = rerank_chunks(query_text, vector_chunks)
+    retrieval_latency_ms = int((time.perf_counter() - started) * 1000)
+
+    chunks_used = []
+    for chunk in reranked:
+        cid = str(chunk.id)
+        chunks_used.append({
+            "chunk_id": cid,
+            "document_id": chunk.metadata.get("document_id"),
+            "source_title": chunk.metadata.get("source_title", "Unknown"),
+            "category": chunk.metadata.get("category"),
+            "vector_rank": vector_rank_by_id.get(cid),
+            "rerank_score": rerank_meta["scores"].get(cid),
+        })
+
+    meta = {
+        "fetch_top_k": fetch_k,
+        "rerank_top_k": len(reranked),
+        "rerank_used": rerank_meta["used"],
+        "rerank_latency_ms": rerank_meta["latency_ms"],
+        "rerank_error": rerank_meta["error"],
+        "retrieval_latency_ms": retrieval_latency_ms,
+        "chunks_used": chunks_used,
+    }
+    return reranked, meta
+
+
+def retrieve_context(org_id: str, query_text: str, top_k: int | None = None) -> str:
+    """Backward-compatible wrapper returning only the context string."""
+    chunks, _ = retrieve_chunks_with_metrics(org_id, query_text, top_k)
+    return _format_context(chunks)
 
 
 RFP_ANALYSIS_PROMPT = """
@@ -88,7 +140,18 @@ Return valid JSON only. No markdown fences.
 
 
 def _analyze_rfp(rfp_text: str) -> dict:
-    """Pass 1: extract structured understanding of the RFP before writing."""
+    """Pass 1: extract structured understanding of the RFP before writing.
+
+    Tries Claude first (primary), falls back to Gemini on failure.
+    """
+    if settings.CLAUDE_ENABLED and settings.ANTHROPIC_API_KEY:
+        try:
+            return claude_provider.analyze_rfp(RFP_ANALYSIS_PROMPT, rfp_text)
+        except Exception as exc:
+            logger_msg = f"Claude RFP analyzer failed, falling back to Gemini: {exc}"
+            import logging
+            logging.getLogger(__name__).warning(logger_msg)
+
     _ensure_configured()
     model = genai.GenerativeModel(
         model_name=settings.GEMINI_MODEL,
@@ -189,6 +252,8 @@ def _generate_with_groq(system_prompt: str, user_message: str) -> dict:
         headers={
             "Authorization": f"Bearer {settings.GROQ_API_KEY}",
             "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "draftly-backend/1.0 (+https://draftly.software)",
         },
         method="POST",
     )
@@ -204,21 +269,66 @@ def _generate_with_groq(system_prompt: str, user_message: str) -> dict:
     return _parse_sections(raw, "Groq")
 
 
+def _generate_with_fallbacks(system_prompt: str, user_message: str) -> tuple[str, dict]:
+    """Try Claude (primary) → Gemini → Groq. Returns (provider_name, sections)."""
+    import logging
+    log = logging.getLogger(__name__)
+
+    # Groq llama-3.1-8b free tier caps at 6k TPM — useless for our ~16k-token prompt.
+    # Skip Groq entirely if prompt is bigger than the free-tier ceiling.
+    approx_tokens = (len(system_prompt) + len(user_message)) // 4
+    groq_usable = approx_tokens < 5500
+
+    if settings.CLAUDE_ENABLED and settings.ANTHROPIC_API_KEY:
+        try:
+            sections = claude_provider.generate_proposal(system_prompt, user_message)
+            return "claude", sections
+        except Exception as exc:
+            log.warning("Claude generation failed, falling back to Gemini: %s", exc)
+
+    try:
+        sections = _generate_with_gemini(system_prompt, user_message)
+        return "gemini", sections
+    except Exception as exc:
+        if _is_rate_limit_error(exc) and groq_usable and settings.GROQ_API_KEY:
+            log.warning("Gemini rate-limited, falling back to Groq: %s", exc)
+            sections = _generate_with_groq(system_prompt, user_message)
+            return "groq", sections
+        raise
+
+
 def generate_proposal_sync(rfp_text: str, org_id: str, tone: str = "professional") -> dict:
     """Two-pass proposal generation: analyze RFP first, then write using structured brief."""
-    # Pass 1: analyze RFP — extract domain, compliance, scoring criteria, red flags
+    sections, _ = generate_proposal_with_metrics(rfp_text, org_id, tone)
+    return sections
+
+
+def generate_proposal_with_metrics(rfp_text: str, org_id: str, tone: str = "professional") -> tuple[dict, dict]:
+    """
+    Two-pass generation + telemetry.
+    Returns (sections_dict, metrics_dict).
+    metrics_dict shape matches GenerationEvent fields plus rfp_brief.
+    """
+    overall_started = time.perf_counter()
+
     try:
         rfp_brief = _analyze_rfp(rfp_text)
     except Exception:
-        rfp_brief = {}  # non-fatal — degrade to single-pass if analysis fails
+        rfp_brief = {}
 
-    # Pass 2: retrieve context + generate proposal informed by Pass 1 brief
-    context = retrieve_context(org_id, rfp_text)
+    chunks, retrieval_meta = retrieve_chunks_with_metrics(org_id, rfp_text)
+    context = _format_context(chunks)
     system_prompt, user_message = _build_prompts(context, rfp_text, tone, rfp_brief=rfp_brief)
 
-    try:
-        return _generate_with_gemini(system_prompt, user_message)
-    except Exception as exc:
-        if _is_rate_limit_error(exc):
-            return _generate_with_groq(system_prompt, user_message)
-        raise
+    gen_started = time.perf_counter()
+    provider, sections = _generate_with_fallbacks(system_prompt, user_message)
+    generation_latency_ms = int((time.perf_counter() - gen_started) * 1000)
+
+    metrics = {
+        **retrieval_meta,
+        "provider": provider,
+        "generation_latency_ms": generation_latency_ms,
+        "total_latency_ms": int((time.perf_counter() - overall_started) * 1000),
+        "rfp_brief": rfp_brief,
+    }
+    return sections, metrics

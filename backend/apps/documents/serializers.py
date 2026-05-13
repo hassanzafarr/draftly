@@ -8,7 +8,7 @@ class DocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Document
         fields = [
-            "id", "title", "file_type", "status", "chunk_count",
+            "id", "title", "file_type", "category", "status", "chunk_count",
             "error_message", "uploaded_by_email", "created_at",
         ]
         read_only_fields = ["id", "status", "chunk_count", "error_message", "created_at"]
@@ -17,6 +17,11 @@ class DocumentSerializer(serializers.ModelSerializer):
 class DocumentUploadSerializer(serializers.Serializer):
     file = serializers.FileField()
     title = serializers.CharField(max_length=500, required=False)
+    category = serializers.ChoiceField(
+        choices=Document.Category.choices,
+        required=False,
+        default=Document.Category.COMPANY_PROFILE,
+    )
 
     def validate_file(self, value):
         ext = value.name.rsplit(".", 1)[-1].lower()

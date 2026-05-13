@@ -61,3 +61,54 @@ class Proposal(models.Model):
 
     def __str__(self):
         return f"Proposal for {self.rfp.title}"
+
+
+class GenerationEvent(models.Model):
+    """Per-proposal telemetry for evaluating retrieval + generation quality."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    proposal = models.OneToOneField(Proposal, on_delete=models.CASCADE, related_name="event")
+    org = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="generation_events")
+
+    # Retrieval
+    fetch_top_k = models.IntegerField(default=0)
+    rerank_top_k = models.IntegerField(default=0)
+    rerank_used = models.BooleanField(default=False)
+    rerank_latency_ms = models.IntegerField(default=0)
+    retrieval_latency_ms = models.IntegerField(default=0)
+    chunks_used = models.JSONField(default=list)  # [{document_id, source_title, category, rerank_score, vector_rank}]
+
+    # Generation
+    provider = models.CharField(max_length=20, blank=True)  # "gemini" | "groq"
+    generation_latency_ms = models.IntegerField(default=0)
+    total_latency_ms = models.IntegerField(default=0)
+
+    # Quality signals
+    rfp_brief = models.JSONField(default=dict)
+    requirements_total = models.IntegerField(default=0)
+    requirements_hit = models.IntegerField(default=0)
+    red_flags_total = models.IntegerField(default=0)
+    red_flags_hit = models.IntegerField(default=0)
+    section_word_counts = models.JSONField(default=dict)  # {section_key: int}
+
+    # Outcome
+    success = models.BooleanField(default=False)
+    error_message = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["org", "-created_at"])]
+
+    @property
+    def requirements_coverage(self) -> float:
+        if self.requirements_total == 0:
+            return 0.0
+        return round(self.requirements_hit / self.requirements_total, 3)
+
+    @property
+    def red_flags_coverage(self) -> float:
+        if self.red_flags_total == 0:
+            return 0.0
+        return round(self.red_flags_hit / self.red_flags_total, 3)

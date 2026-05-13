@@ -10,10 +10,22 @@ export default function NewRFP() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const MIN_CHARS = 200;
+  const MIN_WORDS = 30;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!rawText.trim()) {
+    const trimmed = rawText.trim();
+    if (!trimmed) {
       toast.error("Please paste the RFP text.");
+      return;
+    }
+    if (trimmed.length < MIN_CHARS) {
+      toast.error(`RFP too short. Need at least ${MIN_CHARS} characters describing scope and requirements.`);
+      return;
+    }
+    if (trimmed.split(/\s+/).length < MIN_WORDS) {
+      toast.error(`RFP too short. Need at least ${MIN_WORDS} words describing scope and requirements.`);
       return;
     }
     setLoading(true);
@@ -59,7 +71,9 @@ export default function NewRFP() {
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono resize-none"
             placeholder="Paste the full RFP or project brief here..."
           />
-          <p className="text-xs text-gray-400 mt-1">{rawText.length} characters</p>
+          <p className={`text-xs mt-1 ${rawText.trim().length < MIN_CHARS ? "text-red-500" : "text-gray-400"}`}>
+            {rawText.length} characters {rawText.trim().length < MIN_CHARS && `(min ${MIN_CHARS})`}
+          </p>
         </div>
 
         <button

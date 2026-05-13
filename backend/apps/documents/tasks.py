@@ -46,6 +46,7 @@ def ingest_document(self, document_id: str):
                     "char_offset": chunks_data[i]["char_offset"],
                     "source_title": doc.title,
                     "document_id": str(doc.id),
+                    "category": doc.category,
                 },
             )
             for i in range(len(chunks_data))

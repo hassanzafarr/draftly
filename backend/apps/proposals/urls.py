@@ -7,4 +7,5 @@ urlpatterns = [
     path("rfps/<uuid:rfp_pk>/generate/", views.generate_proposal, name="generate-proposal"),
     path("proposals/", views.proposal_list, name="proposal-list"),
     path("proposals/<uuid:pk>/", views.proposal_detail, name="proposal-detail"),
+    path("metrics/generation/", views.generation_metrics, name="generation-metrics"),
 ]

@@ -13,6 +13,9 @@ from .tasks import ingest_document
 def document_list(request):
     if request.method == "GET":
         docs = Document.objects.filter(org=request.user.org)
+        category = request.query_params.get("category")
+        if category:
+            docs = docs.filter(category=category)
         return Response(DocumentSerializer(docs, many=True).data)
 
     parser_classes_list = [MultiPartParser]
@@ -22,6 +25,7 @@ def document_list(request):
     file = serializer.validated_data["file"]
     ext = file.name.rsplit(".", 1)[-1].lower()
     title = serializer.validated_data.get("title") or file.name
+    category = serializer.validated_data.get("category") or Document.Category.COMPANY_PROFILE
 
     doc = Document.objects.create(
         org=request.user.org,
@@ -29,6 +33,7 @@ def document_list(request):
         title=title,
         file=file,
         file_type=ext,
+        category=category,
     )
     ingest_document.delay(str(doc.id))
     return Response(DocumentSerializer(doc).data, status=status.HTTP_201_CREATED)

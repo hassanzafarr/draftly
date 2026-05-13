@@ -4,18 +4,63 @@ from celery import shared_task
 logger = logging.getLogger(__name__)
 
 
+def _persist_event(proposal, metrics: dict, *, success: bool, error_message: str = "") -> None:
+    from .models import GenerationEvent
+    from .evaluator import evaluate_proposal
+
+    metrics = metrics or {}
+    quality = {}
+    if success:
+        try:
+            quality = evaluate_proposal(proposal.sections, metrics.get("rfp_brief") or {})
+        except Exception as exc:
+            logger.warning("evaluate_proposal failed for %s: %s", proposal.id, exc)
+
+    defaults = {
+        "org": proposal.org,
+        "fetch_top_k": metrics.get("fetch_top_k", 0),
+        "rerank_top_k": metrics.get("rerank_top_k", 0),
+        "rerank_used": metrics.get("rerank_used", False),
+        "rerank_latency_ms": metrics.get("rerank_latency_ms", 0),
+        "retrieval_latency_ms": metrics.get("retrieval_latency_ms", 0),
+        "chunks_used": metrics.get("chunks_used", []),
+        "provider": metrics.get("provider", ""),
+        "generation_latency_ms": metrics.get("generation_latency_ms", 0),
+        "total_latency_ms": metrics.get("total_latency_ms", 0),
+        "rfp_brief": metrics.get("rfp_brief", {}),
+        "requirements_total": quality.get("requirements_total", 0),
+        "requirements_hit": quality.get("requirements_hit", 0),
+        "red_flags_total": quality.get("red_flags_total", 0),
+        "red_flags_hit": quality.get("red_flags_hit", 0),
+        "section_word_counts": quality.get("section_word_counts", {}),
+        "success": success,
+        "error_message": error_message,
+    }
+    GenerationEvent.objects.update_or_create(proposal=proposal, defaults=defaults)
+
+
 @shared_task(bind=True, max_retries=2)
 def generate_proposal_task(self, proposal_id: str):
     from .models import Proposal
-    from .generator import generate_proposal_sync
+    from .generator import generate_proposal_with_metrics
 
+    metrics: dict = {}
     try:
         proposal = Proposal.objects.select_related("rfp", "org").get(id=proposal_id)
-        sections = generate_proposal_sync(proposal.rfp.raw_text, str(proposal.org_id), proposal.tone)
+        sections, metrics = generate_proposal_with_metrics(
+            proposal.rfp.raw_text, str(proposal.org_id), proposal.tone
+        )
         proposal.sections = sections
         proposal.status = Proposal.Status.DRAFT
         proposal.save(update_fields=["sections", "status"])
-        logger.info("Generated proposal %s", proposal_id)
+        _persist_event(proposal, metrics, success=True)
+        logger.info(
+            "Generated proposal %s — provider=%s rerank=%s lat=%sms",
+            proposal_id,
+            metrics.get("provider"),
+            metrics.get("rerank_used"),
+            metrics.get("total_latency_ms"),
+        )
 
     except Exception as exc:
         logger.error("Failed to generate proposal %s: %s", proposal_id, exc)
@@ -24,9 +69,9 @@ def generate_proposal_task(self, proposal_id: str):
             proposal.status = Proposal.Status.FAILED
             proposal.error_message = str(exc)
             proposal.save(update_fields=["status", "error_message"])
+            _persist_event(proposal, metrics, success=False, error_message=str(exc))
         except Proposal.DoesNotExist:
             pass
-        # Don't retry on quota/rate-limit errors — retries just burn more of the limit.
         if "429" in str(exc) or "quota" in str(exc).lower() or "rate" in str(exc).lower():
             return
         raise self.retry(exc=exc, countdown=30)

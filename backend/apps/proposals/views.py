@@ -1,14 +1,16 @@
+from django.conf import settings
+from django.db.models import Avg, Count, Sum
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from apps.core.permissions import IsOrgMember, OrgProposalQuotaPermission
-from .models import RFP, Proposal
+from .models import RFP, Proposal, GenerationEvent
 from .serializers import (
     RFPSerializer, RFPCreateSerializer,
     ProposalSerializer, ProposalUpdateSerializer,
 )
 from .tasks import generate_proposal_task
-from apps.documents.pipeline import extract_text
+from .validators import classify_rfp_intent
 
 
 @api_view(["GET", "POST"])
@@ -21,22 +23,14 @@ def rfp_list(request):
     serializer = RFPCreateSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
-    raw_text = serializer.validated_data.get("raw_text", "").strip()
+    resolved_text = serializer.validated_data["resolved_text"]
     file = serializer.validated_data.get("file")
-    if file:
-        ext = file.name.rsplit(".", 1)[-1].lower()
-        extracted_text = extract_text(file.read(), ext).strip()
-        file.seek(0)
-        if raw_text:
-            raw_text = f"{raw_text}\n\n--- ATTACHED RFP FILE TEXT ---\n\n{extracted_text}"
-        else:
-            raw_text = extracted_text
 
     rfp = RFP.objects.create(
         org=request.user.org,
         created_by=request.user,
         title=serializer.validated_data["title"],
-        raw_text=raw_text,
+        raw_text=resolved_text,
         file=file,
     )
     return Response(RFPSerializer(rfp).data, status=status.HTTP_201_CREATED)
@@ -59,6 +53,15 @@ def generate_proposal(request, rfp_pk):
         rfp = RFP.objects.get(pk=rfp_pk, org=request.user.org)
     except RFP.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
+
+    # Semantic intent check — reject non-RFP content before consuming quota
+    intent = classify_rfp_intent(rfp.raw_text)
+    min_conf = getattr(settings, "RFP_INTENT_MIN_CONFIDENCE", 0.7)
+    if not intent["is_rfp"] and intent["confidence"] >= min_conf:
+        return Response(
+            {"detail": f"Input does not look like a valid RFP: {intent['reason']}"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     tone = request.data.get("tone", Proposal.Tone.PROFESSIONAL)
     if tone not in Proposal.Tone.values:
@@ -96,3 +99,61 @@ def proposal_detail(request, pk):
     serializer.is_valid(raise_exception=True)
     serializer.save()
     return Response(ProposalSerializer(proposal).data)
+
+
+@api_view(["GET"])
+@permission_classes([IsOrgMember])
+def generation_metrics(request):
+    """Aggregate retrieval + generation telemetry for current org."""
+    events = GenerationEvent.objects.filter(org=request.user.org)
+    total = events.count()
+    if total == 0:
+        return Response({"total": 0})
+
+    successful = events.filter(success=True)
+    reranked = successful.filter(rerank_used=True)
+    vector_only = successful.filter(rerank_used=False)
+
+    def _avgs(qs):
+        return qs.aggregate(
+            count=Count("id"),
+            avg_total_ms=Avg("total_latency_ms"),
+            avg_rerank_ms=Avg("rerank_latency_ms"),
+            avg_generation_ms=Avg("generation_latency_ms"),
+            avg_requirements_hit=Avg("requirements_hit"),
+            avg_requirements_total=Avg("requirements_total"),
+            avg_red_flags_hit=Avg("red_flags_hit"),
+            avg_red_flags_total=Avg("red_flags_total"),
+        )
+
+    def _coverage(stats):
+        req_tot = stats.get("avg_requirements_total") or 0
+        rf_tot = stats.get("avg_red_flags_total") or 0
+        return {
+            **stats,
+            "requirements_coverage": round((stats.get("avg_requirements_hit") or 0) / req_tot, 3) if req_tot else 0,
+            "red_flags_coverage": round((stats.get("avg_red_flags_hit") or 0) / rf_tot, 3) if rf_tot else 0,
+        }
+
+    provider_breakdown = list(
+        successful.values("provider").annotate(count=Count("id")).order_by("-count")
+    )
+
+    return Response({
+        "total": total,
+        "success_rate": round(successful.count() / total, 3),
+        "rerank_adoption": round(reranked.count() / total, 3),
+        "tokens_saved_estimate_chunks": (events.aggregate(s=Sum("fetch_top_k"))["s"] or 0)
+            - (events.aggregate(s=Sum("rerank_top_k"))["s"] or 0),
+        "with_rerank": _coverage(_avgs(reranked)),
+        "without_rerank": _coverage(_avgs(vector_only)),
+        "providers": provider_breakdown,
+        "recent": list(
+            events.order_by("-created_at").values(
+                "id", "created_at", "provider", "rerank_used",
+                "requirements_hit", "requirements_total",
+                "red_flags_hit", "red_flags_total",
+                "total_latency_ms", "success",
+            )[:20]
+        ),
+    })
