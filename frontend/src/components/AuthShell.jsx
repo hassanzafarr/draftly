@@ -45,15 +45,16 @@ export function AuthShell({
           className="w-full max-w-[440px]"
         >
           <Link to="/" className="mb-8 flex items-center justify-center gap-2.5">
-            <span className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet to-magenta">
+            <span className="relative flex h-11 w-11 items-center justify-center rounded-xl">
               <span
-                className="absolute inset-0 rounded-xl bg-gradient-to-br from-violet to-magenta opacity-70 blur-md"
+                className="absolute inset-0 rounded-xl opacity-60 blur-[12px]"
+                style={{ background: "linear-gradient(135deg, #7c3aed, #2563eb, #06b6d4)" }}
                 aria-hidden
               />
-              <Sparkles className="relative h-5 w-5 text-white" />
+              <img src="/logo.png" alt="Draftly" className="relative h-10 w-10 object-contain drop-shadow-lg" />
             </span>
             <span className="font-display text-xl font-semibold tracking-tight text-foreground">
-              PropoAI
+              Draftly
             </span>
           </Link>
 

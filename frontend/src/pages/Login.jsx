@@ -9,7 +9,7 @@ export default function Login() {
       subtitle="Sign in to continue drafting proposals"
       footer={
         <>
-          New to PropoAI?{" "}
+          New to Draftly?{" "}
           <Link
             to="/register"
             className="font-medium text-foreground transition hover:text-violet"

@@ -63,11 +63,11 @@ def _parse_json(raw: str, label: str) -> dict:
 JSON_PREFILL = [{"type": "text", "text": "{"}]
 
 
-def generate_proposal(system_prompt: str, user_message: str) -> dict:
-    """Pass 2: write the 10-section proposal JSON. Uses assistant prefill to force JSON."""
+def generate_proposal(system_prompt: str, user_message: str, max_tokens: int = 10000) -> dict:
+    """Pass 2: write the N-section proposal JSON. Uses assistant prefill to force JSON."""
     response = _client().messages.create(
         model=settings.CLAUDE_MODEL,
-        max_tokens=10000,
+        max_tokens=max_tokens,
         system=[{
             "type": "text",
             "text": system_prompt + "\n\nCRITICAL: Respond with a single JSON object. No prose, no markdown fences, no preamble.",
@@ -79,7 +79,7 @@ def generate_proposal(system_prompt: str, user_message: str) -> dict:
         ],
     )
     if response.stop_reason == "max_tokens":
-        logger.error("Claude generation truncated at max_tokens=%s — output too long", 16384)
+        logger.error("Claude generation truncated at max_tokens=%s — output too long", max_tokens)
     return _parse_json(_extract_text(response), "Claude")
 
 
@@ -113,3 +113,27 @@ def classify_intent(prompt: str, snippet: str) -> dict:
         ],
     )
     return _parse_json(_extract_text(response), "Claude intent classifier")
+
+
+TITLE_SYSTEM = (
+    "You are a proposal-naming assistant. "
+    "Read the RFP or project brief excerpt and output ONLY a concise 3-to-7 word title in "
+    "Title Case that captures the project's core purpose. "
+    "Output the title text only — no punctuation at the end, no quotes, no explanation."
+)
+
+
+def generate_title(rfp_snippet: str) -> str:
+    """Extract a 3-7 word proposal title from the first ~400 chars of an RFP.
+
+    Returns a plain string (never raises — caller handles exceptions).
+    """
+    response = _client().messages.create(
+        model=settings.CLAUDE_MODEL,
+        max_tokens=30,
+        system=TITLE_SYSTEM,
+        messages=[
+            {"role": "user", "content": f"RFP EXCERPT:\n\n{rfp_snippet[:400]}\n\nTitle:"},
+        ],
+    )
+    return _extract_text(response).strip().strip('"\'')

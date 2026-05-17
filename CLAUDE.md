@@ -144,24 +144,23 @@ Django apps are declared under `apps/` namespace (e.g., `apps.accounts`).
 | `api/client.js` | Axios instance with JWT request interceptor and 401→refresh response interceptor |
 | `store/auth.js` | Zustand `useAuthStore` (user, login, logout, fetchMe); tokens in `localStorage` |
 | `instrument.js` | Sentry frontend initialization |
-| `lib/mock-data.js` | Mock data for Analytics and Templates pages |
+| `lib/mock-data.js` | Mock data for Templates page suggestion chips and tones |
 | `pages/Login.jsx` | Login form |
 | `pages/Register.jsx` | Registration form |
-| `pages/Dashboard.jsx` | Home: doc/proposal counts, recent proposals, org info, subscription tier |
-| `pages/Documents.jsx` | Upload zone, document list with status polling (5s while processing), delete |
+| `pages/Proposals.jsx` | Proposal history: search, filter by status, word counts, delete |
+| `pages/Editor.jsx` | 10-section proposal editor, polling while generating, PDF + DOCX export, save/finalize |
+| `pages/Analytics.jsx` | Real analytics dashboard (fetches from `/api/analytics/stats/`) with Recharts |
+| `pages/Templates.jsx` | Template gallery with category filtering (mock data — pending backend) |
+| `pages/knowledge.jsx` | Consolidated knowledge base: upload with category, filter, search, drag-drop, status polling |
+| `pages/Settings.jsx` | Settings: profile (email), organization (name, tier, quotas), security (password change) |
 | `pages/NewRFP.jsx` | Create RFP (title + text or file upload), triggers proposal generation |
-| `pages/ProposalEditor.jsx` | 10-section proposal editor, polling while generating, PDF export (jsPDF), save/finalize |
-| `pages/Editor.jsx` | Alternative/enhanced proposal editor (similar structure to ProposalEditor) |
-| `pages/Analytics.jsx` | Mock analytics dashboard with Recharts (monthly perf, win rate, proposals by category) |
-| `pages/Templates.jsx` | Template gallery with category filtering (mock data only) |
-| `pages/knowledge.jsx` | Knowledge base management (similar to Documents, adds category badges) |
 | `pages/NotFound.jsx` | 404 page |
-| `components/AppShell.jsx` | Main app wrapper with sidebar + navbar layout |
-| `components/Sidebar.jsx` | Left nav sidebar |
+| `components/AppShell.jsx` | Main app wrapper with sidebar + outlet layout |
+| `components/Sidebar.jsx` | Left nav sidebar with Generator, Proposals, Templates, Knowledge, Analytics + Settings link |
 | `components/Navbar.jsx` | Top navigation bar |
 | `components/AuthShell.jsx` | Auth page wrapper (no sidebar) |
 | `components/AuthForm.jsx` | Reusable login/signup form |
-| `components/Generator.jsx` | Proposal generation wizard UI |
+| `components/Generator.jsx` | Proposal generation wizard UI (home page) |
 | `components/UploadZone.jsx` | Drag-drop file upload |
 | `components/DocumentCard.jsx` | Single document card (status, delete) |
 | `components/ProposalSection.jsx` | Editable proposal section with Tiptap |
@@ -173,12 +172,14 @@ Django apps are declared under `apps/` namespace (e.g., `apps.accounts`).
 |-------|-----------|
 | `/login` | Login |
 | `/register` | Register |
-| `/` | Dashboard |
-| `/templates` | Templates |
-| `/knowledge` | Knowledge (doc management with categories) |
-| `/analytics` | Analytics (mock) |
+| `/` | Generator (proposal creation wizard) |
+| `/proposals` | Proposals (history list with search/filter) |
+| `/proposals/:id` | Editor (10-section editor with PDF + DOCX export) |
+| `/templates` | Templates (gallery, mock data pending backend) |
+| `/knowledge` | Knowledge Base (upload, categories, status tracking) |
+| `/analytics` | Analytics (real data from `/api/analytics/stats/`) |
+| `/settings` | Settings (profile, org, security) |
 | `/rfps/new` | NewRFP |
-| `/proposals/:id` | ProposalEditor |
 
 Vite proxies `/api` requests to the backend in development (target set via `VITE_API_URL` env var).
 
@@ -206,12 +207,17 @@ JWT tokens: 8-hour access, 7-day refresh (rotate-refresh enabled via `SIMPLE_JWT
 
 - Multi-tenant orgs with subscription tiers (starter / growth / agency)
 - User auth: JWT register, login, refresh, `/me` endpoint; admin/member roles per org
-- Document management: PDF/DOCX/TXT upload, async ingestion, chunking, pgvector embedding, quota enforcement
+- Profile & org settings: email update, password change, org name update via `/auth/profile/`, `/auth/password/`, `/auth/org/`
+- Document management: PDF/DOCX/TXT upload with category selection, async ingestion, chunking, pgvector embedding, quota enforcement
+- Consolidated knowledge base: upload with category (company_profile / past_proposals / case_studies), filter, search, drag-drop
 - RFP submission: text input or file upload (text extracted server-side)
-- AI proposal generation: RAG (top-20 chunks) → Gemini 2.5 Flash → domain-aware 10-section JSON
-- Groq fallback on Gemini 429 rate limit
-- Proposal editing: 10-section Tiptap editors, save draft, finalize
+- AI proposal generation: RAG (top-20 chunks with reranking) → Claude / Gemini / Groq fallback → domain-aware 10-section JSON
+- Proposal history page: list, search, filter by status, word counts, delete
+- Proposal editing: 10-section textarea editors, save draft, finalize
 - PDF export via jsPDF (client-side)
+- DOCX export via python-docx (server-side at `/api/proposals/{id}/export/docx/`)
+- Real analytics dashboard: total proposals, success rate, avg gen time, monthly trends, tone distribution, provider usage
+- Settings page: profile (email), organization (name, tier display, quotas), security (password change)
 - Conditional frontend polling (docs + proposals)
 - Sentry error monitoring (React + Django + Celery)
 - Docker Compose for local dev; Railway (backend) + Vercel (frontend) for prod
@@ -225,8 +231,7 @@ JWT tokens: 8-hour access, 7-day refresh (rotate-refresh enabled via `SIMPLE_JWT
 - **No SSE/WebSocket**: Frontend uses polling (3s proposals, 5s docs); no streaming endpoint.
 - **No tests**: Neither pytest nor Jest is configured.
 - **No CI/CD**: Dockerfiles and Railway/Vercel configs exist but no GitHub Actions workflows.
-- **No DOCX export**: PDF export only (jsPDF, client-side).
-- **Analytics/Templates are mock**: No real data — uses `lib/mock-data.js`.
-- **Knowledge page is duplicate**: `knowledge.jsx` overlaps with `Documents.jsx`; no backend distinction.
+- **Templates are mock**: Template gallery shows mock data — no backend Template model yet.
 - **Word-based chunking**: Chunk sizes vary for non-English or code-heavy docs.
-- **Editor.jsx vs ProposalEditor.jsx**: Two similar editor pages — unclear which is canonical.
+- **Dashboard.jsx orphaned**: Old Dashboard page exists but is not routed (Generator is the `/` index).
+- **ProposalEditor.jsx orphaned**: Superseded by Editor.jsx but file still exists.

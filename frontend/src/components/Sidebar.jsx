@@ -1,11 +1,12 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Home, FileText, Brain, BarChart3, Settings, LogOut, Sparkles, Sun, Moon } from "lucide-react";
+import { Home, FileText, Brain, BarChart3, Settings, LogOut, Sun, Moon, ClipboardList } from "lucide-react";
 import { motion } from "framer-motion";
 import { useTheme } from "./ThemeProvider";
 import useAuthStore from "../store/auth";
 
 const items = [
   { to: "/", label: "Generator", icon: Home },
+  { to: "/proposals", label: "Proposals", icon: ClipboardList },
   { to: "/templates", label: "Templates", icon: FileText },
   { to: "/knowledge", label: "Knowledge", icon: Brain },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
@@ -19,24 +20,22 @@ export function Sidebar() {
 
   return (
     <aside
-      className="sticky top-0 z-20 flex h-dvh w-[78px] shrink-0 flex-col items-center justify-between border-r border-hairline py-6 backdrop-blur-xl"
+      className="sticky top-0 z-20 flex h-dvh w-[72px] shrink-0 flex-col items-center justify-between border-r border-hairline py-3 backdrop-blur-xl"
       style={{ background: "var(--sidebar-bg)" }}
     >
-      <Link to="/" className="group relative flex h-11 w-11 items-center justify-center rounded-xl">
-        <span className="absolute inset-0 rounded-xl bg-gradient-to-br from-violet to-magenta opacity-90 blur-[10px] transition group-hover:opacity-100" />
-        <span className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet to-magenta">
-          <Sparkles className="h-5 w-5 text-white" />
-        </span>
+      <Link to="/" className="group relative flex h-12 w-12 items-center justify-center rounded-xl" aria-label="Draftly Home">
+        <span className="absolute inset-0 rounded-xl opacity-0 blur-[16px] transition-all duration-300 group-hover:opacity-80" style={{ background: "linear-gradient(135deg, #7c3aed, #2563eb, #06b6d4)" }} />
+        <img src="/logo.png" alt="Draftly" className="relative h-11 w-11 object-contain drop-shadow-lg transition-transform duration-200 group-hover:scale-110" />
       </Link>
 
-      <nav className="flex flex-col items-center gap-3">
+      <nav className="flex flex-col items-center gap-1.5">
         {items.map(({ to, label, icon: Icon }) => {
-          const active = pathname === to;
+          const active = to === "/" ? pathname === "/" : pathname.startsWith(to);
           return (
             <Link
               key={to}
               to={to}
-              className="group relative flex h-11 w-11 items-center justify-center rounded-xl"
+              className="group relative flex h-10 w-10 items-center justify-center rounded-xl"
               aria-label={label}
             >
               {active && (
@@ -48,7 +47,7 @@ export function Sidebar() {
                 />
               )}
               <span
-                className={`relative flex h-11 w-11 items-center justify-center rounded-xl border transition ${
+                className={`relative flex h-10 w-10 items-center justify-center rounded-xl border transition ${
                   active
                     ? "border-violet/40 text-foreground"
                     : "border-hairline text-muted-foreground hover:border-violet/40 hover:text-foreground"
@@ -64,7 +63,7 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="flex flex-col items-center gap-3">
+      <div className="flex flex-col items-center gap-1.5">
         <button
           onClick={toggle}
           aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
@@ -84,12 +83,16 @@ export function Sidebar() {
             {theme === "dark" ? "Light mode" : "Dark mode"}
           </span>
         </button>
-        <button
+        <Link
+          to="/settings"
           aria-label="Settings"
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-hairline text-muted-foreground hover:text-foreground"
+          className="group relative flex h-10 w-10 items-center justify-center rounded-xl border border-hairline text-muted-foreground hover:border-violet/40 hover:text-foreground"
         >
           <Settings className="h-[18px] w-[18px]" />
-        </button>
+          <span className="pointer-events-none absolute left-[52px] top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-md bg-surface-2 px-2 py-1 text-xs text-foreground opacity-0 shadow-lg ring-1 ring-hairline transition group-hover:opacity-100">
+            Settings
+          </span>
+        </Link>
         <button
           aria-label="Sign out"
           onClick={() => {

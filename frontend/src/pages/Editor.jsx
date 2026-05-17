@@ -4,18 +4,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
 import {
   ArrowLeft, Save, Download, RefreshCw,
-  Sparkles, Check, FileText, Loader2, AlertCircle, FileCheck2,
+  Sparkles, Check, FileText, Loader2, AlertCircle, FileCheck2, FileDown,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import api from "../api/client";
+import ConfirmModal from "../components/ConfirmModal";
 
-const SECTION_ORDER = [
+const FALLBACK_SECTION_ORDER = [
   "executive_summary", "understanding_requirements", "proposed_solution",
   "relevant_experience", "team_qualifications", "project_timeline",
   "methodology", "pricing", "why_us", "appendix",
 ];
 
-const SECTION_LABELS = {
+const FALLBACK_SECTION_LABELS = {
   executive_summary: "Executive Summary",
   understanding_requirements: "Understanding of Requirements",
   proposed_solution: "Proposed Solution / Technical Approach",
@@ -28,6 +29,25 @@ const SECTION_LABELS = {
   appendix: "Appendix / Supporting Materials",
 };
 
+// Build the rendered section list from a proposal: prefer custom section_labels,
+// fall back to keys present in `sections`, and as a last resort the default 10.
+function resolveSectionOrder(proposal, sections) {
+  if (proposal?.section_labels && Object.keys(proposal.section_labels).length) {
+    return Object.keys(proposal.section_labels);
+  }
+  const keys = Object.keys(sections || {});
+  if (keys.length) return keys;
+  return FALLBACK_SECTION_ORDER;
+}
+
+function labelFor(key, proposal) {
+  return (
+    proposal?.section_labels?.[key]
+    || FALLBACK_SECTION_LABELS[key]
+    || key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  );
+}
+
 export default function Editor() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -37,9 +57,12 @@ export default function Editor() {
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState(null);
   const [regeneratingId, setRegeneratingId] = useState(null);
-  const [activeId, setActiveId] = useState(SECTION_ORDER[0]);
+  const [activeId, setActiveId] = useState(FALLBACK_SECTION_ORDER[0]);
   const sectionRefs = useRef({});
   const pollRef = useRef(null);
+  const [regenConfirm, setRegenConfirm] = useState(null); // null or { sectionKey, msg }
+
+  const sectionOrder = resolveSectionOrder(proposal, sections);
 
   const fetchProposal = useCallback(async () => {
     const { data } = await api.get(`/proposals/${id}/`);
@@ -97,9 +120,15 @@ export default function Editor() {
 
   const handleRegenerate = async (sectionKey = null) => {
     const msg = sectionKey
-      ? `Regenerate the "${SECTION_LABELS[sectionKey]}" section? This will replace its current content.`
+      ? `Regenerate the "${labelFor(sectionKey, proposal)}" section? This will replace its current content.`
       : "Regenerate the full proposal? All edits will be replaced.";
-    if (!window.confirm(msg)) return;
+    setRegenConfirm({ sectionKey, msg });
+  };
+
+  const handleRegenConfirm = async () => {
+    if (!regenConfirm) return;
+    const { sectionKey } = regenConfirm;
+    setRegenConfirm(null);
 
     if (sectionKey) {
       setRegeneratingId(sectionKey);
@@ -143,12 +172,12 @@ export default function Editor() {
     y += 24;
     doc.setTextColor(0);
 
-    SECTION_ORDER.forEach((key) => {
+    sectionOrder.forEach((key) => {
       const body = (sections[key] || "").trim();
       if (!body) return;
       ensureSpace(40);
       doc.setFont("helvetica", "bold"); doc.setFontSize(13);
-      doc.text(SECTION_LABELS[key], margin, y); y += 18;
+      doc.text(labelFor(key, proposal), margin, y); y += 18;
       doc.setFont("helvetica", "normal"); doc.setFontSize(11);
       doc.splitTextToSize(body, contentWidth).forEach((line) => {
         ensureSpace(16); doc.text(line, margin, y); y += 15;
@@ -159,6 +188,26 @@ export default function Editor() {
     const safeTitle = (proposal.rfp_title || "proposal").replace(/[^a-z0-9]+/gi, "_").toLowerCase();
     doc.save(`${safeTitle}.pdf`);
     toast.success("PDF downloaded.");
+  };
+
+  const handleDownloadDOCX = async () => {
+    try {
+      const response = await api.get(`/proposals/${id}/export/docx/`, {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      const safeTitle = (proposal.rfp_title || "proposal").replace(/[^a-z0-9]+/gi, "_").toLowerCase();
+      link.setAttribute("download", `${safeTitle}.docx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("DOCX downloaded.");
+    } catch {
+      toast.error("Failed to export DOCX.");
+    }
   };
 
   /* ── Loading ── */
@@ -213,9 +262,10 @@ export default function Editor() {
 
   /* ── Editor ── */
   return (
-    <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-[260px_1fr]">
+    <>
+      <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-[260px_1fr]">
 
-      {/* Left section nav */}
+        {/* Left section nav */}
       <aside className="sticky top-0 z-10 hidden h-dvh flex-col border-r border-hairline p-5 backdrop-blur-xl lg:flex" style={{ background: "var(--sidebar-bg)" }}>
         <button
           onClick={() => navigate("/")}
@@ -227,7 +277,7 @@ export default function Editor() {
         <div className="mt-6 flex-1 overflow-y-auto">
           <p className="font-mono text-[10px] uppercase tracking-widest text-violet">Sections</p>
           <ul className="mt-3 space-y-1">
-            {SECTION_ORDER.map((key, i) => {
+            {sectionOrder.map((key, i) => {
               const active = activeId === key;
               return (
                 <li key={key}>
@@ -246,7 +296,7 @@ export default function Editor() {
                       />
                     )}
                     <span className="font-mono text-[10px] text-cyan">{String(i + 1).padStart(2, "0")}</span>
-                    <span className="leading-snug">{SECTION_LABELS[key].split(" / ")[0]}</span>
+                    <span className="leading-snug">{labelFor(key, proposal).split(" / ")[0]}</span>
                   </button>
                 </li>
               );
@@ -305,9 +355,15 @@ export default function Editor() {
             </button>
             <button
               onClick={handleDownloadPDF}
+              className="flex items-center gap-1.5 rounded-full border border-hairline bg-surface/60 px-3 py-1.5 text-xs text-muted-foreground transition hover:border-cyan/40 hover:text-foreground"
+            >
+              <Download className="h-3.5 w-3.5" /> PDF
+            </button>
+            <button
+              onClick={handleDownloadDOCX}
               className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-violet to-magenta px-4 py-1.5 text-xs font-semibold text-white shadow-[var(--shadow-glow-violet)]"
             >
-              <Download className="h-3.5 w-3.5" /> Export PDF
+              <FileDown className="h-3.5 w-3.5" /> Export DOCX
             </button>
             {proposal.status !== "final" && (
               <button
@@ -324,7 +380,7 @@ export default function Editor() {
         {/* Section cards */}
         <div className="mx-auto max-w-3xl px-6 py-10">
           <div className="space-y-6">
-            {SECTION_ORDER.map((key, i) => (
+            {sectionOrder.map((key, i) => (
               <motion.div
                 key={key}
                 data-section-key={key}
@@ -338,7 +394,7 @@ export default function Editor() {
                   <div className="flex items-center gap-3">
                     <span className="font-mono text-xs text-cyan">{String(i + 1).padStart(2, "0")}</span>
                     <h3 className="font-display text-base font-semibold text-foreground">
-                      {SECTION_LABELS[key]}
+                      {labelFor(key, proposal)}
                     </h3>
                   </div>
                   <button
@@ -375,8 +431,8 @@ export default function Editor() {
                     value={sections[key] || ""}
                     onChange={(e) => setSections((s) => ({ ...s, [key]: e.target.value }))}
                     rows={Math.max(4, Math.ceil((sections[key] || "").length / 90))}
-                    placeholder={`Write the ${SECTION_LABELS[key]} section…`}
-                    className="block w-full resize-none rounded-lg bg-transparent text-sm leading-relaxed text-foreground/90 placeholder:text-muted-foreground/40 focus:outline-none"
+                    placeholder={`Write the ${labelFor(key, proposal)} section…`}
+                    className="block w-full resize-none rounded-lg bg-transparent px-1 -mx-1 text-sm leading-relaxed text-foreground/90 placeholder:text-muted-foreground/40 focus:outline-none"
                   />
                 </div>
               </motion.div>
@@ -394,7 +450,13 @@ export default function Editor() {
                 onClick={handleDownloadPDF}
                 className="flex items-center gap-1.5 rounded-full border border-hairline bg-surface/60 px-4 py-2 text-xs font-medium text-muted-foreground transition hover:border-cyan/40 hover:text-foreground"
               >
-                <Download className="h-3.5 w-3.5" /> Export PDF
+                <Download className="h-3.5 w-3.5" /> PDF
+              </button>
+              <button
+                onClick={handleDownloadDOCX}
+                className="flex items-center gap-1.5 rounded-full border border-cyan/40 bg-cyan/10 px-4 py-2 text-xs font-medium text-cyan transition hover:bg-cyan/20"
+              >
+                <FileDown className="h-3.5 w-3.5" /> DOCX
               </button>
               <button
                 onClick={() => handleSave(false)}
@@ -418,5 +480,18 @@ export default function Editor() {
         </div>
       </div>
     </div>
+
+    <ConfirmModal
+      open={!!regenConfirm}
+      onClose={() => setRegenConfirm(null)}
+      onConfirm={handleRegenConfirm}
+      title="Regenerate Proposal"
+      description={regenConfirm?.msg || ""}
+      confirmText="Regenerate"
+      cancelText="Keep Current"
+      variant="default"
+      icon={<RefreshCw className="h-6 w-6" />}
+    />
+    </>
   );
 }

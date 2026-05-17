@@ -15,8 +15,8 @@ export default function Navbar() {
     <nav className="bg-white border-b border-gray-200 px-4 py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 font-bold text-lg text-blue-600">
-          <FileText size={22} />
-          ProposalAI
+          <img src="/logo.png" alt="Draftly" className="h-7 w-7 object-contain" />
+          Draftly
         </Link>
 
         <div className="flex items-center gap-6">

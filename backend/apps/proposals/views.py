@@ -1,5 +1,8 @@
+from datetime import datetime, timedelta
 from django.conf import settings
-from django.db.models import Avg, Count, Sum
+from django.db.models import Avg, Count, Q, Sum, F
+from django.db.models.functions import TruncMonth
+from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -32,6 +35,7 @@ def rfp_list(request):
         title=serializer.validated_data["title"],
         raw_text=resolved_text,
         file=file,
+        sections=serializer.validated_data.get("sections", []) or [],
     )
     return Response(RFPSerializer(rfp).data, status=status.HTTP_201_CREATED)
 
@@ -67,10 +71,15 @@ def generate_proposal(request, rfp_pk):
     if tone not in Proposal.Tone.values:
         tone = Proposal.Tone.PROFESSIONAL
 
+    length = request.data.get("length", Proposal.Length.STANDARD)
+    if length not in Proposal.Length.values:
+        length = Proposal.Length.STANDARD
+
     proposal = Proposal.objects.create(
         rfp=rfp,
         org=request.user.org,
         tone=tone,
+        length=length,
         status=Proposal.Status.GENERATING,
     )
     generate_proposal_task.delay(str(proposal.id))
@@ -84,7 +93,7 @@ def proposal_list(request):
     return Response(ProposalSerializer(proposals, many=True).data)
 
 
-@api_view(["GET", "PATCH"])
+@api_view(["GET", "PATCH", "DELETE"])
 @permission_classes([IsOrgMember])
 def proposal_detail(request, pk):
     try:
@@ -94,6 +103,10 @@ def proposal_detail(request, pk):
 
     if request.method == "GET":
         return Response(ProposalSerializer(proposal).data)
+
+    if request.method == "DELETE":
+        proposal.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     serializer = ProposalUpdateSerializer(proposal, data=request.data, partial=True)
     serializer.is_valid(raise_exception=True)
@@ -156,4 +169,100 @@ def generation_metrics(request):
                 "total_latency_ms", "success",
             )[:20]
         ),
+    })
+
+
+@api_view(["GET"])
+@permission_classes([IsOrgMember])
+def proposal_export_docx(request, pk):
+    """Export a proposal as a DOCX file."""
+    try:
+        proposal = Proposal.objects.select_related("rfp", "org").get(
+            pk=pk, org=request.user.org,
+        )
+    except Proposal.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    from .export import generate_docx
+    buffer = generate_docx(proposal)
+
+    safe_title = (proposal.rfp.title or "proposal").replace(" ", "_")[:60]
+    filename = f"{safe_title}.docx"
+
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+@api_view(["GET"])
+@permission_classes([IsOrgMember])
+def analytics_stats(request):
+    """Real analytics data for the frontend Analytics page."""
+    org = request.user.org
+    proposals = Proposal.objects.filter(org=org)
+    total = proposals.count()
+    final_count = proposals.filter(status=Proposal.Status.FINAL).count()
+    draft_count = proposals.filter(status=Proposal.Status.DRAFT).count()
+    generating_count = proposals.filter(status=Proposal.Status.GENERATING).count()
+    failed_count = proposals.filter(status=Proposal.Status.FAILED).count()
+
+    # Success rate = finalized / (finalized + draft) — exclude generating/failed
+    completed = final_count + draft_count
+    success_rate = round((final_count / completed * 100) if completed else 0, 1)
+
+    # Average generation time
+    events = GenerationEvent.objects.filter(org=org, success=True)
+    avg_latency = events.aggregate(avg=Avg("total_latency_ms"))["avg"] or 0
+    avg_response_seconds = round(avg_latency / 1000, 1)
+
+    # Monthly performance (last 12 months)
+    twelve_months_ago = datetime.now() - timedelta(days=365)
+    monthly_raw = (
+        proposals.filter(created_at__gte=twelve_months_ago)
+        .annotate(month=TruncMonth("created_at"))
+        .values("month")
+        .annotate(
+            drafted=Count("id"),
+            finalized=Count("id", filter=Q(status=Proposal.Status.FINAL)),
+        )
+        .order_by("month")
+    )
+    monthly_performance = [
+        {
+            "month": row["month"].strftime("%b"),
+            "drafted": row["drafted"],
+            "won": row["finalized"],
+        }
+        for row in monthly_raw
+    ]
+
+    # Provider breakdown
+    provider_breakdown = list(
+        events.values("provider")
+        .annotate(count=Count("id"))
+        .order_by("-count")
+    )
+
+    # Proposals by tone
+    by_tone = list(
+        proposals.exclude(status=Proposal.Status.FAILED)
+        .values("tone")
+        .annotate(count=Count("id"))
+        .order_by("-count")
+    )
+
+    return Response({
+        "total_proposals": total,
+        "success_rate": success_rate,
+        "avg_response_seconds": avg_response_seconds,
+        "final_count": final_count,
+        "draft_count": draft_count,
+        "generating_count": generating_count,
+        "failed_count": failed_count,
+        "monthly_performance": monthly_performance,
+        "providers": provider_breakdown,
+        "by_tone": by_tone,
     })

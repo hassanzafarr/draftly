@@ -4,6 +4,7 @@ import { Upload } from "lucide-react";
 import api from "../api/client";
 import DocumentCard from "../components/DocumentCard";
 import UploadZone from "../components/UploadZone";
+import ConfirmModal from "../components/ConfirmModal";
 
 function isIndexing(doc) {
   return doc.status === "pending" || doc.status === "processing";
@@ -13,6 +14,8 @@ export default function Documents() {
   const [docs, setDocs] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchDocs = useCallback(() => {
     api.get("/documents/")
@@ -49,14 +52,22 @@ export default function Documents() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm("Delete this document and all its indexed data?")) return;
+  const handleDelete = (id, title) => {
+    setDeleteTarget({ id, title });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await api.delete(`/documents/${id}/`);
-      setDocs((d) => d.filter((doc) => doc.id !== id));
+      await api.delete(`/documents/${deleteTarget.id}/`);
+      setDocs((d) => d.filter((doc) => doc.id !== deleteTarget.id));
       toast.success("Document deleted.");
     } catch {
       toast.error("Failed to delete document.");
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -86,6 +97,17 @@ export default function Documents() {
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Document"
+        description={`Are you sure you want to delete "${deleteTarget?.title || ""}" and all its indexed data? This action cannot be undone.`}
+        confirmText="Delete"
+        variant="destructive"
+        loading={deleting}
+      />
     </div>
   );
 }

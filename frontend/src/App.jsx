@@ -14,6 +14,8 @@ const Register = lazy(() => import("./pages/Register"));
 const Templates = lazy(() => import("./pages/Templates"));
 const Knowledge = lazy(() => import("./pages/knowledge"));
 const Analytics = lazy(() => import("./pages/Analytics"));
+const Proposals = lazy(() => import("./pages/Proposals"));
+const Settings = lazy(() => import("./pages/Settings"));
 const NewRFP = lazy(() => import("./pages/NewRFP"));
 const Editor = lazy(() => import("./pages/Editor"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -60,6 +62,8 @@ export default function App() {
                 <Route path="templates" element={<Templates />} />
                 <Route path="knowledge" element={<Knowledge />} />
                 <Route path="analytics" element={<Analytics />} />
+                <Route path="proposals" element={<Proposals />} />
+                <Route path="settings" element={<Settings />} />
                 <Route path="rfps/new" element={<NewRFP />} />
                 <Route path="proposals/:id" element={<Editor />} />
               </Route>
@@ -71,3 +75,4 @@ export default function App() {
     </Sentry.ErrorBoundary>
   );
 }
+

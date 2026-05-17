@@ -10,6 +10,8 @@ class RFP(models.Model):
     title = models.CharField(max_length=500)
     raw_text = models.TextField()
     file = models.FileField(upload_to="rfps/%Y/%m/", null=True, blank=True)
+    # Optional custom section labels supplied by user/template. Empty list = use default 10-section schema.
+    sections = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -33,6 +35,12 @@ class Proposal(models.Model):
         FRIENDLY = "friendly", "Friendly"
         TECHNICAL = "technical", "Technical"
 
+    class Length(models.TextChoices):
+        CONCISE = "concise", "Concise"
+        STANDARD = "standard", "Standard"
+        DETAILED = "detailed", "Detailed"
+        COMPREHENSIVE = "comprehensive", "Comprehensive"
+
     SECTION_KEYS = [
         "executive_summary",
         "understanding_requirements",
@@ -50,8 +58,14 @@ class Proposal(models.Model):
     rfp = models.ForeignKey(RFP, on_delete=models.CASCADE, related_name="proposals")
     org = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="proposals")
     tone = models.CharField(max_length=20, choices=Tone.choices, default=Tone.PROFESSIONAL)
+    length = models.CharField(max_length=20, choices=Length.choices, default=Length.STANDARD)
     sections = models.JSONField(default=dict)
+    # When custom sections were used, this maps section key → display label.
+    # Empty dict = default 10-section schema (frontend falls back to built-in labels).
+    section_labels = models.JSONField(default=dict, blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.GENERATING)
+    status_stage = models.CharField(max_length=32, default="queued", blank=True)
+    stage_meta = models.JSONField(default=dict, blank=True)
     error_message = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

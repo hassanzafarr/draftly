@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "Starting ProposalAI..."
+echo "Starting Draftly..."
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 

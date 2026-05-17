@@ -26,7 +26,7 @@ export default function DocumentCard({ doc, onDelete }) {
         </div>
       </div>
       <button
-        onClick={() => onDelete(doc.id)}
+        onClick={() => onDelete(doc.id, doc.title)}
         className="text-gray-300 hover:text-red-500 transition-colors shrink-0"
         title="Delete document"
       >

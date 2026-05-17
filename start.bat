@@ -1,5 +1,5 @@
 @echo off
-echo Starting ProposalAI...
+echo Starting Draftly...
 
 :: ── Check .env exists ─────────────────────────────────────────────────────────
 if not exist "%~dp0backend\.env" (

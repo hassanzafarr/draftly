@@ -21,7 +21,7 @@ export default function Templates() {
   );
 
   return (
-    <div className="px-8 py-10">
+    <div className="px-6 py-6">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <motion.header
@@ -33,7 +33,7 @@ export default function Templates() {
             <FileText className="h-6 w-6 text-white" />
           </span>
           <div>
-            <h1 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
               Templates
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -47,7 +47,7 @@ export default function Templates() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mt-8 flex items-center gap-3 overflow-x-auto pb-1"
+          className="mt-6 flex items-center gap-3 overflow-x-auto pb-1"
         >
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Filter className="h-3.5 w-3.5" /> Filter:
@@ -78,7 +78,7 @@ export default function Templates() {
         </motion.div>
 
         {/* Grid */}
-        <div className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           <AnimatePresence mode="popLayout">
             {filtered.map((t, i) => {
               const a = accentMap[t.accent];
@@ -91,7 +91,7 @@ export default function Templates() {
                   exit={{ opacity: 0, y: -10, scale: 0.96 }}
                   transition={{ delay: i * 0.05, type: "spring", stiffness: 220, damping: 24 }}
                   whileHover={{ y: -6 }}
-                  onClick={() => navigate("/")}
+                  onClick={() => navigate("/", { state: { template: t } })}
                   className="group relative overflow-hidden rounded-2xl border border-hairline bg-surface/60 p-6 text-left backdrop-blur-md transition hover:border-violet/40"
                   style={{ minHeight: 340 }}
                 >
@@ -135,7 +135,7 @@ export default function Templates() {
                       </span>
                     ))}
                     <span className="rounded-md border border-hairline bg-surface-2/60 px-2 py-1 text-[10px] text-muted-foreground">
-                      +3
+                      +{t.sectionsCount - t.sections.length}
                     </span>
                   </div>
 

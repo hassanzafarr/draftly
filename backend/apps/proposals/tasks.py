@@ -47,12 +47,28 @@ def generate_proposal_task(self, proposal_id: str):
     metrics: dict = {}
     try:
         proposal = Proposal.objects.select_related("rfp", "org").get(id=proposal_id)
+
+        Proposal.objects.filter(id=proposal_id).update(
+            status_stage="analyzing", stage_meta={}
+        )
+
+        def _on_stage(stage: str, meta: dict):
+            Proposal.objects.filter(id=proposal_id).update(
+                status_stage=stage, stage_meta=meta or {}
+            )
+
         sections, metrics = generate_proposal_with_metrics(
-            proposal.rfp.raw_text, str(proposal.org_id), proposal.tone
+            proposal.rfp.raw_text, str(proposal.org_id), proposal.tone,
+            on_stage=_on_stage,
+            custom_section_labels=proposal.rfp.sections or None,
+            length=proposal.length,
         )
         proposal.sections = sections
+        proposal.section_labels = metrics.get("section_labels") or {}
         proposal.status = Proposal.Status.DRAFT
-        proposal.save(update_fields=["sections", "status"])
+        proposal.status_stage = "done"
+        proposal.stage_meta = {"provider": metrics.get("provider")}
+        proposal.save(update_fields=["sections", "section_labels", "status", "status_stage", "stage_meta"])
         _persist_event(proposal, metrics, success=True)
         logger.info(
             "Generated proposal %s — provider=%s rerank=%s lat=%sms",
@@ -67,8 +83,9 @@ def generate_proposal_task(self, proposal_id: str):
         try:
             proposal = Proposal.objects.get(id=proposal_id)
             proposal.status = Proposal.Status.FAILED
+            proposal.status_stage = "failed"
             proposal.error_message = str(exc)
-            proposal.save(update_fields=["status", "error_message"])
+            proposal.save(update_fields=["status", "status_stage", "error_message"])
             _persist_event(proposal, metrics, success=False, error_message=str(exc))
         except Proposal.DoesNotExist:
             pass

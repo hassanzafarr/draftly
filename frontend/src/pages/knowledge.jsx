@@ -1,19 +1,32 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
 import {
   UploadCloud, FileText, Brain, CheckCircle2, Loader2,
   Briefcase, Layers, Trash2, FolderOpen, Sparkles, AlertCircle,
+  Search, X,
 } from "lucide-react";
 import api from "../api/client";
 
 const CATEGORIES = [
   { id: "company_profile", label: "Company Profile", description: "Brand guidelines, about us, team bios", icon: Briefcase, hex: "var(--cyan)" },
-  { id: "past_proposals",  label: "Past Proposals",  description: "Previously submitted proposals",         icon: Layers,    hex: "var(--magenta)" },
-  { id: "case_studies",    label: "Case Studies",    description: "Success stories and project outcomes",   icon: Briefcase, hex: "var(--emerald)" },
+  { id: "past_proposals",  label: "Past Proposals",  description: "Previously submitted proposals",       icon: Layers,    hex: "var(--magenta)" },
+  { id: "case_studies",    label: "Case Studies",     description: "Success stories and project outcomes", icon: Briefcase, hex: "var(--emerald)" },
 ];
 
-const CATEGORY_LABELS = CATEGORIES.reduce((acc, c) => { acc[c.id] = c.label; return acc; }, {});
+const CATEGORY_LABEL_MAP = {
+  company_profile: "Company Profile",
+  past_proposals: "Past Proposals",
+  case_studies: "Case Studies",
+};
+
+const CATEGORY_COLOR_MAP = {
+  company_profile: "var(--cyan)",
+  past_proposals: "var(--magenta)",
+  case_studies: "var(--emerald)",
+};
+
+const ALLOWED_EXTS = ["pdf", "docx", "txt"];
 
 function docToUiStatus(status) {
   if (status === "processed") return "Ready";
@@ -22,61 +35,80 @@ function docToUiStatus(status) {
   return "Processing";
 }
 
-function isIndexing(doc) {
-  return doc.status === "pending" || doc.status === "processing";
-}
-
 export default function Knowledge() {
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [active, setActive] = useState("company_profile");
-  const [filter, setFilter] = useState("all");
   const [dragging, setDragging] = useState(false);
+  const [search, setSearch] = useState("");
   const inputRef = useRef(null);
+  const pollRef = useRef(null);
 
-  const fetchDocs = useCallback(() => {
-    api.get("/documents/")
-      .then((r) => setDocs(r.data.results ?? r.data))
-      .finally(() => setLoading(false));
+  const fetchDocs = useCallback(async () => {
+    try {
+      const { data } = await api.get("/documents/");
+      setDocs(data.results || data);
+    } catch {
+      toast.error("Failed to load documents.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
     fetchDocs();
   }, [fetchDocs]);
 
+  // Poll only when there are processing docs
   useEffect(() => {
-    if (!docs.some(isIndexing)) return undefined;
-    const interval = setInterval(fetchDocs, 5000);
-    return () => clearInterval(interval);
+    const hasProcessing = docs.some((d) => d.status === "processing" || d.status === "pending");
+    if (hasProcessing) {
+      pollRef.current = setInterval(fetchDocs, 5000);
+    } else {
+      clearInterval(pollRef.current);
+    }
+    return () => clearInterval(pollRef.current);
   }, [docs, fetchDocs]);
 
   const handleAdd = async (fileList) => {
     if (!fileList?.length) return;
     setUploading(true);
     const files = Array.from(fileList);
-    await Promise.allSettled(
-      files.map(async (file) => {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("title", file.name.replace(/\.[^/.]+$/, ""));
-        formData.append("category", active);
-        try {
-          await api.post("/documents/", formData, {
-            headers: { "Content-Type": "multipart/form-data" },
-          });
-        } catch (err) {
-          toast.error(`Failed to upload "${file.name}".`);
-        }
-      }),
-    );
-    toast.success(`${files.length > 1 ? `${files.length} files` : "File"} uploaded — processing started.`);
-    fetchDocs();
+
+    for (const file of files) {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "";
+      if (!ALLOWED_EXTS.includes(ext)) {
+        toast.error(`Unsupported file: ${file.name}. Only PDF, DOCX, TXT allowed.`);
+        continue;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`${file.name} exceeds 10 MB limit.`);
+        continue;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("title", file.name);
+      formData.append("category", active);
+
+      try {
+        const { data: newDoc } = await api.post("/documents/", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        setDocs((prev) => [newDoc, ...prev]);
+        toast.success(`Uploaded: ${file.name}`);
+      } catch (err) {
+        toast.error(err.response?.data?.detail || `Failed to upload ${file.name}`);
+      }
+    }
+
     setUploading(false);
+    if (inputRef.current) inputRef.current.value = "";
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm("Delete this document and all its indexed data?")) return;
+  const handleDelete = async (id, title) => {
+    if (!window.confirm(`Delete "${title}" and all its embeddings? This cannot be undone.`)) return;
     try {
       await api.delete(`/documents/${id}/`);
       setDocs((d) => d.filter((doc) => doc.id !== id));
@@ -87,32 +119,54 @@ export default function Knowledge() {
   };
 
   const totalIndexed = docs.filter((d) => d.status === "processed").length;
-  const visibleDocs = filter === "all" ? docs : docs.filter((d) => d.category === filter);
+
+  // Category counts for the category cards
+  const categoryCounts = useMemo(() => {
+    const c = {};
+    CATEGORIES.forEach((cat) => {
+      c[cat.id] = docs.filter((d) => d.category === cat.id).length;
+    });
+    return c;
+  }, [docs]);
+
+  // Filtered docs for file list (by active category + search)
+  const filtered = useMemo(() => {
+    let result = docs.filter((d) => d.category === active);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter((d) => d.title.toLowerCase().includes(q));
+    }
+    return result;
+  }, [docs, active, search]);
+
+  const activeCat = CATEGORIES.find((c) => c.id === active);
 
   return (
-    <div className="px-8 py-10">
+    <div className="px-6 py-6">
       <div className="mx-auto max-w-7xl">
 
         {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-4"
+          className="flex items-center justify-between gap-4"
         >
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet to-cyan shadow-[var(--shadow-glow-violet)]">
-            <FolderOpen className="h-6 w-6 text-white" />
-          </span>
-          <div>
-            <h1 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              Knowledge Base
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Feed your company data to enhance AI-generated proposals
-            </p>
+          <div className="flex items-center gap-4">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet to-cyan shadow-[var(--shadow-glow-violet)]">
+              <FolderOpen className="h-6 w-6 text-white" />
+            </span>
+            <div>
+              <h1 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                Knowledge Base
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {docs.length} document{docs.length !== 1 ? "s" : ""} · {docs.reduce((s, d) => s + (d.chunk_count || 0), 0)} chunks embedded
+              </p>
+            </div>
           </div>
         </motion.header>
 
-        <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
 
           {/* LEFT — Upload + categories */}
           <div className="space-y-6">
@@ -125,7 +179,7 @@ export default function Knowledge() {
               onDragLeave={() => setDragging(false)}
               onDrop={(e) => { e.preventDefault(); setDragging(false); handleAdd(e.dataTransfer.files); }}
               onClick={() => !uploading && inputRef.current?.click()}
-              className={`group relative flex cursor-pointer flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl border-2 border-dashed bg-surface/40 py-14 text-center backdrop-blur-md transition ${
+              className={`group relative flex cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl border-2 border-dashed bg-surface/40 py-10 text-center backdrop-blur-md transition ${
                 dragging
                   ? "scale-[1.01] border-violet bg-violet/10"
                   : "border-hairline hover:border-violet/40"
@@ -154,7 +208,7 @@ export default function Knowledge() {
               <p className="text-xs text-muted-foreground">
                 {uploading
                   ? "Please wait"
-                  : <>or click to browse · PDF, DOCX, TXT · adds to <span className="text-cyan">{CATEGORY_LABELS[active]}</span></>
+                  : <>or click to browse · PDF, DOCX, TXT · adds to <span className="text-cyan">{activeCat?.label}</span></>
                 }
               </p>
               {dragging && (
@@ -175,6 +229,7 @@ export default function Knowledge() {
                 {CATEGORIES.map((c, i) => {
                   const isActive = active === c.id;
                   const Icon = c.icon;
+                  const count = categoryCounts[c.id] || 0;
                   return (
                     <motion.button
                       key={c.id}
@@ -202,6 +257,7 @@ export default function Knowledge() {
                         <p className="text-sm font-semibold text-foreground">{c.label}</p>
                         <p className="text-xs text-muted-foreground">{c.description}</p>
                       </div>
+                      <span className="font-mono text-xs tabular-nums text-muted-foreground">{count}</span>
                       {isActive && (
                         <motion.span
                           layoutId="cat-dot"
@@ -222,7 +278,7 @@ export default function Knowledge() {
             <motion.div
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="glass-strong relative flex h-[280px] flex-col items-center justify-center overflow-hidden rounded-2xl"
+              className="glass-strong relative flex h-[220px] flex-col items-center justify-center overflow-hidden rounded-2xl"
             >
               <div className="absolute inset-0 stars opacity-40" />
               <div className="absolute h-56 w-56 rounded-full bg-violet/15 blur-3xl" />
@@ -264,49 +320,57 @@ export default function Knowledge() {
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-violet" />
-                  <p className="font-display text-sm font-semibold text-foreground">Uploaded Files</p>
+                  <p className="font-display text-sm font-semibold text-foreground">
+                    {activeCat?.label || "Files"}
+                  </p>
                 </div>
                 <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  {visibleDocs.length} / {docs.length}
+                  {filtered.length} of {docs.length} total
                 </span>
               </div>
 
-              <div className="mb-3 flex flex-wrap gap-1.5">
-                <FilterPill active={filter === "all"} onClick={() => setFilter("all")}>
-                  All
-                </FilterPill>
-                {CATEGORIES.map((c) => (
-                  <FilterPill
-                    key={c.id}
-                    active={filter === c.id}
-                    onClick={() => setFilter(c.id)}
-                    hex={c.hex}
+              {/* Search bar */}
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search documents..."
+                  className="w-full rounded-xl border border-hairline bg-surface/60 py-2 pl-9 pr-8 text-xs text-foreground placeholder:text-muted-foreground backdrop-blur focus:border-violet/40 focus:outline-none"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
-                    {c.label}
-                  </FilterPill>
-                ))}
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-[400px] overflow-y-auto scrollbar-thin">
                 {loading ? (
                   <div className="flex items-center justify-center py-10">
                     <Loader2 className="h-5 w-5 animate-spin text-violet" />
                   </div>
                 ) : (
                   <AnimatePresence mode="popLayout">
-                    {visibleDocs.length === 0 ? (
+                    {filtered.length === 0 ? (
                       <motion.p
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         className="px-3 py-10 text-center text-sm text-muted-foreground"
                       >
-                        {docs.length === 0
-                          ? "No files yet. Drop one to feed the brain."
-                          : `No files in ${filter === "all" ? "this view" : CATEGORY_LABELS[filter]}.`}
+                        {search
+                          ? "No matching documents found."
+                          : `No files in ${activeCat?.label}. Drop one above to feed the brain.`
+                        }
                       </motion.p>
                     ) : (
-                      visibleDocs.map((doc, i) => {
+                      filtered.map((doc, i) => {
                         const uiStatus = docToUiStatus(doc.status);
+                        const catColor = CATEGORY_COLOR_MAP[doc.category] || "var(--magenta)";
                         return (
                           <motion.div
                             key={doc.id}
@@ -315,26 +379,37 @@ export default function Knowledge() {
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: 16 }}
                             transition={{ delay: i * 0.04, type: "spring", stiffness: 260, damping: 26 }}
-                            className="group relative overflow-hidden rounded-xl border border-hairline bg-surface/60 p-3"
+                            className="group relative overflow-hidden rounded-xl border border-hairline bg-surface/60 p-3 transition hover:border-violet/30"
                           >
                             <div className="flex items-center gap-3">
-                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-magenta/10 ring-1 ring-magenta/40">
-                                <FileText className="h-4 w-4 text-magenta" />
+                              <span
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                                style={{
+                                  background: `color-mix(in oklab, ${catColor} 15%, transparent)`,
+                                  boxShadow: `0 0 12px -6px ${catColor}`,
+                                }}
+                              >
+                                <FileText className="h-4 w-4" style={{ color: catColor }} />
                               </span>
                               <div className="min-w-0 flex-1">
                                 <p className="truncate text-sm font-medium text-foreground">{doc.title}</p>
-                                <p className="font-mono text-[10px] text-muted-foreground">
-                                  {CATEGORY_LABELS[doc.category] || "Uncategorized"} ·{" "}
-                                  {doc.status === "failed" && doc.error_message
-                                    ? doc.error_message
-                                    : doc.status}
-                                </p>
+                                <div className="flex items-center gap-2 font-mono text-[10px] text-muted-foreground">
+                                  <span className="uppercase">{doc.file_type}</span>
+                                  {doc.chunk_count > 0 && (
+                                    <>
+                                      <span>·</span>
+                                      <span>{doc.chunk_count} chunks</span>
+                                    </>
+                                  )}
+                                  <span>·</span>
+                                  <span>{new Date(doc.created_at).toLocaleDateString()}</span>
+                                </div>
                               </div>
                               <StatusPill status={uiStatus} />
                               <button
-                                onClick={() => handleDelete(doc.id)}
+                                onClick={() => handleDelete(doc.id, doc.title)}
                                 aria-label={`Delete ${doc.title}`}
-                                className="text-muted-foreground transition hover:text-magenta"
+                                className="text-muted-foreground opacity-0 transition hover:text-destructive group-hover:opacity-100"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
@@ -362,22 +437,6 @@ export default function Knowledge() {
         </div>
       </div>
     </div>
-  );
-}
-
-function FilterPill({ active, onClick, hex, children }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`rounded-full border px-2.5 py-1 text-[10px] font-medium transition ${
-        active
-          ? "border-violet/60 bg-violet/15 text-foreground"
-          : "border-hairline bg-surface/40 text-muted-foreground hover:border-violet/30"
-      }`}
-      style={active && hex ? { borderColor: hex, color: hex, background: `color-mix(in oklab, ${hex} 14%, transparent)` } : undefined}
-    >
-      {children}
-    </button>
   );
 }
 
