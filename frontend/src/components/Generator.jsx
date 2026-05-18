@@ -936,34 +936,27 @@ function ThinkingStage({
 
 function LengthSlider({ value, onChange }) {
     const active = LENGTH_OPTIONS[value];
+    const pct = (value / (LENGTH_OPTIONS.length - 1)) * 100;
     return (
-        <div className="hidden flex-col gap-1 rounded-2xl border border-hairline bg-surface-2/60 px-3 py-1.5 sm:flex">
-            <div className="flex items-center justify-between gap-3">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                    Length
-                </span>
-                <span className="text-[11px] font-medium text-foreground">{active.label}</span>
-            </div>
-            <div className="flex items-center gap-2">
-                <input
-                    type="range"
-                    min={0}
-                    max={LENGTH_OPTIONS.length - 1}
-                    step={1}
-                    value={value}
-                    onChange={(e) => onChange(Number(e.target.value))}
-                    aria-label="Proposal length"
-                    title={active.hint}
-                    className="h-1 w-32 cursor-pointer appearance-none rounded-full bg-surface-2 accent-violet [--tw-ring-color:var(--violet)] focus:outline-none focus:ring-2"
-                    style={{
-                        background: `linear-gradient(to right, var(--violet) 0%, var(--violet) ${
-                            (value / (LENGTH_OPTIONS.length - 1)) * 100
-                        }%, var(--surface-2) ${
-                            (value / (LENGTH_OPTIONS.length - 1)) * 100
-                        }%, var(--surface-2) 100%)`,
-                    }}
-                />
-            </div>
+        <div
+            className="hidden h-9 items-center gap-2 rounded-full border border-hairline bg-surface-2/60 px-3 sm:inline-flex"
+            title={active.hint}
+        >
+            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                Length
+            </span>
+            <input
+                type="range"
+                min={0}
+                max={LENGTH_OPTIONS.length - 1}
+                step={1}
+                value={value}
+                onChange={(e) => onChange(Number(e.target.value))}
+                aria-label="Proposal length"
+                className="length-slider w-20 cursor-pointer focus:outline-none"
+                style={{ "--pct": `${pct}%` }}
+            />
+            <span className="min-w-[58px] text-[11px] font-medium text-foreground">{active.label}</span>
         </div>
     );
 }

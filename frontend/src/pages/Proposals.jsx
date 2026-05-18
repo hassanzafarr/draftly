@@ -199,11 +199,15 @@ export default function Proposals() {
                   <motion.div
                     key={p.id}
                     layout
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8, scale: 0.96 }}
-                    transition={{ delay: i * 0.03, type: "spring", stiffness: 220, damping: 24 }}
-                    className="group glass relative overflow-hidden rounded-2xl p-5 transition hover:border-violet/30"
+                    initial={{ opacity: 0, y: 12, scale: 1 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{
+                      layout: { type: "spring", stiffness: 300, damping: 28 },
+                      opacity: { delay: i * 0.03 },
+                      y: { delay: i * 0.03, type: "spring", stiffness: 220, damping: 24 }
+                    }}
+                    className="group glass relative w-full overflow-hidden rounded-2xl p-5 transition hover:border-violet/30"
                   >
                     <Link
                       to={`/proposals/${p.id}`}
