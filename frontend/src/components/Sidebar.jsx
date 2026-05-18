@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Home, FileText, Brain, BarChart3, Settings, LogOut, Sun, Moon, ClipboardList } from "lucide-react";
+import { Home, FileText, Brain, BarChart3, Settings, LogOut, Sun, Moon, ClipboardList, CreditCard } from "lucide-react";
 import { motion } from "framer-motion";
 import { useTheme } from "./ThemeProvider";
 import useAuthStore from "../store/auth";
@@ -10,6 +10,7 @@ const items = [
   { to: "/templates", label: "Templates", icon: FileText },
   { to: "/knowledge", label: "Knowledge", icon: Brain },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
+  { to: "/pricing", label: "Pricing", icon: CreditCard },
 ];
 
 export function Sidebar() {

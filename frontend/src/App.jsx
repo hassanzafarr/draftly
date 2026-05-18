@@ -19,6 +19,7 @@ const Settings = lazy(() => import("./pages/Settings"));
 const NewRFP = lazy(() => import("./pages/NewRFP"));
 const Editor = lazy(() => import("./pages/Editor"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const Pricing = lazy(() => import("./pages/Pricing"));
 
 function PageFallback() {
   return (
@@ -66,6 +67,7 @@ export default function App() {
                 <Route path="settings" element={<Settings />} />
                 <Route path="rfps/new" element={<NewRFP />} />
                 <Route path="proposals/:id" element={<Editor />} />
+                <Route path="pricing" element={<Pricing />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
