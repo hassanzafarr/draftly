@@ -23,14 +23,19 @@ class OrgDocQuotaPermission(BasePermission):
 
 
 class OrgProposalQuotaPermission(BasePermission):
-    """Block proposal generation if org is at its monthly quota."""
+    """Block proposal generation if org is at its monthly quota and has no credits."""
     message = "Monthly proposal quota reached for your subscription tier."
 
     def has_permission(self, request, view):
         if request.method != "POST":
             return True
         org = request.user.org
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
         month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         current = Proposal.objects.filter(org=org, created_at__gte=month_start).count()
-        return current < org.proposal_quota
+        if current < org.proposal_quota:
+            return True
+        # Monthly quota exhausted — allow if the org has credit balance
+        if org.credit_balance > 0:
+            return True
+        return False

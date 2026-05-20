@@ -5,8 +5,14 @@ from .models import Organization, User
 class OrganizationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Organization
-        fields = ["id", "name", "subscription_tier", "doc_quota", "proposal_quota", "created_at"]
-        read_only_fields = ["id", "created_at", "doc_quota", "proposal_quota"]
+        fields = [
+            "id", "name", "subscription_tier", "doc_quota", "proposal_quota", "created_at",
+            "subscription_status", "current_period_end", "credit_balance",
+        ]
+        read_only_fields = [
+            "id", "created_at", "doc_quota", "proposal_quota",
+            "subscription_status", "current_period_end", "credit_balance",
+        ]
 
 
 class UserSerializer(serializers.ModelSerializer):

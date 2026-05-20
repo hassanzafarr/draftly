@@ -10,8 +10,8 @@ class Organization(models.Model):
         AGENCY = "agency", "Agency"
 
     QUOTA = {
-        "starter": {"docs": 50, "proposals": 50},
-        "growth": {"docs": 200, "proposals": 55},
+        "starter": {"docs": 50, "proposals": 5},
+        "growth": {"docs": 200, "proposals": 25},
         "agency": {"docs": 999999, "proposals": 999999},
     }
 
@@ -20,8 +20,23 @@ class Organization(models.Model):
     subscription_tier = models.CharField(max_length=20, choices=Tier.choices, default=Tier.STARTER)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # Stripe billing
+    stripe_customer_id = models.CharField(max_length=255, blank=True, default="")
+    stripe_subscription_id = models.CharField(max_length=255, blank=True, default="")
+    subscription_status = models.CharField(max_length=50, blank=True, default="")
+    current_period_end = models.DateTimeField(null=True, blank=True)
+
+    # Credits — consumed only after monthly quota is exhausted; never reset monthly
+    credit_balance = models.PositiveIntegerField(default=0)
+
     def __str__(self):
         return self.name
+
+    def consume_credit(self):
+        """Atomically deduct 1 credit. Called only on successful proposal generation."""
+        Organization.objects.filter(pk=self.pk, credit_balance__gt=0).update(
+            credit_balance=models.F("credit_balance") - 1
+        )
 
     @property
     def doc_quota(self):

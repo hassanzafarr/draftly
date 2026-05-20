@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "apps.documents",
     "apps.proposals",
     "apps.core",
+    "apps.billing",
 ]
 
 MIDDLEWARE = [
@@ -212,6 +213,13 @@ CLAUDE_ENABLED = config("CLAUDE_ENABLED", default=True, cast=bool)
 # Embeddings — Google AI Studio (free tier, same key as generation)
 EMBEDDING_MODEL = "models/gemini-embedding-001"
 EMBEDDING_DIMS = 768
+
+# Stripe billing
+STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="")
+STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY", default="")
+STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET", default="")
+STRIPE_PRICE_GROWTH = config("STRIPE_PRICE_GROWTH", default="")   # $29/mo recurring Price ID
+STRIPE_PRICE_AGENCY = config("STRIPE_PRICE_AGENCY", default="")   # $99/mo recurring Price ID
 
 # RFP input validation thresholds
 RFP_MIN_CHARS = config("RFP_MIN_CHARS", default=200, cast=int)

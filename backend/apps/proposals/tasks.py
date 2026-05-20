@@ -40,7 +40,7 @@ def _persist_event(proposal, metrics: dict, *, success: bool, error_message: str
 
 
 @shared_task(bind=True, max_retries=2)
-def generate_proposal_task(self, proposal_id: str):
+def generate_proposal_task(self, proposal_id: str, using_credit: bool = False):
     from .models import Proposal
     from .generator import generate_proposal_with_metrics
 
@@ -70,6 +70,8 @@ def generate_proposal_task(self, proposal_id: str):
         proposal.stage_meta = {"provider": metrics.get("provider")}
         proposal.save(update_fields=["sections", "section_labels", "status", "status_stage", "stage_meta"])
         _persist_event(proposal, metrics, success=True)
+        if using_credit:
+            proposal.org.consume_credit()
         logger.info(
             "Generated proposal %s — provider=%s rerank=%s lat=%sms",
             proposal_id,
