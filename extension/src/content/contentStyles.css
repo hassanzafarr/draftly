@@ -1,0 +1,6 @@
+/* Minimal styles injected into LinkedIn/X pages via manifest css field */
+/* NO Tailwind reset here — it would break page styles */
+
+[data-draftly-badge] {
+  font-family: system-ui, -apple-system, sans-serif !important;
+}
