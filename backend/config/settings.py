@@ -190,6 +190,8 @@ else:
     MEDIA_URL = "/media/"
     MEDIA_ROOT = BASE_DIR / "media"
 
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024  # 5 MB hard limit
+
 # AI keys — free tiers, no credit card required
 GOOGLE_AI_API_KEY = config("GOOGLE_AI_API_KEY")
 GROQ_API_KEY = config("GROQ_API_KEY", default="")
