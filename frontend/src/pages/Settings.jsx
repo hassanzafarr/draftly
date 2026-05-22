@@ -12,24 +12,28 @@ import useAuthStore from "../store/auth";
 const TIER_CONFIG = {
   free: {
     label: "Free",
+    price: "$0 / month",
     color: "cyan",
     icon: Zap,
     features: ["3 proposals/mo", "10 documents", "1 seat"],
   },
   solo: {
     label: "Solo",
+    price: "$19 / month",
     color: "violet",
     icon: Sparkles,
     features: ["25 proposals/mo", "25 documents", "1 seat"],
   },
   studio: {
     label: "Studio",
+    price: "$89 / month",
     color: "magenta",
     icon: Star,
     features: ["150 proposals/mo", "250 documents", "5 seats"],
   },
   agency: {
     label: "Agency",
+    price: "$249 / month",
     color: "amber",
     icon: Crown,
     features: ["750 proposals/mo", "Unlimited documents", "10 seats"],
@@ -296,7 +300,7 @@ export default function Settings() {
                     </div>
 
                     {/* Billing action button */}
-                    {user?.org?.subscription_tier === "starter" ? (
+                    {user?.org?.subscription_tier === "free" ? (
                       <a
                         href="/pricing"
                         className="flex shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-violet to-magenta px-4 py-2 text-xs font-semibold text-white shadow-[var(--shadow-glow-violet)]"

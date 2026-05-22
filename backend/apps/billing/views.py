@@ -14,9 +14,21 @@ from apps.core.permissions import IsOrgMember
 logger = logging.getLogger(__name__)
 
 TIER_PRICE_MAP = {
-    "growth": "STRIPE_PRICE_GROWTH",
-    "agency": "STRIPE_PRICE_AGENCY",
+    "solo": {
+        "monthly": "STRIPE_PRICE_SOLO_MONTHLY",
+        "annual": "STRIPE_PRICE_SOLO_ANNUAL",
+    },
+    "studio": {
+        "monthly": "STRIPE_PRICE_STUDIO_MONTHLY",
+        "annual": "STRIPE_PRICE_STUDIO_ANNUAL",
+    },
+    "agency": {
+        "monthly": "STRIPE_PRICE_AGENCY_MONTHLY",
+        "annual": "STRIPE_PRICE_AGENCY_ANNUAL",
+    },
 }
+
+VALID_CADENCES = {"monthly", "annual"}
 
 
 def _get_or_create_stripe_customer(org):
@@ -38,14 +50,29 @@ def _get_or_create_stripe_customer(org):
 def create_checkout_session(request):
     """
     Create a Stripe Checkout session for a subscription upgrade.
-    Body: {"tier": "growth" | "agency"}
+    Body: {"tier": "solo" | "studio" | "agency", "billing_cadence": "monthly" | "annual"}
     Returns: {"url": "<stripe_checkout_url>"}
     """
     tier = request.data.get("tier", "").lower()
-    price_setting = TIER_PRICE_MAP.get(tier)
-    if not price_setting:
-        return Response({"detail": "Invalid tier. Must be 'growth' or 'agency'."}, status=status.HTTP_400_BAD_REQUEST)
+    billing_cadence = (
+        request.data.get("billing_cadence")
+        or request.data.get("cadence")
+        or request.data.get("billing")
+        or "monthly"
+    ).lower()
 
+    if tier not in TIER_PRICE_MAP:
+        return Response(
+            {"detail": "Invalid tier. Must be 'solo', 'studio', or 'agency'."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if billing_cadence not in VALID_CADENCES:
+        return Response(
+            {"detail": "Invalid billing cadence. Must be 'monthly' or 'annual'."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    price_setting = TIER_PRICE_MAP[tier][billing_cadence]
     price_id = getattr(settings, price_setting, "")
     if not price_id:
         return Response({"detail": "Billing not configured."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
@@ -55,17 +82,24 @@ def create_checkout_session(request):
 
     try:
         customer_id = _get_or_create_stripe_customer(org)
-        frontend_origin = request.build_absolute_uri("/").rstrip("/").replace(
-            request.get_host(), _get_frontend_origin()
-        )
         session = stripe.checkout.Session.create(
             customer=customer_id,
             mode="subscription",
             line_items=[{"price": price_id, "quantity": 1}],
             success_url=f"{_get_frontend_origin()}/pricing?success=true",
             cancel_url=f"{_get_frontend_origin()}/pricing?canceled=true",
-            metadata={"org_id": str(org.id), "tier": tier},
-            subscription_data={"metadata": {"org_id": str(org.id), "tier": tier}},
+            metadata={
+                "org_id": str(org.id),
+                "tier": tier,
+                "billing_cadence": billing_cadence,
+            },
+            subscription_data={
+                "metadata": {
+                    "org_id": str(org.id),
+                    "tier": tier,
+                    "billing_cadence": billing_cadence,
+                }
+            },
         )
         return Response({"url": session.url})
     except stripe.StripeError as exc:
@@ -168,14 +202,19 @@ def _on_checkout_completed(session, Organization):
 
     org_id = session.get("metadata", {}).get("org_id")
     tier = session.get("metadata", {}).get("tier")
+    billing_cadence = session.get("metadata", {}).get("billing_cadence") or "monthly"
     subscription_id = session.get("subscription")
 
     if not org_id or not tier:
         logger.warning("checkout.session.completed missing org_id or tier in metadata")
         return
+    if tier not in TIER_PRICE_MAP or billing_cadence not in VALID_CADENCES:
+        logger.warning("checkout.session.completed has invalid tier or cadence")
+        return
 
     updated = Organization.objects.filter(id=org_id).update(
         subscription_tier=tier,
+        billing_cadence=billing_cadence,
         stripe_subscription_id=subscription_id or "",
         subscription_status="active",
     )
@@ -189,6 +228,7 @@ def _on_subscription_updated(subscription, Organization):
         return
 
     tier = subscription.get("metadata", {}).get("tier")
+    billing_cadence = subscription.get("metadata", {}).get("billing_cadence")
     sub_status = subscription.get("status", "")
     period_end = subscription.get("current_period_end")
 
@@ -202,8 +242,10 @@ def _on_subscription_updated(subscription, Organization):
         "subscription_status": sub_status,
         "current_period_end": period_end_dt,
     }
-    if tier:
+    if tier in TIER_PRICE_MAP:
         fields["subscription_tier"] = tier
+    if billing_cadence in VALID_CADENCES:
+        fields["billing_cadence"] = billing_cadence
 
     updated = Organization.objects.filter(stripe_customer_id=customer_id).update(**fields)
     if updated:
@@ -216,12 +258,13 @@ def _on_subscription_deleted(subscription, Organization):
         return
 
     Organization.objects.filter(stripe_customer_id=customer_id).update(
-        subscription_tier="starter",
+        subscription_tier="free",
+        billing_cadence="monthly",
         stripe_subscription_id="",
         subscription_status="canceled",
         current_period_end=None,
     )
-    logger.info("Subscription canceled for customer %s — downgraded to starter", customer_id)
+    logger.info("Subscription canceled for customer %s — downgraded to free", customer_id)
 
 
 def _on_payment_failed(invoice, Organization):

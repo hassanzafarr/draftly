@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("accounts", "0002_organization_credit_balance_and_more"),
+        ("accounts", "0003_billing_fields"),
     ]
 
     operations = [

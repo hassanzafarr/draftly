@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Check, Zap, Sparkles, Crown, Star, Clock } from "lucide-react";
+import { Check, Zap, Sparkles, Crown, Star, Clock, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import useAuthStore from "../store/auth";
 import api from "../api/client";
 
@@ -195,11 +196,31 @@ const PLANS = {
 };
 
 export default function Pricing() {
+  const [billing, setBilling] = useState("monthly");
   const [upgrading, setUpgrading] = useState(null);
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const currentTier = user?.org?.subscription_tier ?? "free";
   const plans = PLANS[billing];
+
+  const handleUpgrade = async (tier) => {
+    if (tier === "free") {
+      navigate("/");
+      return;
+    }
+
+    setUpgrading(tier);
+    try {
+      const { data } = await api.post("/billing/checkout/", {
+        tier,
+        billing_cadence: billing,
+      });
+      window.location.href = data.url;
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Could not start checkout.");
+      setUpgrading(null);
+    }
+  };
 
   return (
     <div className="min-h-screen px-6 py-12">
