@@ -16,7 +16,6 @@ export const defaultUser = {
     seat_limit: 1,
     monthly_price_usd: 0,
     annual_price_usd: 0,
-    proposal_pack_balance: 0,
     created_at: "2026-01-01T00:00:00Z",
   },
   created_at: "2026-01-01T00:00:00Z",

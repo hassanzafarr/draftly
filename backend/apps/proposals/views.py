@@ -1,7 +1,6 @@
-import datetime as dt
 from datetime import datetime, timedelta
 from django.conf import settings
-from django.db.models import Avg, Count, Q, Sum, F
+from django.db.models import Avg, Count, Q, Sum
 from django.db.models.functions import TruncMonth
 from django.http import HttpResponse
 from rest_framework import status
@@ -76,20 +75,14 @@ def generate_proposal(request, rfp_pk):
     if length not in Proposal.Length.values:
         length = Proposal.Length.STANDARD
 
-    org = request.user.org
-    now = dt.datetime.now(dt.timezone.utc)
-    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    monthly_count = Proposal.objects.filter(org=org, created_at__gte=month_start).count()
-    using_credit = monthly_count >= org.proposal_quota
-
     proposal = Proposal.objects.create(
         rfp=rfp,
-        org=org,
+        org=request.user.org,
         tone=tone,
         length=length,
         status=Proposal.Status.GENERATING,
     )
-    generate_proposal_task.delay(str(proposal.id), using_credit=using_credit)
+    generate_proposal_task.delay(str(proposal.id))
     return Response(ProposalSerializer(proposal).data, status=status.HTTP_202_ACCEPTED)
 
 

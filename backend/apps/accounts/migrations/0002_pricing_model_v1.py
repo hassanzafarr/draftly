@@ -1,4 +1,4 @@
-"""Pricing model v1: 4 tiers (free/solo/studio/agency), seat limits, pack balance, annual billing.
+"""Pricing model v1: 4 tiers (free/solo/studio/agency), seat limits, annual billing.
 
 Drops old starter/growth SKUs. Existing orgs on those tiers get flipped to agency
 to preserve their working state (per migration strategy in docs/pricing-model.md).
@@ -33,11 +33,6 @@ class Migration(migrations.Migration):
                 default="monthly",
                 max_length=10,
             ),
-        ),
-        migrations.AddField(
-            model_name="organization",
-            name="proposal_pack_balance",
-            field=models.PositiveIntegerField(default=0),
         ),
         migrations.RunPython(flip_legacy_tiers_to_agency, reverse_flip),
         migrations.AlterField(

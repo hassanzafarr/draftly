@@ -59,7 +59,6 @@ def test_me_returns_user_with_nested_org(auth_client):
     assert body["org"]["proposal_quota"] == 3
     assert body["org"]["seat_limit"] == 1
     assert body["org"]["billing_cadence"] == "monthly"
-    assert body["org"]["proposal_pack_balance"] == 0
 
 
 def test_org_isolation_blocks_cross_tenant_document_reads(

@@ -140,7 +140,6 @@ def subscription_status(request):
         "subscription_tier": org.subscription_tier,
         "subscription_status": org.subscription_status,
         "current_period_end": org.current_period_end,
-        "credit_balance": org.credit_balance,
         "stripe_publishable_key": settings.STRIPE_PUBLISHABLE_KEY,
     })
 

@@ -15,36 +15,25 @@ class Organization(models.Model):
         ANNUAL = "annual", "Annual"
 
     QUOTA = {
-        "free":   {"docs": 10,     "proposals": 3,   "seats": 1,  "monthly_price_usd": 0,    "annual_price_usd": 0},
-        "solo":   {"docs": 25,     "proposals": 25,  "seats": 1,  "monthly_price_usd": 19,   "annual_price_usd": 182},
-        "studio": {"docs": 250,    "proposals": 150, "seats": 5,  "monthly_price_usd": 89,   "annual_price_usd": 854},
-        "agency": {"docs": 999999, "proposals": 750, "seats": 10, "monthly_price_usd": 249,  "annual_price_usd": 2390},
+        "free": {"docs": 10, "proposals": 3, "seats": 1, "monthly_price_usd": 0, "annual_price_usd": 0},
+        "solo": {"docs": 25, "proposals": 25, "seats": 1, "monthly_price_usd": 19, "annual_price_usd": 182},
+        "studio": {"docs": 250, "proposals": 150, "seats": 5, "monthly_price_usd": 89, "annual_price_usd": 854},
+        "agency": {"docs": 999999, "proposals": 750, "seats": 10, "monthly_price_usd": 249, "annual_price_usd": 2390},
     }
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
     subscription_tier = models.CharField(max_length=20, choices=Tier.choices, default=Tier.FREE)
     billing_cadence = models.CharField(max_length=10, choices=BillingCadence.choices, default=BillingCadence.MONTHLY)
-    proposal_pack_balance = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    # Stripe billing
     stripe_customer_id = models.CharField(max_length=255, blank=True, default="")
     stripe_subscription_id = models.CharField(max_length=255, blank=True, default="")
     subscription_status = models.CharField(max_length=50, blank=True, default="")
     current_period_end = models.DateTimeField(null=True, blank=True)
 
-    # Credits — consumed only after monthly quota is exhausted; never reset monthly
-    credit_balance = models.PositiveIntegerField(default=0)
-
     def __str__(self):
         return self.name
-
-    def consume_credit(self):
-        """Atomically deduct 1 credit. Called only on successful proposal generation."""
-        Organization.objects.filter(pk=self.pk, credit_balance__gt=0).update(
-            credit_balance=models.F("credit_balance") - 1
-        )
 
     @property
     def doc_quota(self):

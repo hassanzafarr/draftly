@@ -24,12 +24,8 @@ class OrgDocQuotaPermission(BasePermission):
 
 
 class OrgProposalQuotaPermission(BasePermission):
-    """Block proposal generation if org is at its monthly quota AND has no pack balance.
-
-    Free tier is hard-blocked at the monthly cap (must upgrade, no pack purchases).
-    Paid tiers (solo/studio/agency) fall back to `proposal_pack_balance` once monthly is spent.
-    """
-    message = "Monthly proposal quota reached. Purchase a proposal pack to continue."
+    """Block proposal generation if org is at its monthly quota."""
+    message = "Monthly proposal quota reached. Upgrade your plan to continue."
 
     def has_permission(self, request, view):
         if request.method != "POST":
@@ -38,8 +34,4 @@ class OrgProposalQuotaPermission(BasePermission):
         now = datetime.datetime.now(datetime.timezone.utc)
         month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         current = Proposal.objects.filter(org=org, created_at__gte=month_start).count()
-        if current < org.proposal_quota:
-            return True
-        if org.subscription_tier == Organization.Tier.FREE:
-            return False
-        return org.proposal_pack_balance > 0
+        return current < org.proposal_quota

@@ -48,7 +48,6 @@ const PLANS = {
         "1 seat",
         "PDF & DOCX export",
         "All 3 KB categories",
-        "Proposal pack purchases",
       ],
     },
     {
@@ -140,7 +139,6 @@ const PLANS = {
         "1 seat",
         "PDF & DOCX export",
         "All 3 KB categories",
-        "Proposal pack purchases",
       ],
     },
     {
@@ -357,39 +355,6 @@ export default function Pricing() {
             );
           })}
         </div>
-
-        {/* Proposal packs */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.4 }}
-          className="mt-12"
-        >
-          <div className="mb-5 text-center">
-            <h2 className="text-xl font-semibold text-foreground">Proposal packs</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Out of monthly quota? Top up anytime. Solo and above. No expiry.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {[
-              { name: "Boost", proposals: 10, price: "$12", perProp: "$1.20" },
-              { name: "Plus", proposals: 30, price: "$30", perProp: "$1.00" },
-              { name: "Power", proposals: 100, price: "$85", perProp: "$0.85" },
-            ].map((pack) => (
-              <div
-                key={pack.name}
-                className="rounded-xl border border-hairline bg-surface p-5"
-              >
-                <p className="text-sm font-semibold text-foreground">{pack.name}</p>
-                <p className="mt-2 text-2xl font-bold text-foreground">{pack.price}</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {pack.proposals} proposals · {pack.perProp} each
-                </p>
-              </div>
-            ))}
-          </div>
-        </motion.div>
 
         {/* Footer note */}
         <p className="mt-8 text-center text-xs text-muted-foreground">

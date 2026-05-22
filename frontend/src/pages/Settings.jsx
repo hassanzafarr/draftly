@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import {
   Settings as SettingsIcon, User, Building2, Lock, Shield,
   Save, Loader2, CheckCircle2, Crown, Sparkles, FileText,
-  Zap, AlertCircle, Star,
+  Zap, AlertCircle, Star, CreditCard, ExternalLink,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import api from "../api/client";
@@ -375,15 +375,6 @@ export default function Settings() {
                     <span className="text-muted-foreground">Proposal quota</span>
                     <span className="text-foreground">{user?.org?.proposal_quota?.toLocaleString() || "—"} / month</span>
                   </div>
-                  {user?.org?.credit_balance > 0 && (
-                    <div className="flex justify-between">
-                      <span className="flex items-center gap-1.5 text-muted-foreground">
-                        <Coins className="h-3.5 w-3.5 text-amber-400" />
-                        AI credits
-                      </span>
-                      <span className="font-medium text-amber-400">{user.org.credit_balance} remaining</span>
-                    </div>
-                  )}
                   {user?.org?.current_period_end && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Billing period ends</span>

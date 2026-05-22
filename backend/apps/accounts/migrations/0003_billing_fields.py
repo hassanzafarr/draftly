@@ -12,11 +12,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name="organization",
-            name="credit_balance",
-            field=models.PositiveIntegerField(default=0),
-        ),
-        migrations.AddField(
-            model_name="organization",
             name="current_period_end",
             field=models.DateTimeField(blank=True, null=True),
         ),

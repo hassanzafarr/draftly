@@ -15,7 +15,6 @@ class OrganizationSerializer(serializers.ModelSerializer):
             "seat_limit",
             "monthly_price_usd",
             "annual_price_usd",
-            "proposal_pack_balance",
             "created_at",
         ]
         read_only_fields = [
@@ -26,7 +25,6 @@ class OrganizationSerializer(serializers.ModelSerializer):
             "seat_limit",
             "monthly_price_usd",
             "annual_price_usd",
-            "proposal_pack_balance",
         ]
 
 
