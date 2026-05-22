@@ -42,7 +42,33 @@ npm run build      # Production build
 npm run preview    # Preview production build
 ```
 
-No test suite is currently configured for either backend or frontend.
+### Tests
+
+**Backend** (pytest + pytest-django):
+
+```bash
+cd backend
+pip install -r requirements-dev.txt    # one-time
+pytest                                  # run all tests
+pytest --cov=apps --cov-report=html    # with coverage
+ruff check . && ruff format --check .  # lint + format check
+```
+
+Backend tests require a **local Postgres** (not the Supabase pooler — that's prod). Default: `localhost:5432`, db `draftly_test`, user `rfp_user`. Override via `TEST_DB_*` env vars. Settings module: `config.test_settings` (forced via pyproject.toml).
+
+**Frontend** (Vitest + React Testing Library + MSW):
+
+```bash
+cd frontend
+npm install
+npm test               # watch mode
+npm run test:run       # single run
+npm run test:cov       # with coverage
+npm run lint           # eslint
+npm run format         # prettier write
+```
+
+Initial coverage: `apps/accounts/tests/test_auth.py` (4 tests — register, login, /me, multi-tenant isolation) and `src/store/auth.test.js` (3 tests — login, logout, fetchMe).
 
 ---
 
@@ -229,7 +255,7 @@ JWT tokens: 8-hour access, 7-day refresh (rotate-refresh enabled via `SIMPLE_JWT
 - **No Stripe/billing**: Subscription tiers enforced by permissions but no payment flow.
 - **No team invitations**: User model supports admin/member roles and multiple users per org, but no invite endpoint or UI exists.
 - **No SSE/WebSocket**: Frontend uses polling (3s proposals, 5s docs); no streaming endpoint.
-- **No tests**: Neither pytest nor Jest is configured.
+- **Test coverage**: Test infra in place (pytest backend + vitest frontend) but only auth smoke + multi-tenant isolation covered. Document upload, proposal generation, and page-level tests not yet written.
 - **No CI/CD**: Dockerfiles and Railway/Vercel configs exist but no GitHub Actions workflows.
 - **Templates are mock**: Template gallery shows mock data — no backend Template model yet.
 - **Word-based chunking**: Chunk sizes vary for non-English or code-heavy docs.
