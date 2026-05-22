@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Settings as SettingsIcon, User, Building2, Lock, Shield,
-  Save, Loader2, CheckCircle2, Crown, Sparkles, FileText,
-  Zap, AlertCircle,
+  Save, Loader2, CheckCircle2, Crown, Sparkles,
+  Zap, ExternalLink, CreditCard, Coins,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import api from "../api/client";
@@ -12,18 +12,21 @@ import useAuthStore from "../store/auth";
 const TIER_CONFIG = {
   starter: {
     label: "Starter",
+    price: "$0 / month",
     color: "cyan",
     icon: Zap,
-    features: ["50 documents", "50 proposals/mo", "2 team members"],
+    features: ["50 documents", "5 proposals/mo", "1 seat"],
   },
   growth: {
     label: "Growth",
+    price: "$29 / month",
     color: "violet",
     icon: Sparkles,
-    features: ["200 documents", "55 proposals/mo", "10 team members"],
+    features: ["200 documents", "25 proposals/mo", "1 seat"],
   },
   agency: {
     label: "Agency",
+    price: "$99 / month",
     color: "magenta",
     icon: Crown,
     features: ["Unlimited documents", "Unlimited proposals", "Unlimited members"],
@@ -53,6 +56,9 @@ export default function Settings() {
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
   const [savingPw, setSavingPw] = useState(false);
+
+  // Billing state
+  const [portalLoading, setPortalLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -84,6 +90,17 @@ export default function Settings() {
       toast.error(err.response?.data?.detail || "Failed to update organization.");
     } finally {
       setSavingOrg(false);
+    }
+  };
+
+  const handleBillingPortal = async () => {
+    setPortalLoading(true);
+    try {
+      const { data } = await api.post("/billing/portal/");
+      window.location.href = data.url;
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Could not open billing portal.");
+      setPortalLoading(false);
     }
   };
 
@@ -258,21 +275,48 @@ export default function Settings() {
                   style={{ background: `var(--${tier.color})` }}
                 />
                 <div className="relative">
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="flex h-11 w-11 items-center justify-center rounded-xl"
-                      style={{
-                        background: `color-mix(in oklab, var(--${tier.color}) 22%, transparent)`,
-                        boxShadow: `0 0 30px -10px var(--${tier.color})`,
-                      }}
-                    >
-                      <TierIcon className="h-5 w-5" style={{ color: `var(--${tier.color})` }} />
-                    </span>
-                    <div>
-                      <p className="font-display text-lg font-bold text-foreground">{tier.label} Plan</p>
-                      <p className="text-xs text-muted-foreground">Current subscription tier</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span
+                        className="flex h-11 w-11 items-center justify-center rounded-xl"
+                        style={{
+                          background: `color-mix(in oklab, var(--${tier.color}) 22%, transparent)`,
+                          boxShadow: `0 0 30px -10px var(--${tier.color})`,
+                        }}
+                      >
+                        <TierIcon className="h-5 w-5" style={{ color: `var(--${tier.color})` }} />
+                      </span>
+                      <div>
+                        <p className="font-display text-lg font-bold text-foreground">{tier.label} Plan</p>
+                        <p className="text-xs text-muted-foreground">{tier.price}</p>
+                      </div>
                     </div>
+
+                    {/* Billing action button */}
+                    {user?.org?.subscription_tier === "starter" ? (
+                      <a
+                        href="/pricing"
+                        className="flex shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-violet to-magenta px-4 py-2 text-xs font-semibold text-white shadow-[var(--shadow-glow-violet)]"
+                      >
+                        <CreditCard className="h-3.5 w-3.5" />
+                        Upgrade
+                      </a>
+                    ) : (
+                      <button
+                        onClick={handleBillingPortal}
+                        disabled={portalLoading}
+                        className="flex shrink-0 items-center gap-1.5 rounded-xl border border-hairline bg-surface/60 px-4 py-2 text-xs font-medium text-foreground hover:bg-surface-2 disabled:opacity-50"
+                      >
+                        {portalLoading ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        )}
+                        Manage billing
+                      </button>
+                    )}
                   </div>
+
                   <div className="mt-4 flex flex-wrap gap-2">
                     {tier.features.map((f) => (
                       <span
@@ -324,6 +368,21 @@ export default function Settings() {
                     <span className="text-muted-foreground">Proposal quota</span>
                     <span className="text-foreground">{user?.org?.proposal_quota?.toLocaleString() || "—"} / month</span>
                   </div>
+                  {user?.org?.credit_balance > 0 && (
+                    <div className="flex justify-between">
+                      <span className="flex items-center gap-1.5 text-muted-foreground">
+                        <Coins className="h-3.5 w-3.5 text-amber-400" />
+                        AI credits
+                      </span>
+                      <span className="font-medium text-amber-400">{user.org.credit_balance} remaining</span>
+                    </div>
+                  )}
+                  {user?.org?.current_period_end && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Billing period ends</span>
+                      <span className="text-foreground">{new Date(user.org.current_period_end).toLocaleDateString()}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Organization created</span>
                     <span className="text-foreground">{user?.org?.created_at ? new Date(user.org.created_at).toLocaleDateString() : "—"}</span>

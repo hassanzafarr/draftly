@@ -1,164 +1,110 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Check, Zap, Sparkles, Crown, Clock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Check, Zap, Sparkles, Crown, Loader2 } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import useAuthStore from "../store/auth";
+import api from "../api/client";
 
-const PLANS = {
-  monthly: [
-    {
-      id: "starter",
-      name: "Starter",
-      price: 0,
-      priceLabel: "$0",
-      period: "/ month",
-      tagline: "Get started with AI proposals",
-      icon: Zap,
-      iconColor: "text-cyan-400",
-      highlight: false,
-      badge: null,
-      cta: "Current plan",
-      ctaDisabled: true,
-      features: [
-        "50 processed documents",
-        "5 proposals / month",
-        "PDF & DOCX export",
-        "10-section AI drafts",
-        "Basic analytics",
-      ],
-    },
-    {
-      id: "growth",
-      name: "Growth",
-      price: 29,
-      priceLabel: "$29",
-      period: "/ month",
-      tagline: "Scale your proposal workflow",
-      icon: Sparkles,
-      iconColor: "text-violet-400",
-      highlight: true,
-      badge: "Most Popular",
-      cta: "Upgrade to Growth",
-      ctaDisabled: false,
-      features: [
-        "200 processed documents",
-        "25 proposals / month",
-        "PDF & DOCX export",
-        "10-section AI drafts",
-        "Advanced analytics",
-        "Priority generation queue",
-        "Custom tone & style",
-      ],
-    },
-    {
-      id: "agency",
-      name: "Agency",
-      price: 99,
-      priceLabel: "$99",
-      period: "/ month",
-      tagline: "Unlimited power for agencies",
-      icon: Crown,
-      iconColor: "text-amber-400",
-      highlight: false,
-      badge: null,
-      cta: "Upgrade to Agency",
-      ctaDisabled: false,
-      features: [
-        "Unlimited documents",
-        "Unlimited proposals",
-        "PDF & DOCX export",
-        "10-section AI drafts",
-        "Full analytics suite",
-        "Priority generation queue",
-        "Custom tone & style",
-        "Team member management",
-        "Dedicated support",
-      ],
-    },
-  ],
-  annual: [
-    {
-      id: "starter",
-      name: "Starter",
-      price: 0,
-      priceLabel: "$0",
-      period: "/ month",
-      tagline: "Get started with AI proposals",
-      icon: Zap,
-      iconColor: "text-cyan-400",
-      highlight: false,
-      badge: null,
-      cta: "Current plan",
-      ctaDisabled: true,
-      features: [
-        "50 processed documents",
-        "5 proposals / month",
-        "PDF & DOCX export",
-        "10-section AI drafts",
-        "Basic analytics",
-      ],
-    },
-    {
-      id: "growth",
-      name: "Growth",
-      price: 23,
-      priceLabel: "$23",
-      originalPrice: "$29",
-      period: "/ month",
-      annualNote: "billed $276 / year",
-      tagline: "Scale your proposal workflow",
-      icon: Sparkles,
-      iconColor: "text-violet-400",
-      highlight: true,
-      badge: "Most Popular",
-      cta: "Upgrade to Growth",
-      ctaDisabled: false,
-      features: [
-        "200 processed documents",
-        "25 proposals / month",
-        "PDF & DOCX export",
-        "10-section AI drafts",
-        "Advanced analytics",
-        "Priority generation queue",
-        "Custom tone & style",
-      ],
-    },
-    {
-      id: "agency",
-      name: "Agency",
-      price: 79,
-      priceLabel: "$79",
-      originalPrice: "$99",
-      period: "/ month",
-      annualNote: "billed $948 / year",
-      tagline: "Unlimited power for agencies",
-      icon: Crown,
-      iconColor: "text-amber-400",
-      highlight: false,
-      badge: null,
-      cta: "Upgrade to Agency",
-      ctaDisabled: false,
-      features: [
-        "Unlimited documents",
-        "Unlimited proposals",
-        "PDF & DOCX export",
-        "10-section AI drafts",
-        "Full analytics suite",
-        "Priority generation queue",
-        "Custom tone & style",
-        "Team member management",
-        "Dedicated support",
-      ],
-    },
-  ],
-};
+const PLANS = [
+  {
+    id: "starter",
+    name: "Starter",
+    price: 0,
+    priceLabel: "$0",
+    period: "/ month",
+    tagline: "Get started with AI proposals",
+    icon: Zap,
+    iconColor: "text-cyan-400",
+    highlight: false,
+    badge: null,
+    cta: "Your current plan",
+    features: [
+      "50 processed documents",
+      "5 proposals / month",
+      "PDF & DOCX export",
+      "10-section AI drafts",
+      "Basic analytics",
+    ],
+  },
+  {
+    id: "growth",
+    name: "Growth",
+    price: 29,
+    priceLabel: "$29",
+    period: "/ month",
+    tagline: "Scale your proposal workflow",
+    icon: Sparkles,
+    iconColor: "text-violet-400",
+    highlight: true,
+    badge: "Most Popular",
+    cta: "Upgrade to Growth",
+    features: [
+      "200 processed documents",
+      "25 proposals / month",
+      "PDF & DOCX export",
+      "10-section AI drafts",
+      "Advanced analytics",
+      "Priority generation queue",
+      "Custom tone & style",
+    ],
+  },
+  {
+    id: "agency",
+    name: "Agency",
+    price: 99,
+    priceLabel: "$99",
+    period: "/ month",
+    tagline: "Unlimited power for agencies",
+    icon: Crown,
+    iconColor: "text-amber-400",
+    highlight: false,
+    badge: null,
+    cta: "Upgrade to Agency",
+    features: [
+      "Unlimited documents",
+      "Unlimited proposals",
+      "PDF & DOCX export",
+      "10-section AI drafts",
+      "Full analytics suite",
+      "Priority generation queue",
+      "Custom tone & style",
+      "Team member management",
+      "Dedicated support",
+    ],
+  },
+];
 
 export default function Pricing() {
-  const [billing, setBilling] = useState("monthly");
+  const [upgrading, setUpgrading] = useState(null);
   const { user } = useAuthStore();
   const navigate = useNavigate();
-  const currentTier = user?.org?.tier ?? "starter";
-  const plans = PLANS[billing];
+  const location = useLocation();
+  const currentTier = user?.org?.subscription_tier ?? "starter";
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("success") === "true") {
+      toast.success("Subscription activated! Your plan will update shortly.");
+      navigate("/pricing", { replace: true });
+    } else if (params.get("canceled") === "true") {
+      toast("Checkout canceled — no charge was made.", { icon: "ℹ️" });
+      navigate("/pricing", { replace: true });
+    }
+  }, [location.search]);
+
+  const handleUpgrade = async (planId) => {
+    if (upgrading) return;
+    setUpgrading(planId);
+    try {
+      const { data } = await api.post("/billing/checkout/", { tier: planId });
+      window.location.href = data.url;
+    } catch (err) {
+      const msg = err.response?.data?.detail || "Could not start checkout. Please try again.";
+      toast.error(msg);
+      setUpgrading(null);
+    }
+  };
 
   return (
     <div className="min-h-screen px-6 py-12">
@@ -177,34 +123,31 @@ export default function Pricing() {
             Choose the plan that fits your team. Upgrade or downgrade at any time.
           </p>
 
-          {/* Billing toggle */}
+          {/* Billing toggle — annual coming soon */}
           <div className="mt-6 inline-flex items-center gap-1 rounded-full border border-hairline bg-surface-1 p-1">
-            {["monthly", "annual"].map((b) => (
-              <button
-                key={b}
-                onClick={() => setBilling(b)}
-                className={`relative flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
-                  billing === b
-                    ? "bg-white text-gray-900 shadow dark:bg-surface-3 dark:text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {b === "annual" && (
-                  <span className="rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400">
-                    −20%
-                  </span>
-                )}
-                {b.charAt(0).toUpperCase() + b.slice(1)}
-              </button>
-            ))}
+            <button className="relative flex items-center gap-1.5 rounded-full bg-surface-3 px-4 py-1.5 text-sm font-medium text-foreground shadow">
+              Monthly
+            </button>
+            <button
+              disabled
+              className="relative flex cursor-not-allowed items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground opacity-60"
+              title="Annual billing coming soon"
+            >
+              <span className="rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                Soon
+              </span>
+              Annual
+            </button>
           </div>
         </motion.div>
 
         {/* Plan cards */}
         <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-          {plans.map((plan, i) => {
+          {PLANS.map((plan, i) => {
             const Icon = plan.icon;
             const isCurrent = plan.id === currentTier;
+            const isLoading = upgrading === plan.id;
+
             return (
               <motion.div
                 key={plan.id}
@@ -221,7 +164,6 @@ export default function Pricing() {
                 {plan.badge && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <span className="inline-flex items-center gap-1 rounded-full bg-violet px-3 py-0.5 text-xs font-semibold text-white shadow">
-                      <Clock className="h-3 w-3" />
                       {plan.badge}
                     </span>
                   </div>
@@ -237,17 +179,9 @@ export default function Pricing() {
 
                 {/* Price */}
                 <div className="mb-1 flex items-end gap-1">
-                  {plan.originalPrice && (
-                    <span className="mb-1 text-lg text-muted-foreground line-through">
-                      {plan.originalPrice}
-                    </span>
-                  )}
                   <span className="text-4xl font-bold text-foreground">{plan.priceLabel}</span>
                   <span className="mb-1 text-sm text-muted-foreground">{plan.period}</span>
                 </div>
-                {plan.annualNote && (
-                  <p className="mb-3 text-xs text-muted-foreground">{plan.annualNote}</p>
-                )}
                 <p className="mb-5 text-sm text-muted-foreground">{plan.tagline}</p>
 
                 {/* CTA button */}
@@ -257,15 +191,22 @@ export default function Pricing() {
                   </div>
                 ) : (
                   <button
-                    disabled={plan.ctaDisabled}
-                    onClick={() => navigate("/settings")}
-                    className={`mb-5 h-10 w-full rounded-xl text-sm font-semibold transition-all ${
+                    onClick={() => handleUpgrade(plan.id)}
+                    disabled={!!upgrading}
+                    className={`mb-5 flex h-10 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-60 ${
                       plan.highlight
                         ? "bg-violet text-white shadow hover:bg-violet/90 active:scale-[0.98]"
                         : "bg-surface-3 text-foreground hover:bg-surface-2 active:scale-[0.98]"
                     }`}
                   >
-                    {plan.cta}
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Redirecting…
+                      </>
+                    ) : (
+                      plan.cta
+                    )}
                   </button>
                 )}
 
@@ -287,7 +228,7 @@ export default function Pricing() {
 
         {/* Footer note */}
         <p className="mt-8 text-center text-xs text-muted-foreground">
-          All plans include SSL encryption and GDPR-compliant data handling. Tiers are currently set manually — no payment required during beta.
+          All plans include SSL encryption and GDPR-compliant data handling. Payments are securely processed by Stripe.
         </p>
       </div>
     </div>
