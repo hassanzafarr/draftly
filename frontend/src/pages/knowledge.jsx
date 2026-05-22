@@ -82,8 +82,8 @@ export default function Knowledge() {
         toast.error(`Unsupported file: ${file.name}. Only PDF, DOCX, TXT allowed.`);
         continue;
       }
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error(`${file.name} exceeds 10 MB limit.`);
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`${file.name} exceeds 5 MB limit.`);
         continue;
       }
 

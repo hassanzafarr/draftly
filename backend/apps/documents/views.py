@@ -23,6 +23,8 @@ def document_list(request):
     serializer.is_valid(raise_exception=True)
 
     file = serializer.validated_data["file"]
+    if file.size > 5 * 1024 * 1024:
+        return Response({"detail": "File exceeds 5 MB limit."}, status=status.HTTP_400_BAD_REQUEST)
     ext = file.name.rsplit(".", 1)[-1].lower()
     title = serializer.validated_data.get("title") or file.name
     category = serializer.validated_data.get("category") or Document.Category.COMPANY_PROFILE
