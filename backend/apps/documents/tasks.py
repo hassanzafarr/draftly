@@ -81,8 +81,10 @@ def ingest_document(self, document_id: str):
 
     except Exception as exc:
         logger.error("Failed to ingest document %s: %s", document_id, exc)
+        org_id = ""
         try:
             doc = Document.objects.get(id=document_id)
+            org_id = str(doc.org_id)
             doc.status = Document.Status.FAILED
             doc.error_message = str(exc)
             doc.save(update_fields=["status", "error_message"])
@@ -90,4 +92,14 @@ def ingest_document(self, document_id: str):
             pass
         if "429" in str(exc) or "quota" in str(exc).lower() or "rate" in str(exc).lower():
             return
+        if self.request.retries >= self.max_retries:
+            from apps.core.dlq import record_failure
+            record_failure(
+                task_name=self.name,
+                task_id=self.request.id or "",
+                args=(document_id,),
+                exception=exc,
+                org_id=org_id,
+            )
+            raise
         raise self.retry(exc=exc, countdown=60)

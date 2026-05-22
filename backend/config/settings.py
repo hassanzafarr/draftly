@@ -52,6 +52,7 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    "apps.core.middleware.AdminIPAllowlistMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -59,6 +60,10 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+# Comma-separated IPs/CIDRs allowed to reach /admin/. Empty disables the gate
+# (e.g. local dev). Example: "203.0.113.5,198.51.100.0/24".
+ADMIN_IP_ALLOWLIST = config("ADMIN_IP_ALLOWLIST", default="")
 
 ROOT_URLCONF = "config.urls"
 
@@ -128,13 +133,54 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        # Defaults — anonymous + authenticated baseline.
+        "anon": config("THROTTLE_ANON", default="30/min"),
+        "user": config("THROTTLE_USER", default="240/min"),
+        # Scoped throttles — applied via ScopedRateThrottle on individual views.
+        "auth_login": config("THROTTLE_AUTH_LOGIN", default="10/min"),
+        "auth_register": config("THROTTLE_AUTH_REGISTER", default="5/hour"),
+        "password_change": config("THROTTLE_PASSWORD_CHANGE", default="5/hour"),
+        "proposal_generate": config("THROTTLE_PROPOSAL_GENERATE", default="20/hour"),
+        "document_upload": config("THROTTLE_DOCUMENT_UPLOAD", default="30/hour"),
+        "billing_checkout": config("THROTTLE_BILLING_CHECKOUT", default="10/hour"),
+    },
 }
 
-# JWT
+# Cache backend — required by DRF throttling. Redis if available, else local memory.
+_throttle_cache_url = config("REDIS_URL", default="")
+if _throttle_cache_url:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": _throttle_cache_url,
+        }
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "draftly-default",
+        }
+    }
+
+# JWT — short-lived access token, refresh rotated on use.
+# Access lifetime kept short to limit exposure if a token is captured;
+# the SPA refreshes silently via the axios 401 → refresh interceptor.
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=8),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ACCESS_TOKEN_LIFETIME": timedelta(
+        minutes=config("JWT_ACCESS_LIFETIME_MINUTES", default=30, cast=int),
+    ),
+    "REFRESH_TOKEN_LIFETIME": timedelta(
+        days=config("JWT_REFRESH_LIFETIME_DAYS", default=7, cast=int),
+    ),
     "ROTATE_REFRESH_TOKENS": True,
+    # BLACKLIST_AFTER_ROTATION requires the token_blacklist app + migration;
+    # leave disabled until that's wired so refresh flow doesn't break.
 }
 
 DEFAULT_CORS_ALLOWED_ORIGINS = [
@@ -165,6 +211,24 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     "baggage",
     "sentry-trace",
 ]
+
+# Production security headers — only enabled when DEBUG is off so local dev
+# (http://localhost) is unaffected. SECURE_PROXY_SSL_HEADER is required
+# because Railway / Vercel terminate TLS upstream of Django.
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=True, cast=bool)
+    SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=31536000, cast=int)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_HTTPONLY = False  # frontend reads csrftoken cookie for header
+    SECURE_REFERRER_POLICY = "same-origin"
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
+    X_FRAME_OPTIONS = "DENY"
 
 # Celery
 CELERY_BROKER_URL = config("REDIS_URL", default="redis://localhost:6379/0")

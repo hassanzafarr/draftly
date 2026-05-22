@@ -8,10 +8,11 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.response import Response
 
 from apps.core.permissions import IsOrgMember
+from apps.core.throttling import BillingCheckoutThrottle
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +88,7 @@ def _get_or_create_stripe_customer(org, email=""):
 
 @api_view(["POST"])
 @permission_classes([IsOrgMember])
+@throttle_classes([BillingCheckoutThrottle])
 def create_checkout_session(request):
     """
     Create a Stripe Checkout session for a subscription upgrade.
@@ -149,6 +151,7 @@ def create_checkout_session(request):
 
 @api_view(["POST"])
 @permission_classes([IsOrgMember])
+@throttle_classes([BillingCheckoutThrottle])
 def create_portal_session(request):
     """
     Create a Stripe Customer Portal session (manage/cancel subscription).

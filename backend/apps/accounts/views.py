@@ -1,13 +1,26 @@
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from apps.core.throttling import AuthLoginThrottle, AuthRegisterThrottle, PasswordChangeThrottle
 from .serializers import RegisterSerializer, UserSerializer, OrganizationSerializer
 from .models import Organization
 
 
+class ThrottledTokenObtainPairView(TokenObtainPairView):
+    """JWT login endpoint with per-IP brute-force throttling."""
+    throttle_classes = [AuthLoginThrottle]
+
+
+class ThrottledTokenRefreshView(TokenRefreshView):
+    """JWT refresh — uses default user/anon rates."""
+    pass
+
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@throttle_classes([AuthRegisterThrottle])
 def register(request):
     serializer = RegisterSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -41,6 +54,7 @@ def update_profile(request):
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
+@throttle_classes([PasswordChangeThrottle])
 def change_password(request):
     """Change the authenticated user's password."""
     user = request.user

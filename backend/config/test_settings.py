@@ -47,3 +47,10 @@ PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 
 # Quiet Sentry in tests.
 SENTRY_DSN = ""
+
+# Disable rate limiting in tests — rates would otherwise trip across rapid runs.
+REST_FRAMEWORK = {
+    **REST_FRAMEWORK,  # noqa: F405 — imported via `from config.settings import *`
+    "DEFAULT_THROTTLE_CLASSES": [],
+    "DEFAULT_THROTTLE_RATES": {},
+}

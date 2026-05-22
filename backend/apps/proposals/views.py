@@ -4,9 +4,10 @@ from django.db.models import Avg, Count, Q, Sum
 from django.db.models.functions import TruncMonth
 from django.http import HttpResponse
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.response import Response
 from apps.core.permissions import IsOrgMember, OrgProposalQuotaPermission
+from apps.core.throttling import ProposalGenerateThrottle
 from .models import RFP, Proposal, GenerationEvent
 from .serializers import (
     RFPSerializer, RFPCreateSerializer,
@@ -52,6 +53,7 @@ def rfp_detail(request, pk):
 
 @api_view(["POST"])
 @permission_classes([IsOrgMember, OrgProposalQuotaPermission])
+@throttle_classes([ProposalGenerateThrottle])
 def generate_proposal(request, rfp_pk):
     try:
         rfp = RFP.objects.get(pk=rfp_pk, org=request.user.org)

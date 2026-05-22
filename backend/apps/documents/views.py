@@ -1,8 +1,9 @@
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes, parser_classes
+from rest_framework.decorators import api_view, permission_classes, parser_classes, throttle_classes
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from apps.core.permissions import IsOrgMember, OrgDocQuotaPermission
+from apps.core.throttling import DocumentUploadThrottle
 from .models import Document
 from .serializers import DocumentSerializer, DocumentUploadSerializer
 from .tasks import ingest_document
@@ -10,6 +11,7 @@ from .tasks import ingest_document
 
 @api_view(["GET", "POST"])
 @permission_classes([IsOrgMember, OrgDocQuotaPermission])
+@throttle_classes([DocumentUploadThrottle])
 def document_list(request):
     if request.method == "GET":
         docs = Document.objects.filter(org=request.user.org)

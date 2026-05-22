@@ -80,8 +80,10 @@ def generate_proposal_task(self, proposal_id: str):
 
     except Exception as exc:
         logger.error("Failed to generate proposal %s: %s", proposal_id, exc)
+        org_id = ""
         try:
             proposal = Proposal.objects.get(id=proposal_id)
+            org_id = str(proposal.org_id)
             proposal.status = Proposal.Status.FAILED
             proposal.status_stage = "failed"
             proposal.error_message = str(exc)
@@ -91,4 +93,15 @@ def generate_proposal_task(self, proposal_id: str):
             pass
         if "429" in str(exc) or "quota" in str(exc).lower() or "rate" in str(exc).lower():
             return
+        # Final attempt? Record terminal failure for ops + Sentry.
+        if self.request.retries >= self.max_retries:
+            from apps.core.dlq import record_failure
+            record_failure(
+                task_name=self.name,
+                task_id=self.request.id or "",
+                args=(proposal_id,),
+                exception=exc,
+                org_id=org_id,
+            )
+            raise
         raise self.retry(exc=exc, countdown=30)
