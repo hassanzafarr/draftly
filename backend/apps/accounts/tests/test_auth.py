@@ -54,8 +54,12 @@ def test_me_returns_user_with_nested_org(auth_client):
     assert body["email"] == auth_client.user.email
     assert body["role"] == auth_client.user.role
     assert body["org"]["id"] == str(auth_client.user.org.id)
-    assert body["org"]["subscription_tier"] == "starter"
-    assert body["org"]["doc_quota"] == 50
+    assert body["org"]["subscription_tier"] == "free"
+    assert body["org"]["doc_quota"] == 10
+    assert body["org"]["proposal_quota"] == 3
+    assert body["org"]["seat_limit"] == 1
+    assert body["org"]["billing_cadence"] == "monthly"
+    assert body["org"]["proposal_pack_balance"] == 0
 
 
 def test_org_isolation_blocks_cross_tenant_document_reads(

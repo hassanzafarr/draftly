@@ -9,7 +9,7 @@ class OrganizationFactory(DjangoModelFactory):
         model = Organization
 
     name = factory.Sequence(lambda n: f"Org {n}")
-    subscription_tier = Organization.Tier.STARTER
+    subscription_tier = Organization.Tier.FREE
 
 
 class UserFactory(DjangoModelFactory):

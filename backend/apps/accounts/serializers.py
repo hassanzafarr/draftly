@@ -6,12 +6,27 @@ class OrganizationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Organization
         fields = [
-            "id", "name", "subscription_tier", "doc_quota", "proposal_quota", "created_at",
-            "subscription_status", "current_period_end", "credit_balance",
+            "id",
+            "name",
+            "subscription_tier",
+            "billing_cadence",
+            "doc_quota",
+            "proposal_quota",
+            "seat_limit",
+            "monthly_price_usd",
+            "annual_price_usd",
+            "proposal_pack_balance",
+            "created_at",
         ]
         read_only_fields = [
-            "id", "created_at", "doc_quota", "proposal_quota",
-            "subscription_status", "current_period_end", "credit_balance",
+            "id",
+            "created_at",
+            "doc_quota",
+            "proposal_quota",
+            "seat_limit",
+            "monthly_price_usd",
+            "annual_price_usd",
+            "proposal_pack_balance",
         ]
 
 

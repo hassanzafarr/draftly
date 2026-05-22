@@ -5,7 +5,8 @@ from .models import Organization, User
 
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
-    list_display = ["name", "subscription_tier", "created_at"]
+    list_display = ["name", "subscription_tier", "billing_cadence", "proposal_pack_balance", "created_at"]
+    list_filter = ["subscription_tier", "billing_cadence"]
 
 
 @admin.register(User)

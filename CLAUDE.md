@@ -104,13 +104,14 @@ Every model (Document, Chunk, RFP, Proposal) has an `org` FK. The `IsOrgMember` 
 
 Subscription quotas are enforced by `OrgDocQuotaPermission` and `OrgProposalQuotaPermission`:
 
-| Tier    | Docs (processed) | Proposals/month |
-|---------|-----------------|----------------|
-| starter | 50              | 5              |
-| growth  | 200             | 25             |
-| agency  | unlimited       | unlimited      |
+| Tier   | Monthly | Annual (20% off) | Proposals/mo | Docs | Seats |
+|--------|---------|------------------|--------------|------|-------|
+| free   | $0      | —                | 3            | 10   | 1     |
+| solo   | $19     | $182/yr          | 25           | 25   | 1     |
+| studio | $89     | $854/yr          | 150          | 250  | 5     |
+| agency | $249    | $2,390/yr        | 750          | unlim| 10    |
 
-Monthly quota resets on the 1st of each month (UTC). Only `status=processed` documents count toward the doc quota. **No payment/billing integration exists** — tiers are set manually.
+Monthly quota resets on the 1st of each month (UTC). Only `status=processed` documents count toward the doc quota. Paid tiers also have `proposal_pack_balance` for one-time overage packs (Boost 10/$12, Plus 30/$30, Power 100/$85) — consumed only after the monthly quota hits zero. **No Stripe integration yet** — tier, billing cadence (monthly/annual), and pack balance are set manually. See [docs/pricing-model.md](docs/pricing-model.md) for full spec.
 
 ### Key Async Flows
 

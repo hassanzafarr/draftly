@@ -5,19 +5,27 @@ from django.db import models
 
 class Organization(models.Model):
     class Tier(models.TextChoices):
-        STARTER = "starter", "Starter"
-        GROWTH = "growth", "Growth"
+        FREE = "free", "Free"
+        SOLO = "solo", "Solo"
+        STUDIO = "studio", "Studio"
         AGENCY = "agency", "Agency"
 
+    class BillingCadence(models.TextChoices):
+        MONTHLY = "monthly", "Monthly"
+        ANNUAL = "annual", "Annual"
+
     QUOTA = {
-        "starter": {"docs": 50, "proposals": 5},
-        "growth": {"docs": 200, "proposals": 25},
-        "agency": {"docs": 999999, "proposals": 999999},
+        "free":   {"docs": 10,     "proposals": 3,   "seats": 1,  "monthly_price_usd": 0,    "annual_price_usd": 0},
+        "solo":   {"docs": 25,     "proposals": 25,  "seats": 1,  "monthly_price_usd": 19,   "annual_price_usd": 182},
+        "studio": {"docs": 250,    "proposals": 150, "seats": 5,  "monthly_price_usd": 89,   "annual_price_usd": 854},
+        "agency": {"docs": 999999, "proposals": 750, "seats": 10, "monthly_price_usd": 249,  "annual_price_usd": 2390},
     }
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
-    subscription_tier = models.CharField(max_length=20, choices=Tier.choices, default=Tier.STARTER)
+    subscription_tier = models.CharField(max_length=20, choices=Tier.choices, default=Tier.FREE)
+    billing_cadence = models.CharField(max_length=10, choices=BillingCadence.choices, default=BillingCadence.MONTHLY)
+    proposal_pack_balance = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     # Stripe billing
@@ -45,6 +53,18 @@ class Organization(models.Model):
     @property
     def proposal_quota(self):
         return self.QUOTA[self.subscription_tier]["proposals"]
+
+    @property
+    def seat_limit(self):
+        return self.QUOTA[self.subscription_tier]["seats"]
+
+    @property
+    def monthly_price_usd(self):
+        return self.QUOTA[self.subscription_tier]["monthly_price_usd"]
+
+    @property
+    def annual_price_usd(self):
+        return self.QUOTA[self.subscription_tier]["annual_price_usd"]
 
 
 class UserManager(BaseUserManager):

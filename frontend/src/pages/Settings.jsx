@@ -2,34 +2,37 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Settings as SettingsIcon, User, Building2, Lock, Shield,
-  Save, Loader2, CheckCircle2, Crown, Sparkles,
-  Zap, ExternalLink, CreditCard, Coins,
+  Save, Loader2, CheckCircle2, Crown, Sparkles, FileText,
+  Zap, AlertCircle, Star,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import api from "../api/client";
 import useAuthStore from "../store/auth";
 
 const TIER_CONFIG = {
-  starter: {
-    label: "Starter",
-    price: "$0 / month",
+  free: {
+    label: "Free",
     color: "cyan",
     icon: Zap,
-    features: ["50 documents", "5 proposals/mo", "1 seat"],
+    features: ["3 proposals/mo", "10 documents", "1 seat"],
   },
-  growth: {
-    label: "Growth",
-    price: "$29 / month",
+  solo: {
+    label: "Solo",
     color: "violet",
     icon: Sparkles,
-    features: ["200 documents", "25 proposals/mo", "1 seat"],
+    features: ["25 proposals/mo", "25 documents", "1 seat"],
+  },
+  studio: {
+    label: "Studio",
+    color: "magenta",
+    icon: Star,
+    features: ["150 proposals/mo", "250 documents", "5 seats"],
   },
   agency: {
     label: "Agency",
-    price: "$99 / month",
-    color: "magenta",
+    color: "amber",
     icon: Crown,
-    features: ["Unlimited documents", "Unlimited proposals", "Unlimited members"],
+    features: ["750 proposals/mo", "Unlimited documents", "10 seats"],
   },
 };
 
@@ -130,7 +133,7 @@ export default function Settings() {
     }
   };
 
-  const tier = TIER_CONFIG[user?.org?.subscription_tier] || TIER_CONFIG.starter;
+  const tier = TIER_CONFIG[user?.org?.subscription_tier] || TIER_CONFIG.free;
   const TierIcon = tier.icon;
   const displayName = user?.email?.split("@")[0] ?? "User";
   const initials = displayName.slice(0, 2).toUpperCase();
