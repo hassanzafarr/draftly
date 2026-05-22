@@ -220,12 +220,16 @@ EMBEDDING_DIMS = 768
 STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="")
 STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY", default="")
 STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET", default="")
+STRIPE_API_VERSION = config("STRIPE_API_VERSION", default="2024-11-20.acacia")
 STRIPE_PRICE_SOLO_MONTHLY = config("STRIPE_PRICE_SOLO_MONTHLY", default="")
 STRIPE_PRICE_SOLO_ANNUAL = config("STRIPE_PRICE_SOLO_ANNUAL", default="")
 STRIPE_PRICE_STUDIO_MONTHLY = config("STRIPE_PRICE_STUDIO_MONTHLY", default="")
 STRIPE_PRICE_STUDIO_ANNUAL = config("STRIPE_PRICE_STUDIO_ANNUAL", default="")
 STRIPE_PRICE_AGENCY_MONTHLY = config("STRIPE_PRICE_AGENCY_MONTHLY", default="")
 STRIPE_PRICE_AGENCY_ANNUAL = config("STRIPE_PRICE_AGENCY_ANNUAL", default="")
+
+# Public URL of the frontend; used for Stripe redirects after checkout/portal.
+FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:5173").rstrip("/")
 
 # RFP input validation thresholds
 RFP_MIN_CHARS = config("RFP_MIN_CHARS", default=200, cast=int)

@@ -7,8 +7,10 @@ logger = logging.getLogger(__name__)
 
 @shared_task(bind=True, max_retries=3)
 def ingest_document(self, document_id: str):
+    from django.core.files.base import ContentFile
     from .models import Document, Chunk
     from .pipeline import extract_text, chunk_text
+    from .security import validate_and_sanitize_pdf, PDFSecurityError
     from apps.core.embeddings import embed_texts
 
     try:
@@ -18,6 +20,25 @@ def ingest_document(self, document_id: str):
 
         with doc.file.open("rb") as fh:
             data = fh.read()
+
+        if doc.file_type == Document.FileType.PDF:
+            try:
+                sanitized = validate_and_sanitize_pdf(data)
+            except PDFSecurityError as sec_exc:
+                doc.status = Document.Status.FAILED
+                doc.error_message = str(sec_exc)
+                doc.save(update_fields=["status", "error_message"])
+                logger.warning(
+                    "Document %s rejected by security check: %s",
+                    document_id, sec_exc,
+                )
+                return
+            if sanitized != data:
+                file_name = doc.file.name
+                doc.file.save(file_name, ContentFile(sanitized), save=False)
+                doc.save(update_fields=["file"])
+                data = sanitized
+
         text = extract_text(data, doc.file_type)
 
         chunks_data = list(chunk_text(text))

@@ -111,7 +111,7 @@ Subscription quotas are enforced by `OrgDocQuotaPermission` and `OrgProposalQuot
 | studio | $89     | $854/yr          | 150          | 250  | 5     |
 | agency | $249    | $2,390/yr        | 750          | unlim| 10    |
 
-Monthly quota resets on the 1st of each month (UTC). Only `status=processed` documents count toward the doc quota. Paid tiers also have `proposal_pack_balance` for one-time overage packs (Boost 10/$12, Plus 30/$30, Power 100/$85) — consumed only after the monthly quota hits zero. **No Stripe integration yet** — tier, billing cadence (monthly/annual), and pack balance are set manually. See [docs/pricing-model.md](docs/pricing-model.md) for full spec.
+Monthly quota resets on the 1st of each month (UTC). Only `status=processed` documents count toward the doc quota. Paid tiers also have `proposal_pack_balance` for one-time overage packs (Boost 10/$12, Plus 30/$30, Power 100/$85) — consumed only after the monthly quota hits zero. Stripe is integrated end-to-end (`apps/billing/`): Checkout, Customer Portal, webhook with signature verification + idempotency via `StripeEvent`, and handlers for `checkout.session.completed`, `customer.subscription.updated|deleted`, `invoice.paid`, `invoice.payment_failed`. Tier is resolved from the line-item price id (NOT subscription metadata), so Customer Portal plan changes sync correctly. See [docs/pricing-model.md](docs/pricing-model.md) for the tier spec.
 
 ### Key Async Flows
 
@@ -253,7 +253,7 @@ JWT tokens: 8-hour access, 7-day refresh (rotate-refresh enabled via `SIMPLE_JWT
 
 ## Known Gaps
 
-- **No Stripe/billing**: Subscription tiers enforced by permissions but no payment flow.
+- **Billing (Stripe) shipped but unaudited in prod**: Checkout, Portal, webhook with idempotency, and tests in place. Stripe Tax / EU VAT not yet enabled; proposal-pack overage purchases not wired up.
 - **No team invitations**: User model supports admin/member roles and multiple users per org, but no invite endpoint or UI exists.
 - **No SSE/WebSocket**: Frontend uses polling (3s proposals, 5s docs); no streaming endpoint.
 - **Test coverage**: Test infra in place (pytest backend + vitest frontend) but only auth smoke + multi-tenant isolation covered. Document upload, proposal generation, and page-level tests not yet written.
