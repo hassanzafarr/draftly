@@ -64,6 +64,10 @@ MIDDLEWARE = [
 # Comma-separated IPs/CIDRs allowed to reach /admin/. Empty disables the gate
 # (e.g. local dev). Example: "203.0.113.5,198.51.100.0/24".
 ADMIN_IP_ALLOWLIST = config("ADMIN_IP_ALLOWLIST", default="")
+# Number of trusted reverse proxies in front of Django. Required for
+# `AdminIPAllowlistMiddleware` to safely consult X-Forwarded-For; if 0, only
+# REMOTE_ADDR is trusted and XFF is ignored. Railway/Vercel edge typically = 1.
+ADMIN_TRUSTED_PROXY_COUNT = config("ADMIN_TRUSTED_PROXY_COUNT", default=0, cast=int)
 
 ROOT_URLCONF = "config.urls"
 

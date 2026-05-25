@@ -29,18 +29,36 @@ def _parse_allowlist(raw: str):
 
 
 def _client_ip(request):
-    """Resolve the client IP, trusting `X-Forwarded-For` only when behind a proxy.
+    """Resolve the client IP for IP-allowlist checks.
 
-    `USE_X_FORWARDED_HOST` / `SECURE_PROXY_SSL_HEADER` already imply a proxy
-    in front, so XFF can be trusted in that deployment shape. We take the
-    left-most non-empty entry (the original client per the XFF spec).
+    XFF is attacker-controllable on the way in — proxies *append* to it, they
+    do not overwrite. To pick the real client we must count back from the
+    right by the number of trusted hops in front of Django. The left-most
+    entry is whatever the original client sent and must never be trusted.
+
+    Config: `ADMIN_TRUSTED_PROXY_COUNT` (int, default 0).
+      * 0 — no proxy in front; use `REMOTE_ADDR` and ignore XFF entirely.
+      * N — exactly N trusted proxies (e.g. Railway edge = 1). The client IP
+        is `xff[-N]`. If XFF has fewer than N entries the request is
+        considered untrusted and "" is returned (deny).
     """
+    trusted_count = int(getattr(settings, "ADMIN_TRUSTED_PROXY_COUNT", 0) or 0)
+    remote_addr = request.META.get("REMOTE_ADDR", "")
+
+    if trusted_count <= 0:
+        return remote_addr
+
     xff = request.META.get("HTTP_X_FORWARDED_FOR", "")
-    if xff:
-        candidate = xff.split(",")[0].strip()
-        if candidate:
-            return candidate
-    return request.META.get("REMOTE_ADDR", "")
+    if not xff:
+        # Behind a proxy but no XFF — either a direct hit bypassing the proxy
+        # or a misconfigured proxy. Either way, do not trust REMOTE_ADDR.
+        return ""
+
+    parts = [p.strip() for p in xff.split(",") if p.strip()]
+    if len(parts) < trusted_count:
+        # Fewer hops than expected → header shape doesn't match deployment.
+        return ""
+    return parts[-trusted_count]
 
 
 class AdminIPAllowlistMiddleware:
