@@ -1,16 +1,14 @@
 import logging
 
-from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes, throttle_classes
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.response import Response
-
-logger = logging.getLogger(__name__)
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from apps.core.throttling import (
@@ -28,6 +26,8 @@ from .serializers import (
     RegisterSerializer,
     UserSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ThrottledTokenObtainPairView(TokenObtainPairView):

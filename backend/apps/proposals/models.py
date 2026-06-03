@@ -121,6 +121,9 @@ class GenerationEvent(models.Model):
         ordering = ["-created_at"]
         indexes = [models.Index(fields=["org", "-created_at"])]
 
+    def __str__(self):
+        return f"GenerationEvent({self.proposal_id})"
+
     @property
     def requirements_coverage(self) -> float:
         if self.requirements_total == 0:

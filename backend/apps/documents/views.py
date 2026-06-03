@@ -1,6 +1,5 @@
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
-from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
 from apps.core.permissions import IsOrgMember, OrgDocQuotaPermission
@@ -22,7 +21,6 @@ def document_list(request):
             docs = docs.filter(category=category)
         return Response(DocumentSerializer(docs, many=True).data)
 
-    parser_classes_list = [MultiPartParser]
     serializer = DocumentUploadSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 

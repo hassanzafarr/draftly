@@ -128,12 +128,14 @@ def validate_and_sanitize_pdf(data: bytes) -> bytes:
     try:
         pdf = pikepdf.open(io.BytesIO(data))
     except pikepdf.PasswordError:
-        raise PDFSecurityError("This PDF is password-protected. Please upload an unlocked copy.")
+        raise PDFSecurityError(
+            "This PDF is password-protected. Please upload an unlocked copy."
+        ) from None
     except pikepdf.PdfError as exc:
         logger.warning("PDF parse error: %s", exc)
         raise PDFSecurityError(
             "This PDF appears to be damaged or unreadable. Please re-save it and try again."
-        )
+        ) from exc
 
     try:
         threats: set = set()

@@ -90,7 +90,7 @@ def build_section_instructions(schema: list[tuple[str, str]], length: str = "sta
     keys = [k for k, _ in schema]
     schema_block = ",\n  ".join(f'"{k}": "<plain text string>"' for k in keys)
     keys_quoted = ", ".join(f'"{k}"' for k in keys)
-    label_map = ", ".join(f'"{k}" → "{l}"' for k, l in schema)
+    label_map = ", ".join(f'"{k}" → "{lbl}"' for k, lbl in schema)
     n = len(keys)
     preset = length_preset(length)
     return f"""
@@ -165,7 +165,7 @@ def _flatten_value(value) -> str:
         return ""
     if isinstance(value, str):
         return value.strip()
-    if isinstance(value, (int, float, bool)):
+    if isinstance(value, int | float | bool):
         return str(value)
     if isinstance(value, list):
         return "\n\n".join(_flatten_value(v) for v in value if v)
@@ -175,7 +175,7 @@ def _flatten_value(value) -> str:
             flat = _flatten_value(v)
             if not flat:
                 continue
-            if isinstance(v, (dict, list)):
+            if isinstance(v, dict | list):
                 # Use the key as a label paragraph
                 label = str(k).replace("_", " ").title()
                 parts.append(f"{label}: {flat}")
@@ -215,7 +215,7 @@ def _parse_sections(raw: str, provider: str, schema_keys: list[str] | None = Non
     except json.JSONDecodeError:
         match = re.search(r"\{.*\}", raw, re.DOTALL)
         if not match:
-            raise ValueError(f"{provider} did not return valid JSON.")
+            raise ValueError(f"{provider} did not return valid JSON.") from None
         parsed = json.loads(match.group())
     return _normalize_sections(parsed, schema_keys)
 
@@ -597,6 +597,6 @@ def generate_proposal_with_metrics(
         "generation_latency_ms": generation_latency_ms,
         "total_latency_ms": int((time.perf_counter() - overall_started) * 1000),
         "rfp_brief": rfp_brief,
-        "section_labels": {k: l for k, l in schema} if is_custom else {},
+        "section_labels": {k: lbl for k, lbl in schema} if is_custom else {},
     }
     return sections, metrics

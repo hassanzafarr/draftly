@@ -59,3 +59,6 @@ class Chunk(models.Model):
         indexes = [
             models.Index(fields=["org"]),
         ]
+
+    def __str__(self):
+        return f"Chunk({self.id})"

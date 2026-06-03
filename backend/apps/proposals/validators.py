@@ -151,7 +151,7 @@ def classify_rfp_intent(text: str) -> dict:
             except json.JSONDecodeError:
                 match = re.search(r"\{.*\}", raw, re.DOTALL)
                 if not match:
-                    raise ValueError("classifier returned no JSON")
+                    raise ValueError("classifier returned no JSON") from None
                 data = json.loads(match.group())
 
         result = {

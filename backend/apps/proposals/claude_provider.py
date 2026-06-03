@@ -58,7 +58,7 @@ def _parse_json(raw: str, label: str) -> dict:
                 return json.loads(match.group())
             except json.JSONDecodeError:
                 pass
-        raise ValueError(f"{label} did not return valid JSON. Raw: {raw[:500]}")
+        raise ValueError(f"{label} did not return valid JSON. Raw: {raw[:500]}") from None
 
 
 JSON_PREFILL = [{"type": "text", "text": "{"}]

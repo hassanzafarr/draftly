@@ -106,4 +106,4 @@ def ingest_document(self, document_id: str):
                 org_id=org_id,
             )
             raise
-        raise self.retry(exc=exc, countdown=60)
+        raise self.retry(exc=exc, countdown=60) from exc

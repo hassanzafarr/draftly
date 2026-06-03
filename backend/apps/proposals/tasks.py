@@ -108,4 +108,4 @@ def generate_proposal_task(self, proposal_id: str):
                 org_id=org_id,
             )
             raise
-        raise self.retry(exc=exc, countdown=30)
+        raise self.retry(exc=exc, countdown=30) from exc
