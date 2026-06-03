@@ -123,25 +123,30 @@ def password_reset_request(request):
 
     try:
         user = User.objects.get(email=email)
-        uid = urlsafe_base64_encode(force_bytes(user.pk))
-        token = default_token_generator.make_token(user)
-        reset_url = f"{settings.FRONTEND_URL}/reset-password?uid={uid}&token={token}"
-        send_mail(
-            subject="Reset your Draftly password",
-            message=(
-                f"Hi,\n\n"
-                f"Click the link below to reset your password. "
-                f"This link expires in 1 hour.\n\n"
-                f"{reset_url}\n\n"
-                f"If you didn't request this, ignore this email.\n\n"
-                f"— Draftly"
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
-            fail_silently=True,
-        )
     except User.DoesNotExist:
-        pass  # don't reveal whether email exists
+        user = None  # don't reveal whether email exists
+
+    if user is not None:
+        try:
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            reset_url = f"{settings.FRONTEND_URL}/reset-password?uid={uid}&token={token}"
+            send_mail(
+                subject="Reset your Draftly password",
+                message=(
+                    f"Hi,\n\n"
+                    f"Click the link below to reset your password. "
+                    f"This link expires in 1 hour.\n\n"
+                    f"{reset_url}\n\n"
+                    f"If you didn't request this, ignore this email.\n\n"
+                    f"— Draftly"
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+        except Exception:
+            logger.exception("Failed to send password reset email to %s", email)
 
     return Response({"detail": "If that email is registered, a reset link has been sent."})
 

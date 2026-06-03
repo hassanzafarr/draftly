@@ -14,11 +14,6 @@ const CATEGORIES = [
   { id: "case_studies",    label: "Case Studies",     description: "Success stories and project outcomes", icon: Briefcase, hex: "var(--emerald)" },
 ];
 
-const CATEGORY_LABEL_MAP = {
-  company_profile: "Company Profile",
-  past_proposals: "Past Proposals",
-  case_studies: "Case Studies",
-};
 
 const CATEGORY_COLOR_MAP = {
   company_profile: "var(--cyan)",

@@ -1,7 +1,6 @@
 
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
 
 export function AuthShell({
   title,

@@ -45,7 +45,7 @@ export default function NewRFP() {
     <div className="max-w-2xl mx-auto">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">New RFP</h1>
-        <p className="text-gray-500 mt-1">Paste the project brief or RFP text and we'll generate a tailored proposal</p>
+        <p className="text-gray-500 mt-1">Paste the project brief or RFP text and we&apos;ll generate a tailored proposal</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">

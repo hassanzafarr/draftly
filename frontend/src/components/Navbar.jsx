@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { FileText, LogOut, Upload, LayoutDashboard } from "lucide-react";
+import { LogOut, Upload, LayoutDashboard } from "lucide-react";
 import useAuthStore from "../store/auth";
 
 export default function Navbar() {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, Trash2, Info, X } from "lucide-react";
+import { Trash2, Info, X } from "lucide-react";
 import { createPortal } from "react-dom";
 
 /**

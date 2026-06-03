@@ -55,7 +55,7 @@ export default function ForgotPassword() {
         >
           If <span className="font-medium text-foreground">{email}</span> is
           registered, a reset link is on its way. Check your spam folder if you
-          don't see it.
+          don&apos;t see it.
         </motion.div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Settings as SettingsIcon, User, Building2, Lock, Shield,
-  Save, Loader2, CheckCircle2, Crown, Sparkles, FileText,
-  Zap, AlertCircle, Star, CreditCard, ExternalLink,
+  Save, Loader2, CheckCircle2, Crown, Sparkles,
+  Zap, Star, CreditCard, ExternalLink,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import api from "../api/client";

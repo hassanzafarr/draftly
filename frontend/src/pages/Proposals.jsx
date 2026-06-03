@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FileText, Search, Filter, ChevronRight, Plus, Sparkles,
-  Clock, CheckCircle2, AlertCircle, Loader2, Trash2, Download,
+  Clock, CheckCircle2, AlertCircle, Loader2, Trash2,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import api from "../api/client";

@@ -385,7 +385,7 @@ export function Generator() {
                                         <div className="relative mt-4 flex items-center gap-2 border-t border-hairline pt-3">
                                             <span className="h-1.5 w-1.5 rounded-full bg-cyan shadow-[0_0_8px_var(--cyan)]" />
                                             <p className="text-xs text-muted-foreground">
-                                                Sections are pre-loaded below — add, remove, or keep as-is. Then describe your client's requirements.
+                                                Sections are pre-loaded below — add, remove, or keep as-is. Then describe your client&apos;s requirements.
                                             </p>
                                         </div>
                                     </motion.div>

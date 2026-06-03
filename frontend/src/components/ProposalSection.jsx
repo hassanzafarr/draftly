@@ -28,7 +28,7 @@ export default function ProposalSection({ sectionKey, content, onChange }) {
     if (editor && content && editor.getText() !== content) {
       editor.commands.setContent(content);
     }
-  }, [content]);
+  }, [content, editor]);
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
