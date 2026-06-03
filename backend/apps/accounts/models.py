@@ -1,4 +1,5 @@
 import uuid
+
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 
@@ -15,16 +16,42 @@ class Organization(models.Model):
         ANNUAL = "annual", "Annual"
 
     QUOTA = {
-        "free": {"docs": 10, "proposals": 3, "seats": 1, "monthly_price_usd": 0, "annual_price_usd": 0},
-        "solo": {"docs": 25, "proposals": 25, "seats": 1, "monthly_price_usd": 19, "annual_price_usd": 182},
-        "studio": {"docs": 250, "proposals": 150, "seats": 5, "monthly_price_usd": 89, "annual_price_usd": 854},
-        "agency": {"docs": 999999, "proposals": 750, "seats": 10, "monthly_price_usd": 249, "annual_price_usd": 2390},
+        "free": {
+            "docs": 10,
+            "proposals": 3,
+            "seats": 1,
+            "monthly_price_usd": 0,
+            "annual_price_usd": 0,
+        },
+        "solo": {
+            "docs": 25,
+            "proposals": 25,
+            "seats": 1,
+            "monthly_price_usd": 19,
+            "annual_price_usd": 182,
+        },
+        "studio": {
+            "docs": 250,
+            "proposals": 150,
+            "seats": 5,
+            "monthly_price_usd": 89,
+            "annual_price_usd": 854,
+        },
+        "agency": {
+            "docs": 999999,
+            "proposals": 750,
+            "seats": 10,
+            "monthly_price_usd": 249,
+            "annual_price_usd": 2390,
+        },
     }
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
     subscription_tier = models.CharField(max_length=20, choices=Tier.choices, default=Tier.FREE)
-    billing_cadence = models.CharField(max_length=10, choices=BillingCadence.choices, default=BillingCadence.MONTHLY)
+    billing_cadence = models.CharField(
+        max_length=10, choices=BillingCadence.choices, default=BillingCadence.MONTHLY
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     stripe_customer_id = models.CharField(max_length=255, blank=True, default="")
@@ -78,7 +105,9 @@ class User(AbstractBaseUser, PermissionsMixin):
         MEMBER = "member", "Member"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    org = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="users", null=True, blank=True)
+    org = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name="users", null=True, blank=True
+    )
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.MEMBER)
     is_active = models.BooleanField(default=True)

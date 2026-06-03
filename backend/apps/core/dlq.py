@@ -5,9 +5,9 @@ any failing task in a real worker. Eager mode (`CELERY_TASK_ALWAYS_EAGER`)
 bypasses signal dispatch, so tasks running in tests or via `.apply()` must
 call `record_failure` directly from their terminal except block.
 """
+
 import logging
 import traceback as _tb_mod
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +16,8 @@ def record_failure(
     *,
     task_name: str,
     task_id: str,
-    args: Optional[tuple] = None,
-    kwargs: Optional[dict] = None,
+    args: tuple | None = None,
+    kwargs: dict | None = None,
     exception: BaseException,
     org_id: str = "",
 ) -> None:
@@ -50,7 +50,10 @@ def record_failure(
     try:
         from .models import DeadLetterTask
 
-        if task_id and DeadLetterTask.objects.filter(task_id=task_id, exception_type=exc_type).exists():
+        if (
+            task_id
+            and DeadLetterTask.objects.filter(task_id=task_id, exception_type=exc_type).exists()
+        ):
             return
 
         tb = exception.__traceback__

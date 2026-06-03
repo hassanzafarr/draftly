@@ -1,9 +1,12 @@
 import logging
 import re
 from datetime import date
+
 from django.conf import settings
 from rest_framework import serializers
+
 from apps.documents.pipeline import extract_text
+
 from .models import RFP, Proposal
 
 log = logging.getLogger(__name__)
@@ -21,6 +24,7 @@ def _llm_title(text: str) -> str:
     if settings.CLAUDE_ENABLED and settings.ANTHROPIC_API_KEY:
         try:
             from . import claude_provider
+
             title = claude_provider.generate_title(snippet)
             if title and 3 <= len(title) <= 120:
                 return title
@@ -30,6 +34,7 @@ def _llm_title(text: str) -> str:
     # 2. Gemini (secondary)
     try:
         from .generator import generate_title_with_gemini
+
         title = generate_title_with_gemini(snippet)
         if title and 3 <= len(title) <= 120:
             return title
@@ -71,7 +76,8 @@ def _heuristic_title(text: str) -> str:
             candidate = _clean(m.group(1))
             candidate = re.split(
                 r"\s+(?:that|which|this|where|and|to|with|including|\.|,)",
-                candidate, flags=re.IGNORECASE
+                candidate,
+                flags=re.IGNORECASE,
             )[0].strip()
             if len(candidate) >= 5:
                 return _capitalise(candidate)
@@ -158,9 +164,7 @@ class RFPCreateSerializer(serializers.Serializer):
         file = attrs.get("file")
 
         if not raw_text and not file:
-            raise serializers.ValidationError(
-                {"detail": "Provide RFP text or upload an RFP file."}
-            )
+            raise serializers.ValidationError({"detail": "Provide RFP text or upload an RFP file."})
 
         extracted_text = ""
         if file:
@@ -176,7 +180,9 @@ class RFPCreateSerializer(serializers.Serializer):
 
             if not extracted_text:
                 raise serializers.ValidationError(
-                    {"detail": "File appears empty or image-only. Scanned PDFs without OCR are not supported — paste the RFP text instead."}
+                    {
+                        "detail": "File appears empty or image-only. Scanned PDFs without OCR are not supported — paste the RFP text instead."
+                    }
                 )
 
         if raw_text and extracted_text:
@@ -190,21 +196,27 @@ class RFPCreateSerializer(serializers.Serializer):
 
         if char_count < settings.RFP_MIN_CHARS:
             raise serializers.ValidationError(
-                {"detail": (
-                    f"RFP content too short ({char_count} chars). "
-                    f"Provide at least {settings.RFP_MIN_CHARS} characters describing scope and requirements."
-                )}
+                {
+                    "detail": (
+                        f"RFP content too short ({char_count} chars). "
+                        f"Provide at least {settings.RFP_MIN_CHARS} characters describing scope and requirements."
+                    )
+                }
             )
         if word_count < settings.RFP_MIN_WORDS:
             raise serializers.ValidationError(
-                {"detail": (
-                    f"RFP content too short ({word_count} words). "
-                    f"Provide at least {settings.RFP_MIN_WORDS} words describing scope and requirements."
-                )}
+                {
+                    "detail": (
+                        f"RFP content too short ({word_count} words). "
+                        f"Provide at least {settings.RFP_MIN_WORDS} words describing scope and requirements."
+                    )
+                }
             )
         if char_count > settings.RFP_MAX_CHARS:
             raise serializers.ValidationError(
-                {"detail": f"RFP content too large ({char_count} chars). Max {settings.RFP_MAX_CHARS}."}
+                {
+                    "detail": f"RFP content too large ({char_count} chars). Max {settings.RFP_MAX_CHARS}."
+                }
             )
 
         attrs["resolved_text"] = resolved
@@ -222,13 +234,30 @@ class ProposalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Proposal
         fields = [
-            "id", "rfp", "rfp_title", "tone", "length", "sections", "section_labels", "status",
-            "status_stage", "stage_meta", "error_message",
-            "created_at", "updated_at",
+            "id",
+            "rfp",
+            "rfp_title",
+            "tone",
+            "length",
+            "sections",
+            "section_labels",
+            "status",
+            "status_stage",
+            "stage_meta",
+            "error_message",
+            "created_at",
+            "updated_at",
         ]
         read_only_fields = [
-            "id", "rfp", "length", "section_labels", "status", "status_stage", "stage_meta",
-            "created_at", "updated_at",
+            "id",
+            "rfp",
+            "length",
+            "section_labels",
+            "status",
+            "status_stage",
+            "stage_meta",
+            "created_at",
+            "updated_at",
         ]
 
 

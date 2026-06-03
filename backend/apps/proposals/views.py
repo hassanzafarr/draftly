@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+
 from django.conf import settings
 from django.db.models import Avg, Count, Q, Sum
 from django.db.models.functions import TruncMonth
@@ -6,12 +7,16 @@ from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.response import Response
+
 from apps.core.permissions import IsOrgMember, OrgProposalQuotaPermission
 from apps.core.throttling import ProposalGenerateThrottle
-from .models import RFP, Proposal, GenerationEvent
+
+from .models import RFP, GenerationEvent, Proposal
 from .serializers import (
-    RFPSerializer, RFPCreateSerializer,
-    ProposalSerializer, ProposalUpdateSerializer,
+    ProposalSerializer,
+    ProposalUpdateSerializer,
+    RFPCreateSerializer,
+    RFPSerializer,
 )
 from .tasks import generate_proposal_task
 from .validators import classify_rfp_intent
@@ -146,32 +151,44 @@ def generation_metrics(request):
         rf_tot = stats.get("avg_red_flags_total") or 0
         return {
             **stats,
-            "requirements_coverage": round((stats.get("avg_requirements_hit") or 0) / req_tot, 3) if req_tot else 0,
-            "red_flags_coverage": round((stats.get("avg_red_flags_hit") or 0) / rf_tot, 3) if rf_tot else 0,
+            "requirements_coverage": round((stats.get("avg_requirements_hit") or 0) / req_tot, 3)
+            if req_tot
+            else 0,
+            "red_flags_coverage": round((stats.get("avg_red_flags_hit") or 0) / rf_tot, 3)
+            if rf_tot
+            else 0,
         }
 
     provider_breakdown = list(
         successful.values("provider").annotate(count=Count("id")).order_by("-count")
     )
 
-    return Response({
-        "total": total,
-        "success_rate": round(successful.count() / total, 3),
-        "rerank_adoption": round(reranked.count() / total, 3),
-        "tokens_saved_estimate_chunks": (events.aggregate(s=Sum("fetch_top_k"))["s"] or 0)
+    return Response(
+        {
+            "total": total,
+            "success_rate": round(successful.count() / total, 3),
+            "rerank_adoption": round(reranked.count() / total, 3),
+            "tokens_saved_estimate_chunks": (events.aggregate(s=Sum("fetch_top_k"))["s"] or 0)
             - (events.aggregate(s=Sum("rerank_top_k"))["s"] or 0),
-        "with_rerank": _coverage(_avgs(reranked)),
-        "without_rerank": _coverage(_avgs(vector_only)),
-        "providers": provider_breakdown,
-        "recent": list(
-            events.order_by("-created_at").values(
-                "id", "created_at", "provider", "rerank_used",
-                "requirements_hit", "requirements_total",
-                "red_flags_hit", "red_flags_total",
-                "total_latency_ms", "success",
-            )[:20]
-        ),
-    })
+            "with_rerank": _coverage(_avgs(reranked)),
+            "without_rerank": _coverage(_avgs(vector_only)),
+            "providers": provider_breakdown,
+            "recent": list(
+                events.order_by("-created_at").values(
+                    "id",
+                    "created_at",
+                    "provider",
+                    "rerank_used",
+                    "requirements_hit",
+                    "requirements_total",
+                    "red_flags_hit",
+                    "red_flags_total",
+                    "total_latency_ms",
+                    "success",
+                )[:20]
+            ),
+        }
+    )
 
 
 @api_view(["GET"])
@@ -180,12 +197,14 @@ def proposal_export_docx(request, pk):
     """Export a proposal as a DOCX file."""
     try:
         proposal = Proposal.objects.select_related("rfp", "org").get(
-            pk=pk, org=request.user.org,
+            pk=pk,
+            org=request.user.org,
         )
     except Proposal.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
 
     from .export import generate_docx
+
     buffer = generate_docx(proposal)
 
     safe_title = (proposal.rfp.title or "proposal").replace(" ", "_")[:60]
@@ -243,9 +262,7 @@ def analytics_stats(request):
 
     # Provider breakdown
     provider_breakdown = list(
-        events.values("provider")
-        .annotate(count=Count("id"))
-        .order_by("-count")
+        events.values("provider").annotate(count=Count("id")).order_by("-count")
     )
 
     # Proposals by tone
@@ -256,15 +273,17 @@ def analytics_stats(request):
         .order_by("-count")
     )
 
-    return Response({
-        "total_proposals": total,
-        "success_rate": success_rate,
-        "avg_response_seconds": avg_response_seconds,
-        "final_count": final_count,
-        "draft_count": draft_count,
-        "generating_count": generating_count,
-        "failed_count": failed_count,
-        "monthly_performance": monthly_performance,
-        "providers": provider_breakdown,
-        "by_tone": by_tone,
-    })
+    return Response(
+        {
+            "total_proposals": total,
+            "success_rate": success_rate,
+            "avg_response_seconds": avg_response_seconds,
+            "final_count": final_count,
+            "draft_count": draft_count,
+            "generating_count": generating_count,
+            "failed_count": failed_count,
+            "monthly_performance": monthly_performance,
+            "providers": provider_breakdown,
+            "by_tone": by_tone,
+        }
+    )

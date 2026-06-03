@@ -1,4 +1,5 @@
 """Post-generation quality signals for GenerationEvent telemetry."""
+
 import re
 
 
@@ -32,8 +33,7 @@ def evaluate_proposal(sections: dict, rfp_brief: dict) -> dict:
     red_flags_hit = sum(1 for r in red_flags if _keyword_hits(text, r))
 
     section_word_counts = {
-        key: len(str(value or "").split())
-        for key, value in (sections or {}).items()
+        key: len(str(value or "").split()) for key, value in (sections or {}).items()
     }
 
     return {

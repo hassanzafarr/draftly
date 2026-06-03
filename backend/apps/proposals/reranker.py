@@ -2,6 +2,7 @@ import json
 import logging
 import time
 from urllib import error, request
+
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
@@ -58,7 +59,9 @@ def rerank_chunks(query: str, chunks: list, top_k: int | None = None) -> tuple[l
             data = json.loads(resp.read().decode("utf-8"))
     except error.HTTPError as exc:
         details = exc.read().decode("utf-8", errors="ignore")
-        logger.warning("Cohere rerank HTTP %s: %s — falling back to vector order", exc.code, details)
+        logger.warning(
+            "Cohere rerank HTTP %s: %s — falling back to vector order", exc.code, details
+        )
         meta["error"] = f"http_{exc.code}"
         meta["latency_ms"] = int((time.perf_counter() - started) * 1000)
         return list(chunks)[:keep], meta

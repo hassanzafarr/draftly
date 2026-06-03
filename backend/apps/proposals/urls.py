@@ -1,4 +1,5 @@
 from django.urls import path
+
 from . import views
 
 urlpatterns = [
@@ -7,7 +8,9 @@ urlpatterns = [
     path("rfps/<uuid:rfp_pk>/generate/", views.generate_proposal, name="generate-proposal"),
     path("proposals/", views.proposal_list, name="proposal-list"),
     path("proposals/<uuid:pk>/", views.proposal_detail, name="proposal-detail"),
-    path("proposals/<uuid:pk>/export/docx/", views.proposal_export_docx, name="proposal-export-docx"),
+    path(
+        "proposals/<uuid:pk>/export/docx/", views.proposal_export_docx, name="proposal-export-docx"
+    ),
     path("metrics/generation/", views.generation_metrics, name="generation-metrics"),
     path("analytics/stats/", views.analytics_stats, name="analytics-stats"),
 ]

@@ -10,14 +10,22 @@ class DeadLetterTaskAdmin(admin.ModelAdmin):
     list_filter = ("task_name", "resolved", "exception_type")
     search_fields = ("task_id", "org_id", "exception_message")
     readonly_fields = (
-        "id", "task_id", "task_name", "args", "kwargs",
-        "exception_type", "exception_message", "traceback",
-        "org_id", "created_at",
+        "id",
+        "task_id",
+        "task_name",
+        "args",
+        "kwargs",
+        "exception_type",
+        "exception_message",
+        "traceback",
+        "org_id",
+        "created_at",
     )
     actions = ["mark_resolved", "retry_tasks"]
 
     def mark_resolved(self, request, queryset):
         queryset.update(resolved=True, resolved_at=timezone.now())
+
     mark_resolved.short_description = "Mark selected as resolved"
 
     def retry_tasks(self, request, queryset):
@@ -35,4 +43,5 @@ class DeadLetterTaskAdmin(admin.ModelAdmin):
             except Exception as exc:
                 self.message_user(request, f"Replay failed for {row.task_id}: {exc}", level="ERROR")
         self.message_user(request, f"Replayed {replayed} task(s).")
+
     retry_tasks.short_description = "Re-enqueue selected tasks"

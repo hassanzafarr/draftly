@@ -1,13 +1,18 @@
-from pathlib import Path
-from decouple import config, Csv
 from datetime import timedelta
+from pathlib import Path
+
 from corsheaders.defaults import default_headers
+from decouple import Csv, config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config("SECRET_KEY")
 DEBUG = config("DEBUG", default=False, cast=bool)
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1,backend,draftly.software,.up.railway.app", cast=Csv())
+ALLOWED_HOSTS = config(
+    "ALLOWED_HOSTS",
+    default="localhost,127.0.0.1,backend,draftly.software,.up.railway.app",
+    cast=Csv(),
+)
 SENTRY_DSN = config("SENTRY_DSN", default="")
 
 if SENTRY_DSN:
@@ -92,6 +97,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 _database_url = config("DATABASE_URL", default="")
 if _database_url:
     import dj_database_url
+
     DATABASES = {"default": dj_database_url.parse(_database_url, conn_max_age=0)}
     DATABASES["default"].setdefault("OPTIONS", {})
     DATABASES["default"]["OPTIONS"]["options"] = "-c statement_timeout=30000"
@@ -204,9 +210,7 @@ _cors_origins = config(
 if _cors_origins.strip() == "*":
     CORS_ALLOW_ALL_ORIGINS = True
 else:
-    configured_cors_origins = [
-        o.strip().rstrip("/") for o in _cors_origins.split(",") if o.strip()
-    ]
+    configured_cors_origins = [o.strip().rstrip("/") for o in _cors_origins.split(",") if o.strip()]
     CORS_ALLOWED_ORIGINS = list(
         dict.fromkeys([*DEFAULT_CORS_ALLOWED_ORIGINS, *configured_cors_origins])
     )

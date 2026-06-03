@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import RFP, Proposal, GenerationEvent
+
+from .models import RFP, GenerationEvent, Proposal
 
 
 @admin.register(RFP)
@@ -17,16 +18,35 @@ class ProposalAdmin(admin.ModelAdmin):
 @admin.register(GenerationEvent)
 class GenerationEventAdmin(admin.ModelAdmin):
     list_display = [
-        "created_at", "org", "provider", "rerank_used",
-        "requirements_coverage", "red_flags_coverage",
-        "total_latency_ms", "success",
+        "created_at",
+        "org",
+        "provider",
+        "rerank_used",
+        "requirements_coverage",
+        "red_flags_coverage",
+        "total_latency_ms",
+        "success",
     ]
     list_filter = ["success", "rerank_used", "provider", "org"]
     readonly_fields = [
-        "proposal", "org", "fetch_top_k", "rerank_top_k", "rerank_used",
-        "rerank_latency_ms", "retrieval_latency_ms", "chunks_used",
-        "provider", "generation_latency_ms", "total_latency_ms",
-        "rfp_brief", "requirements_total", "requirements_hit",
-        "red_flags_total", "red_flags_hit", "section_word_counts",
-        "success", "error_message", "created_at",
+        "proposal",
+        "org",
+        "fetch_top_k",
+        "rerank_top_k",
+        "rerank_used",
+        "rerank_latency_ms",
+        "retrieval_latency_ms",
+        "chunks_used",
+        "provider",
+        "generation_latency_ms",
+        "total_latency_ms",
+        "rfp_brief",
+        "requirements_total",
+        "requirements_hit",
+        "red_flags_total",
+        "red_flags_hit",
+        "section_word_counts",
+        "success",
+        "error_message",
+        "created_at",
     ]

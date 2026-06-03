@@ -1,4 +1,5 @@
 from rest_framework import serializers
+
 from .models import Document
 
 
@@ -8,8 +9,15 @@ class DocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Document
         fields = [
-            "id", "title", "file_type", "category", "status", "chunk_count",
-            "error_message", "uploaded_by_email", "created_at",
+            "id",
+            "title",
+            "file_type",
+            "category",
+            "status",
+            "chunk_count",
+            "error_message",
+            "uploaded_by_email",
+            "created_at",
         ]
         read_only_fields = ["id", "status", "chunk_count", "error_message", "created_at"]
 

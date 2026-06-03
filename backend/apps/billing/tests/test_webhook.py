@@ -12,13 +12,13 @@ We monkey-patch `stripe.Webhook.construct_event` so tests don't need a real
 secret + signed payload; the bypass test asserts that the real path still
 rejects bad signatures.
 """
+
 import datetime
 import json
 from unittest.mock import patch
 
 import pytest
 import stripe
-from django.urls import reverse
 
 from apps.accounts.models import Organization
 from apps.accounts.tests.factories import OrganizationFactory
@@ -30,6 +30,7 @@ pytestmark = pytest.mark.django_db
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_event(event_id, event_type, data_object):
     return {
@@ -79,6 +80,7 @@ def org_with_customer(db):
 # Signature verification
 # ---------------------------------------------------------------------------
 
+
 def test_webhook_rejects_missing_secret(api_client, settings):
     settings.STRIPE_WEBHOOK_SECRET = ""
 
@@ -105,6 +107,7 @@ def test_webhook_rejects_bad_signature(api_client, billing_settings):
 # ---------------------------------------------------------------------------
 # Idempotency
 # ---------------------------------------------------------------------------
+
 
 def test_duplicate_event_is_skipped(api_client, billing_settings, org_with_customer):
     """Second delivery of the same event id must not re-apply state changes."""
@@ -151,6 +154,7 @@ def test_handler_failure_rolls_back_idempotency_marker(api_client, billing_setti
 # Portal upgrade path — the original P0 bug
 # ---------------------------------------------------------------------------
 
+
 def test_portal_upgrade_resolves_tier_from_price_not_metadata(
     api_client, billing_settings, org_with_customer
 ):
@@ -159,7 +163,7 @@ def test_portal_upgrade_resolves_tier_from_price_not_metadata(
     Regression guard: subscription.updated must derive tier from the price id
     on items.data[0], not from the (absent) metadata.tier field.
     """
-    period_end_ts = int(datetime.datetime(2026, 6, 1, tzinfo=datetime.timezone.utc).timestamp())
+    period_end_ts = int(datetime.datetime(2026, 6, 1, tzinfo=datetime.UTC).timestamp())
     subscription = {
         "id": "sub_test_1",
         "customer": org_with_customer.stripe_customer_id,
@@ -167,11 +171,7 @@ def test_portal_upgrade_resolves_tier_from_price_not_metadata(
         "current_period_end": period_end_ts,
         # No metadata.tier — simulates a portal upgrade.
         "metadata": {},
-        "items": {
-            "data": [
-                {"price": {"id": billing_settings.STRIPE_PRICE_STUDIO_ANNUAL}}
-            ]
-        },
+        "items": {"data": [{"price": {"id": billing_settings.STRIPE_PRICE_STUDIO_ANNUAL}}]},
     }
     event = _make_event("evt_portal_1", "customer.subscription.updated", subscription)
 
@@ -210,12 +210,13 @@ def test_subscription_updated_with_unknown_price_keeps_tier(
 # Invoice paid (renewal)
 # ---------------------------------------------------------------------------
 
+
 def test_invoice_paid_refreshes_period_end_and_clears_past_due(
     api_client, billing_settings, org_with_customer
 ):
     Organization.objects.filter(pk=org_with_customer.pk).update(subscription_status="past_due")
 
-    period_end_ts = int(datetime.datetime(2026, 7, 1, tzinfo=datetime.timezone.utc).timestamp())
+    period_end_ts = int(datetime.datetime(2026, 7, 1, tzinfo=datetime.UTC).timestamp())
     invoice = {
         "customer": org_with_customer.stripe_customer_id,
         "lines": {"data": [{"period": {"end": period_end_ts}}]},
@@ -236,9 +237,8 @@ def test_invoice_paid_refreshes_period_end_and_clears_past_due(
 # Cancellation
 # ---------------------------------------------------------------------------
 
-def test_subscription_deleted_downgrades_to_free(
-    api_client, billing_settings, org_with_customer
-):
+
+def test_subscription_deleted_downgrades_to_free(api_client, billing_settings, org_with_customer):
     event = _make_event(
         "evt_cancel_1",
         "customer.subscription.deleted",
@@ -257,6 +257,7 @@ def test_subscription_deleted_downgrades_to_free(
 # ---------------------------------------------------------------------------
 # Payment failed
 # ---------------------------------------------------------------------------
+
 
 def test_payment_failed_sets_past_due(api_client, billing_settings, org_with_customer):
     event = _make_event(

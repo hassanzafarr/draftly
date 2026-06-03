@@ -4,6 +4,7 @@ Covers the full auth path (register → login → /me) plus the critical
 multi-tenant isolation invariant enforced by `IsOrgMember` and queryset
 scoping in document views.
 """
+
 import pytest
 
 from apps.accounts.models import Organization, User

@@ -1,9 +1,10 @@
 import io
-from typing import Generator
+from collections.abc import Generator
 
 
 def extract_text_from_pdf(data: bytes) -> str:
     import fitz  # PyMuPDF
+
     doc = fitz.open(stream=data, filetype="pdf")
     pages = [page.get_text() for page in doc]
     return "\n".join(pages)
@@ -11,6 +12,7 @@ def extract_text_from_pdf(data: bytes) -> str:
 
 def extract_text_from_docx(data: bytes) -> str:
     from docx import Document
+
     doc = Document(io.BytesIO(data))
     return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
 
@@ -37,7 +39,7 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> Generator
     i = 0
     char_offset = 0
     while i < len(words):
-        chunk_words = words[i: i + chunk_size]
+        chunk_words = words[i : i + chunk_size]
         content = " ".join(chunk_words)
         yield {"content": content, "char_offset": char_offset}
         char_offset += len(content)

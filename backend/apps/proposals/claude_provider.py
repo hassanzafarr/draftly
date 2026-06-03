@@ -3,6 +3,7 @@
 Uses Anthropic SDK with prompt caching enabled where it pays off (large system prompts
 and RFP brief shared across the 3 calls per proposal).
 """
+
 import json
 import logging
 import re
@@ -68,11 +69,14 @@ def generate_proposal(system_prompt: str, user_message: str, max_tokens: int = 1
     response = _client().messages.create(
         model=settings.CLAUDE_MODEL,
         max_tokens=max_tokens,
-        system=[{
-            "type": "text",
-            "text": system_prompt + "\n\nCRITICAL: Respond with a single JSON object. No prose, no markdown fences, no preamble.",
-            "cache_control": {"type": "ephemeral"},
-        }],
+        system=[
+            {
+                "type": "text",
+                "text": system_prompt
+                + "\n\nCRITICAL: Respond with a single JSON object. No prose, no markdown fences, no preamble.",
+                "cache_control": {"type": "ephemeral"},
+            }
+        ],
         messages=[
             {"role": "user", "content": user_message},
             {"role": "assistant", "content": JSON_PREFILL},
@@ -136,4 +140,4 @@ def generate_title(rfp_snippet: str) -> str:
             {"role": "user", "content": f"RFP EXCERPT:\n\n{rfp_snippet[:400]}\n\nTitle:"},
         ],
     )
-    return _extract_text(response).strip().strip('"\'')
+    return _extract_text(response).strip().strip("\"'")

@@ -1,6 +1,6 @@
 import logging
+
 from celery import shared_task
-from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -8,10 +8,12 @@ logger = logging.getLogger(__name__)
 @shared_task(bind=True, max_retries=3)
 def ingest_document(self, document_id: str):
     from django.core.files.base import ContentFile
-    from .models import Document, Chunk
-    from .pipeline import extract_text, chunk_text
-    from .security import validate_and_sanitize_pdf, PDFSecurityError
+
     from apps.core.embeddings import embed_texts
+
+    from .models import Chunk, Document
+    from .pipeline import chunk_text, extract_text
+    from .security import PDFSecurityError, validate_and_sanitize_pdf
 
     try:
         doc = Document.objects.get(id=document_id)
@@ -30,7 +32,8 @@ def ingest_document(self, document_id: str):
                 doc.save(update_fields=["status", "error_message"])
                 logger.warning(
                     "Document %s rejected by security check: %s",
-                    document_id, sec_exc,
+                    document_id,
+                    sec_exc,
                 )
                 return
             if sanitized != data:
@@ -51,7 +54,7 @@ def ingest_document(self, document_id: str):
         all_embeddings = []
         batch_size = 100
         for i in range(0, len(texts), batch_size):
-            batch = texts[i: i + batch_size]
+            batch = texts[i : i + batch_size]
             all_embeddings.extend(embed_texts(batch))
 
         # Delete existing chunks (re-ingest scenario)
@@ -94,6 +97,7 @@ def ingest_document(self, document_id: str):
             return
         if self.request.retries >= self.max_retries:
             from apps.core.dlq import record_failure
+
             record_failure(
                 task_name=self.name,
                 task_id=self.request.id or "",

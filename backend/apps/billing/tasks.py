@@ -20,5 +20,7 @@ def prune_stripe_events():
 
     cutoff = timezone.now() - datetime.timedelta(days=STRIPE_EVENT_RETENTION_DAYS)
     deleted, _ = StripeEvent.objects.filter(received_at__lt=cutoff).delete()
-    logger.info("Pruned %d StripeEvent rows older than %d days", deleted, STRIPE_EVENT_RETENTION_DAYS)
+    logger.info(
+        "Pruned %d StripeEvent rows older than %d days", deleted, STRIPE_EVENT_RETENTION_DAYS
+    )
     return deleted

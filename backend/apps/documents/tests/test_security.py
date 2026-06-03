@@ -1,4 +1,5 @@
 """Tests for PDF security validation in apps.documents.security."""
+
 import io
 
 import pikepdf
@@ -39,6 +40,7 @@ class TestValidPDFs:
     def test_open_action_stripped(self):
         def add_open_action(pdf):
             pdf.Root["/OpenAction"] = pikepdf.Array([pdf.pages[0].obj, pikepdf.Name("/Fit")])
+
         data = _make_pdf(add_open_action)
         result = validate_and_sanitize_pdf(data)
         pdf = pikepdf.open(io.BytesIO(result))
@@ -66,27 +68,39 @@ class TestRejection:
 
     def test_javascript_rejected(self):
         def add_js(pdf):
-            pdf.Root["/Names"] = pikepdf.Dictionary({
-                "/JavaScript": pikepdf.Dictionary({
-                    "/Names": pikepdf.Array([
-                        pikepdf.String("EvilScript"),
-                        pikepdf.Dictionary({
-                            "/S": pikepdf.Name("/JavaScript"),
-                            "/JS": pikepdf.String("app.alert('pwned');"),
-                        }),
-                    ]),
-                }),
-            })
+            pdf.Root["/Names"] = pikepdf.Dictionary(
+                {
+                    "/JavaScript": pikepdf.Dictionary(
+                        {
+                            "/Names": pikepdf.Array(
+                                [
+                                    pikepdf.String("EvilScript"),
+                                    pikepdf.Dictionary(
+                                        {
+                                            "/S": pikepdf.Name("/JavaScript"),
+                                            "/JS": pikepdf.String("app.alert('pwned');"),
+                                        }
+                                    ),
+                                ]
+                            ),
+                        }
+                    ),
+                }
+            )
+
         data = _make_pdf(add_js)
         with pytest.raises(PDFSecurityError, match="embedded scripts"):
             validate_and_sanitize_pdf(data)
 
     def test_launch_action_rejected(self):
         def add_launch(pdf):
-            pdf.Root["/OpenAction"] = pikepdf.Dictionary({
-                "/S": pikepdf.Name("/Launch"),
-                "/F": pikepdf.String("calc.exe"),
-            })
+            pdf.Root["/OpenAction"] = pikepdf.Dictionary(
+                {
+                    "/S": pikepdf.Name("/Launch"),
+                    "/F": pikepdf.String("calc.exe"),
+                }
+            )
+
         data = _make_pdf(add_launch)
         with pytest.raises(PDFSecurityError, match="auto-launch"):
             validate_and_sanitize_pdf(data)

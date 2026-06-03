@@ -117,7 +117,9 @@ def create_checkout_session(request):
     price_setting = TIER_PRICE_MAP[tier][billing_cadence]
     price_id = getattr(settings, price_setting, "")
     if not price_id:
-        return Response({"detail": "Billing not configured."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return Response(
+            {"detail": "Billing not configured."}, status=status.HTTP_503_SERVICE_UNAVAILABLE
+        )
 
     _configure_stripe()
     org = request.user.org
@@ -162,7 +164,9 @@ def create_portal_session(request):
     org = request.user.org
 
     if not org.stripe_customer_id:
-        return Response({"detail": "No active subscription found."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"detail": "No active subscription found."}, status=status.HTTP_400_BAD_REQUEST
+        )
 
     try:
         session = stripe.billing_portal.Session.create(
@@ -180,12 +184,14 @@ def create_portal_session(request):
 def subscription_status(request):
     """Return current billing state for the org."""
     org = request.user.org
-    return Response({
-        "subscription_tier": org.subscription_tier,
-        "subscription_status": org.subscription_status,
-        "current_period_end": org.current_period_end,
-        "stripe_publishable_key": settings.STRIPE_PUBLISHABLE_KEY,
-    })
+    return Response(
+        {
+            "subscription_tier": org.subscription_tier,
+            "subscription_status": org.subscription_status,
+            "current_period_end": org.current_period_end,
+            "stripe_publishable_key": settings.STRIPE_PUBLISHABLE_KEY,
+        }
+    )
 
 
 @csrf_exempt
@@ -271,7 +277,7 @@ def _handle_event(event):
 def _ts_to_dt(ts):
     if not ts:
         return None
-    return datetime.datetime.fromtimestamp(ts, tz=datetime.timezone.utc)
+    return datetime.datetime.fromtimestamp(ts, tz=datetime.UTC)
 
 
 def _on_checkout_completed(session, Organization):
@@ -302,7 +308,9 @@ def _on_checkout_completed(session, Organization):
             logger.warning("Could not retrieve subscription %s: %s", subscription_id, exc)
 
     if tier not in TIER_PRICE_MAP or billing_cadence not in VALID_CADENCES:
-        logger.warning("checkout.session.completed could not resolve tier/cadence for org %s", org_id)
+        logger.warning(
+            "checkout.session.completed could not resolve tier/cadence for org %s", org_id
+        )
         return
 
     fields = {
@@ -345,7 +353,9 @@ def _on_subscription_updated(subscription, Organization):
     if updated:
         logger.info(
             "Updated subscription for customer %s: tier=%s status=%s",
-            customer_id, tier, sub_status,
+            customer_id,
+            tier,
+            sub_status,
         )
     else:
         logger.warning("subscription.updated for unknown customer %s", customer_id)

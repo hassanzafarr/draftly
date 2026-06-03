@@ -7,7 +7,8 @@ Coverage focuses on:
 - The created Checkout Session uses the price id corresponding to (tier, cadence).
 - Portal is rejected when org has no stripe_customer_id.
 """
-from unittest.mock import patch, MagicMock
+
+from unittest.mock import MagicMock, patch
 
 import pytest
 import stripe
@@ -58,14 +59,14 @@ def test_checkout_503_when_price_not_configured(auth_client, settings):
     assert res.status_code == 503
 
 
-def test_checkout_creates_customer_and_session_with_correct_price(
-    auth_client, billing_settings
-):
+def test_checkout_creates_customer_and_session_with_correct_price(auth_client, billing_settings):
     fake_customer = MagicMock(id="cus_new_1")
     fake_session = MagicMock(url="https://stripe.test/checkout/abc")
 
-    with patch.object(stripe.Customer, "create", return_value=fake_customer) as mock_cust, \
-         patch.object(stripe.checkout.Session, "create", return_value=fake_session) as mock_sess:
+    with (
+        patch.object(stripe.Customer, "create", return_value=fake_customer) as mock_cust,
+        patch.object(stripe.checkout.Session, "create", return_value=fake_session) as mock_sess,
+    ):
         res = auth_client.post(
             "/api/billing/checkout/",
             {"tier": "studio", "billing_cadence": "annual"},
@@ -96,8 +97,10 @@ def test_checkout_reuses_existing_customer(auth_client, billing_settings):
 
     fake_session = MagicMock(url="https://stripe.test/checkout/zzz")
 
-    with patch.object(stripe.Customer, "create") as mock_cust, \
-         patch.object(stripe.checkout.Session, "create", return_value=fake_session) as mock_sess:
+    with (
+        patch.object(stripe.Customer, "create") as mock_cust,
+        patch.object(stripe.checkout.Session, "create", return_value=fake_session) as mock_sess,
+    ):
         res = auth_client.post(
             "/api/billing/checkout/",
             {"tier": "solo", "billing_cadence": "monthly"},

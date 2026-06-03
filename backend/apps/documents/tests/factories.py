@@ -24,6 +24,4 @@ class DocumentFactory(DjangoModelFactory):
     status = Document.Status.PROCESSED
     chunk_count = 0
 
-    file = factory.LazyAttribute(
-        lambda obj: ContentFile(b"test content", name=f"{obj.title}.txt")
-    )
+    file = factory.LazyAttribute(lambda obj: ContentFile(b"test content", name=f"{obj.title}.txt"))

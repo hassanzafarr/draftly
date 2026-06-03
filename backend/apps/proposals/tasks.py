@@ -1,12 +1,13 @@
 import logging
+
 from celery import shared_task
 
 logger = logging.getLogger(__name__)
 
 
 def _persist_event(proposal, metrics: dict, *, success: bool, error_message: str = "") -> None:
-    from .models import GenerationEvent
     from .evaluator import evaluate_proposal
+    from .models import GenerationEvent
 
     metrics = metrics or {}
     quality = {}
@@ -41,16 +42,14 @@ def _persist_event(proposal, metrics: dict, *, success: bool, error_message: str
 
 @shared_task(bind=True, max_retries=2)
 def generate_proposal_task(self, proposal_id: str):
-    from .models import Proposal
     from .generator import generate_proposal_with_metrics
+    from .models import Proposal
 
     metrics: dict = {}
     try:
         proposal = Proposal.objects.select_related("rfp", "org").get(id=proposal_id)
 
-        Proposal.objects.filter(id=proposal_id).update(
-            status_stage="analyzing", stage_meta={}
-        )
+        Proposal.objects.filter(id=proposal_id).update(status_stage="analyzing", stage_meta={})
 
         def _on_stage(stage: str, meta: dict):
             Proposal.objects.filter(id=proposal_id).update(
@@ -58,7 +57,9 @@ def generate_proposal_task(self, proposal_id: str):
             )
 
         sections, metrics = generate_proposal_with_metrics(
-            proposal.rfp.raw_text, str(proposal.org_id), proposal.tone,
+            proposal.rfp.raw_text,
+            str(proposal.org_id),
+            proposal.tone,
             on_stage=_on_stage,
             custom_section_labels=proposal.rfp.sections or None,
             length=proposal.length,
@@ -68,7 +69,9 @@ def generate_proposal_task(self, proposal_id: str):
         proposal.status = Proposal.Status.DRAFT
         proposal.status_stage = "done"
         proposal.stage_meta = {"provider": metrics.get("provider")}
-        proposal.save(update_fields=["sections", "section_labels", "status", "status_stage", "stage_meta"])
+        proposal.save(
+            update_fields=["sections", "section_labels", "status", "status_stage", "stage_meta"]
+        )
         _persist_event(proposal, metrics, success=True)
         logger.info(
             "Generated proposal %s — provider=%s rerank=%s lat=%sms",
@@ -96,6 +99,7 @@ def generate_proposal_task(self, proposal_id: str):
         # Final attempt? Record terminal failure for ops + Sentry.
         if self.request.retries >= self.max_retries:
             from apps.core.dlq import record_failure
+
             record_failure(
                 task_name=self.name,
                 task_id=self.request.id or "",

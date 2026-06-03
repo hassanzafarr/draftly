@@ -5,6 +5,7 @@ actions, embedded files, auto-actions, XFA forms) before they reach the
 ingestion pipeline. Returns sanitized bytes with dangerous objects stripped,
 or raises PDFSecurityError if the file cannot be safely processed.
 """
+
 import io
 import logging
 
@@ -68,9 +69,7 @@ def _friendly_threat_message(threats: set) -> str:
         return f"This PDF contains {categories[0]} and cannot be uploaded for security reasons."
     last = categories[-1]
     head = ", ".join(categories[:-1])
-    return (
-        f"This PDF contains {head}, and {last}, and cannot be uploaded for security reasons."
-    )
+    return f"This PDF contains {head}, and {last}, and cannot be uploaded for security reasons."
 
 
 class PDFSecurityError(Exception):
@@ -129,9 +128,7 @@ def validate_and_sanitize_pdf(data: bytes) -> bytes:
     try:
         pdf = pikepdf.open(io.BytesIO(data))
     except pikepdf.PasswordError:
-        raise PDFSecurityError(
-            "This PDF is password-protected. Please upload an unlocked copy."
-        )
+        raise PDFSecurityError("This PDF is password-protected. Please upload an unlocked copy.")
     except pikepdf.PdfError as exc:
         logger.warning("PDF parse error: %s", exc)
         raise PDFSecurityError(

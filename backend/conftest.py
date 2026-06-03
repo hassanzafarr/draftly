@@ -1,4 +1,5 @@
 """Root pytest fixtures shared across all backend tests."""
+
 import pytest
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -19,24 +20,28 @@ def api_client():
 @pytest.fixture
 def org(db):
     from apps.accounts.tests.factories import OrganizationFactory
+
     return OrganizationFactory()
 
 
 @pytest.fixture
 def other_org(db):
     from apps.accounts.tests.factories import OrganizationFactory
+
     return OrganizationFactory(name="Other Org")
 
 
 @pytest.fixture
 def user(db, org):
     from apps.accounts.tests.factories import UserFactory
+
     return UserFactory(org=org)
 
 
 @pytest.fixture
 def other_user(db, other_org):
     from apps.accounts.tests.factories import UserFactory
+
     return UserFactory(org=other_org, email="other@example.com")
 
 

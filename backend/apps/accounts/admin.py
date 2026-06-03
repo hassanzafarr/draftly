@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+
 from .models import Organization, User
 
 
@@ -18,8 +19,6 @@ class UserAdmin(BaseUserAdmin):
         ("Info", {"fields": ("org", "role")}),
         ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser")}),
     )
-    add_fieldsets = (
-        (None, {"fields": ("email", "password1", "password2", "org", "role")}),
-    )
+    add_fieldsets = ((None, {"fields": ("email", "password1", "password2", "org", "role")}),)
     ordering = ["email"]
     search_fields = ["email"]

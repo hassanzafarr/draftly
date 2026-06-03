@@ -1,5 +1,7 @@
 import uuid
+
 from django.db import models
+
 from apps.accounts.models import Organization, User
 
 
@@ -82,7 +84,9 @@ class GenerationEvent(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     proposal = models.OneToOneField(Proposal, on_delete=models.CASCADE, related_name="event")
-    org = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="generation_events")
+    org = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name="generation_events"
+    )
 
     # Retrieval
     fetch_top_k = models.IntegerField(default=0)
@@ -90,7 +94,9 @@ class GenerationEvent(models.Model):
     rerank_used = models.BooleanField(default=False)
     rerank_latency_ms = models.IntegerField(default=0)
     retrieval_latency_ms = models.IntegerField(default=0)
-    chunks_used = models.JSONField(default=list)  # [{document_id, source_title, category, rerank_score, vector_rank}]
+    chunks_used = models.JSONField(
+        default=list
+    )  # [{document_id, source_title, category, rerank_score, vector_rank}]
 
     # Generation
     provider = models.CharField(max_length=20, blank=True)  # "gemini" | "groq"

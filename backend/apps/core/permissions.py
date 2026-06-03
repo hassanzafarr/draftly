@@ -2,7 +2,7 @@ import calendar
 import datetime
 
 from rest_framework.permissions import BasePermission
-from apps.accounts.models import Organization
+
 from apps.documents.models import Document
 from apps.proposals.models import Proposal
 
@@ -25,12 +25,14 @@ def _billing_period_start(period_end, cadence):
 
 class IsOrgMember(BasePermission):
     """Allow only authenticated users with an org."""
+
     def has_permission(self, request, view):
         return bool(request.user and request.user.is_authenticated and request.user.org)
 
 
 class OrgDocQuotaPermission(BasePermission):
     """Block document upload if org is at its doc quota."""
+
     message = "Document quota reached for your subscription tier."
 
     def has_permission(self, request, view):
@@ -43,13 +45,14 @@ class OrgDocQuotaPermission(BasePermission):
 
 class OrgProposalQuotaPermission(BasePermission):
     """Block proposal generation if org is at its monthly quota."""
+
     message = "Monthly proposal quota reached. Upgrade your plan to continue."
 
     def has_permission(self, request, view):
         if request.method != "POST":
             return True
         org = request.user.org
-        now = datetime.datetime.now(datetime.timezone.utc)
+        now = datetime.datetime.now(datetime.UTC)
         # Paid subscribers: align quota window to Stripe billing period so
         # annual subscribers don't reset every UTC 1st of the calendar month.
         if org.subscription_tier != "free" and org.current_period_end:

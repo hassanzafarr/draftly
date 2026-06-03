@@ -3,6 +3,7 @@
 `task_failure` fires AFTER all retries are exhausted, so any row we write
 here represents a terminal failure that an operator must address.
 """
+
 import logging
 import traceback as _tb_mod
 from typing import Any
@@ -36,9 +37,11 @@ def _resolve_org_id(task_name: str, args: tuple, kwargs: dict) -> str:
             return ""
         if resource == "document":
             from apps.documents.models import Document
+
             row = Document.objects.filter(id=resource_id).only("org_id").first()
         elif resource == "proposal":
             from apps.proposals.models import Proposal
+
             row = Proposal.objects.filter(id=resource_id).only("org_id").first()
         else:
             return ""

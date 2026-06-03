@@ -3,6 +3,7 @@
 DeadLetterTask records terminal Celery task failures (after all retries
 exhausted) so ops can inspect and reprocess without scraping Sentry.
 """
+
 import uuid
 
 from django.db import models

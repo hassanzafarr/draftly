@@ -6,11 +6,13 @@ Each subclass below pins its scope at class level.
 
 Rates are defined in `settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]`.
 """
+
 from rest_framework.throttling import ScopedRateThrottle
 
 
 class _PinnedScopeThrottle(ScopedRateThrottle):
     """Base — sets `self.scope` from a class attribute instead of the view."""
+
     scope_name = ""
 
     def allow_request(self, request, view):
@@ -41,6 +43,7 @@ class ProposalGenerateThrottle(_PinnedScopeThrottle):
 
 class DocumentUploadThrottle(_PinnedScopeThrottle):
     """Only throttles POST — GET list polling stays on default user rate."""
+
     scope_name = "document_upload"
 
     def allow_request(self, request, view):

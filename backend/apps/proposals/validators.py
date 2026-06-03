@@ -68,23 +68,50 @@ def classify_rfp_intent(text: str) -> dict:
     # Sliding-window phrase repetition (catches "X X X X" where X is multi-word)
     if word_count >= 30:
         for window in (3, 4, 5):
-            phrases = [" ".join(words[i:i + window]) for i in range(word_count - window + 1)]
+            phrases = [" ".join(words[i : i + window]) for i in range(word_count - window + 1)]
             if phrases:
                 top_count = max(phrases.count(p) for p in set(phrases))
                 if top_count / len(phrases) > 0.25:
                     return {
                         "is_rfp": False,
                         "confidence": 0.95,
-                        "reason": f"text contains repeated phrase — not a real RFP",
+                        "reason": "text contains repeated phrase — not a real RFP",
                     }
 
     # RFP keyword signal — real RFPs almost always mention at least one of these
     RFP_SIGNALS = {
-        "rfp", "proposal", "project", "scope", "requirements", "deliverables",
-        "timeline", "budget", "vendor", "client", "deadline", "specification",
-        "services", "solution", "system", "platform", "implementation", "development",
-        "design", "build", "deploy", "integrate", "feature", "milestone", "objective",
-        "goal", "stakeholder", "team", "phase", "deliverable", "criteria", "evaluation",
+        "rfp",
+        "proposal",
+        "project",
+        "scope",
+        "requirements",
+        "deliverables",
+        "timeline",
+        "budget",
+        "vendor",
+        "client",
+        "deadline",
+        "specification",
+        "services",
+        "solution",
+        "system",
+        "platform",
+        "implementation",
+        "development",
+        "design",
+        "build",
+        "deploy",
+        "integrate",
+        "feature",
+        "milestone",
+        "objective",
+        "goal",
+        "stakeholder",
+        "team",
+        "phase",
+        "deliverable",
+        "criteria",
+        "evaluation",
     }
     signal_hits = len(set(words) & RFP_SIGNALS)
     if word_count >= 30 and signal_hits == 0:

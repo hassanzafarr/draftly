@@ -6,24 +6,39 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 logger = logging.getLogger(__name__)
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from django.contrib.auth.tokens import default_token_generator
-from django.utils.encoding import force_bytes, force_str
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.core.mail import send_mail
 from django.conf import settings
-from apps.core.throttling import AuthLoginThrottle, AuthRegisterThrottle, PasswordChangeThrottle, PasswordResetThrottle
-from .serializers import RegisterSerializer, UserSerializer, OrganizationSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer
-from .models import Organization, User
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
+from apps.core.throttling import (
+    AuthLoginThrottle,
+    AuthRegisterThrottle,
+    PasswordChangeThrottle,
+    PasswordResetThrottle,
+)
+
+from .models import User
+from .serializers import (
+    OrganizationSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
+    RegisterSerializer,
+    UserSerializer,
+)
 
 
 class ThrottledTokenObtainPairView(TokenObtainPairView):
     """JWT login endpoint with per-IP brute-force throttling."""
+
     throttle_classes = [AuthLoginThrottle]
 
 
 class ThrottledTokenRefreshView(TokenRefreshView):
     """JWT refresh — uses default user/anon rates."""
+
     pass
 
 
@@ -51,6 +66,7 @@ def update_profile(request):
     email = request.data.get("email")
     if email:
         from .models import User
+
         if User.objects.filter(email=email).exclude(pk=user.pk).exists():
             return Response(
                 {"detail": "Email already in use."},
@@ -63,12 +79,11 @@ def update_profile(request):
         if org and org.stripe_customer_id:
             try:
                 import stripe
+
                 stripe.api_key = settings.STRIPE_SECRET_KEY
                 stripe.Customer.modify(org.stripe_customer_id, email=email)
             except Exception:
-                logger.warning(
-                    "Could not sync email to Stripe customer %s", org.stripe_customer_id
-                )
+                logger.warning("Could not sync email to Stripe customer %s", org.stripe_customer_id)
     return Response(UserSerializer(user).data)
 
 
@@ -149,7 +164,9 @@ def password_reset_confirm(request):
         return Response({"detail": "Invalid reset link."}, status=status.HTTP_400_BAD_REQUEST)
 
     if not default_token_generator.check_token(user, token):
-        return Response({"detail": "Reset link is invalid or has expired."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"detail": "Reset link is invalid or has expired."}, status=status.HTTP_400_BAD_REQUEST
+        )
 
     user.set_password(new_password)
     user.save()
@@ -175,4 +192,3 @@ def org_settings(request):
         org.name = name
         org.save(update_fields=["name"])
     return Response(OrganizationSerializer(org).data)
-

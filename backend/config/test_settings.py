@@ -5,6 +5,7 @@ hit production infrastructure (DB pooler, real LLM APIs, persistent storage).
 
 Activated via `DJANGO_SETTINGS_MODULE=config.test_settings` (set in pyproject.toml).
 """
+
 import os
 
 # Set safe placeholders for required env vars BEFORE importing settings.py.
