@@ -1,7 +1,11 @@
+import logging
+
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+
+logger = logging.getLogger(__name__)
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes, force_str
@@ -54,6 +58,17 @@ def update_profile(request):
             )
         user.email = email
         user.save(update_fields=["email"])
+        # Keep Stripe customer in sync so receipts go to the right address.
+        org = user.org
+        if org and org.stripe_customer_id:
+            try:
+                import stripe
+                stripe.api_key = settings.STRIPE_SECRET_KEY
+                stripe.Customer.modify(org.stripe_customer_id, email=email)
+            except Exception:
+                logger.warning(
+                    "Could not sync email to Stripe customer %s", org.stripe_customer_id
+                )
     return Response(UserSerializer(user).data)
 
 

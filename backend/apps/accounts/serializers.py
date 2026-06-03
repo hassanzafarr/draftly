@@ -10,6 +10,8 @@ class OrganizationSerializer(serializers.ModelSerializer):
             "name",
             "subscription_tier",
             "billing_cadence",
+            "subscription_status",
+            "current_period_end",
             "doc_quota",
             "proposal_quota",
             "seat_limit",
@@ -20,6 +22,8 @@ class OrganizationSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "created_at",
+            "subscription_status",
+            "current_period_end",
             "doc_quota",
             "proposal_quota",
             "seat_limit",

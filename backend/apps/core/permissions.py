@@ -1,8 +1,26 @@
+import calendar
+import datetime
+
 from rest_framework.permissions import BasePermission
 from apps.accounts.models import Organization
 from apps.documents.models import Document
 from apps.proposals.models import Proposal
-import datetime
+
+
+def _billing_period_start(period_end, cadence):
+    """Return the start of the billing period given its end date and cadence."""
+    if cadence == "annual":
+        try:
+            return period_end.replace(year=period_end.year - 1)
+        except ValueError:
+            return period_end.replace(year=period_end.year - 1, day=28)
+    # monthly
+    if period_end.month == 1:
+        year, month = period_end.year - 1, 12
+    else:
+        year, month = period_end.year, period_end.month - 1
+    max_day = calendar.monthrange(year, month)[1]
+    return period_end.replace(year=year, month=month, day=min(period_end.day, max_day))
 
 
 class IsOrgMember(BasePermission):
@@ -32,6 +50,11 @@ class OrgProposalQuotaPermission(BasePermission):
             return True
         org = request.user.org
         now = datetime.datetime.now(datetime.timezone.utc)
-        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        current = Proposal.objects.filter(org=org, created_at__gte=month_start).count()
+        # Paid subscribers: align quota window to Stripe billing period so
+        # annual subscribers don't reset every UTC 1st of the calendar month.
+        if org.subscription_tier != "free" and org.current_period_end:
+            period_start = _billing_period_start(org.current_period_end, org.billing_cadence)
+        else:
+            period_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        current = Proposal.objects.filter(org=org, created_at__gte=period_start).count()
         return current < org.proposal_quota

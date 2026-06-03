@@ -130,6 +130,7 @@ def create_checkout_session(request):
             line_items=[{"price": price_id, "quantity": 1}],
             success_url=f"{settings.FRONTEND_URL}/pricing?success=true",
             cancel_url=f"{settings.FRONTEND_URL}/pricing?canceled=true",
+            automatic_tax={"enabled": True},
             metadata={
                 "org_id": str(org.id),
                 "tier": tier,
