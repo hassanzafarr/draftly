@@ -49,6 +49,9 @@ PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 # Quiet Sentry in tests.
 SENTRY_DSN = ""
 
+# Never redirect HTTP→HTTPS in tests (test client uses HTTP).
+SECURE_SSL_REDIRECT = False
+
 # Disable rate limiting in tests — rates would otherwise trip across rapid runs.
 REST_FRAMEWORK = {
     **REST_FRAMEWORK,  # noqa: F405 — imported via `from config.settings import *`
