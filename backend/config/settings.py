@@ -152,6 +152,7 @@ REST_FRAMEWORK = {
         "proposal_generate": config("THROTTLE_PROPOSAL_GENERATE", default="20/hour"),
         "document_upload": config("THROTTLE_DOCUMENT_UPLOAD", default="30/hour"),
         "billing_checkout": config("THROTTLE_BILLING_CHECKOUT", default="10/hour"),
+        "password_reset": config("THROTTLE_PASSWORD_RESET", default="5/hour"),
     },
 }
 
@@ -300,6 +301,17 @@ STRIPE_PRICE_AGENCY_ANNUAL = config("STRIPE_PRICE_AGENCY_ANNUAL", default="")
 FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:5173").rstrip("/")
 
 # RFP input validation thresholds
+# Email — SMTP in prod, console in dev
+EMAIL_BACKEND = config("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+EMAIL_HOST = config("EMAIL_HOST", default="smtp.resend.com")
+EMAIL_PORT = config("EMAIL_PORT", default=465, cast=int)
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=False, cast=bool)
+EMAIL_USE_SSL = config("EMAIL_USE_SSL", default=True, cast=bool)
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="resend")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="Draftly <noreply@draftly.software>")
+PASSWORD_RESET_TIMEOUT = 3600  # token valid 1 hour
+
 RFP_MIN_CHARS = config("RFP_MIN_CHARS", default=200, cast=int)
 RFP_MIN_WORDS = config("RFP_MIN_WORDS", default=30, cast=int)
 RFP_MAX_CHARS = config("RFP_MAX_CHARS", default=200_000, cast=int)

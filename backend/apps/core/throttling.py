@@ -51,3 +51,7 @@ class DocumentUploadThrottle(_PinnedScopeThrottle):
 
 class BillingCheckoutThrottle(_PinnedScopeThrottle):
     scope_name = "billing_checkout"
+
+
+class PasswordResetThrottle(_PinnedScopeThrottle):
+    scope_name = "password_reset"

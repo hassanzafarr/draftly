@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, Loader2, Mail, Lock, Building2, ArrowRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import api from "../api/client";
 import useAuthStore from "../store/auth";
@@ -112,6 +112,17 @@ export function AuthForm({ mode }) {
           </button>
         }
       />
+
+      {mode === "login" && (
+        <div className="text-right">
+          <Link
+            to="/forgot-password"
+            className="text-xs text-muted-foreground transition hover:text-foreground"
+          >
+            Forgot password?
+          </Link>
+        </div>
+      )}
 
       <AnimatePresence>
         {error && (

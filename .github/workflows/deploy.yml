@@ -1,0 +1,49 @@
+name: Deploy to Azure Container Apps
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  REGISTRY: draftlyacr.azurecr.io
+  IMAGE: draftlyacr.azurecr.io/draftly-backend
+  RESOURCE_GROUP: habitforge-rg
+  CONTAINER_APP_API: draftly-api
+  CONTAINER_APP_WORKER: draftly-worker
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: ACR login
+        run: az acr login --name draftlyacr
+
+      - name: Build and push image
+        run: |
+          docker build -t $IMAGE:${{ github.sha }} -t $IMAGE:latest ./backend
+          docker push $IMAGE:${{ github.sha }}
+          docker push $IMAGE:latest
+
+      - name: Deploy API
+        run: |
+          az containerapp update \
+            --name $CONTAINER_APP_API \
+            --resource-group $RESOURCE_GROUP \
+            --image $IMAGE:${{ github.sha }}
+
+      - name: Deploy Worker
+        run: |
+          az containerapp update \
+            --name $CONTAINER_APP_WORKER \
+            --resource-group $RESOURCE_GROUP \
+            --image $IMAGE:${{ github.sha }}

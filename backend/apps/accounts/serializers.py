@@ -37,6 +37,16 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at"]
 
 
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    uid = serializers.CharField()
+    token = serializers.CharField()
+    new_password = serializers.CharField(min_length=8, write_only=True)
+
+
 class RegisterSerializer(serializers.Serializer):
     org_name = serializers.CharField(max_length=255)
     email = serializers.EmailField()

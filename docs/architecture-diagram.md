@@ -1,41 +1,80 @@
 # Draftly Architecture Diagram
 
-Draftly is a multi-tenant SaaS app for RAG-assisted proposal generation. Users upload reference documents, the backend extracts and embeds chunks into pgvector, and new RFPs are used to retrieve relevant context before an LLM writes a structured proposal draft.
+Draftly is a multi-tenant proposal generation SaaS. Teams upload reusable company knowledge, Draftly extracts and embeds that content, then new RFPs retrieve the most relevant chunks before an LLM drafts a structured proposal.
 
-## System Overview
+## System Context
 
 ```mermaid
 flowchart TB
     user[User]
-    browser[Browser]
-    frontend[React SPA<br/>Vite + Tailwind<br/>Zustand auth state]
-    api[Django REST API<br/>DRF + SimpleJWT<br/>org-scoped permissions]
-    admin[Django Admin]
-    redis[Redis<br/>Celery broker + result backend]
-    worker[Celery Worker<br/>document ingestion<br/>proposal generation]
-    db[(PostgreSQL + pgvector<br/>organizations, users<br/>documents, chunks<br/>rfps, proposals)]
+    spa[React SPA<br/>Vite, Tailwind, Zustand<br/>routes for generator, knowledge, proposals, analytics, billing]
+    api[Django REST API<br/>DRF, SimpleJWT, org-scoped permissions<br/>throttles and quota checks]
+    admin[Django Admin<br/>IP allowlist middleware]
+    worker[Celery Worker<br/>document ingestion and proposal generation]
+    redis[(Redis<br/>Celery broker/result backend<br/>DRF throttle cache)]
+    db[(PostgreSQL + pgvector<br/>orgs, users, documents, chunks<br/>RFPs, proposals, generation telemetry)]
     storage[(File Storage<br/>local media in dev<br/>Supabase S3-compatible in prod)]
-    google[Google AI<br/>Gemini generation<br/>Gemini embeddings]
-    groq[Groq API<br/>fallback generation]
-    sentry[Sentry<br/>frontend, backend, worker]
+    claude[Anthropic Claude<br/>primary proposal analysis/generation]
+    gemini[Google Gemini<br/>embeddings and fallback generation]
+    cohere[Cohere Rerank<br/>optional chunk reranking]
+    groq[Groq<br/>small fallback when usable]
+    stripe[Stripe<br/>checkout, portal, webhooks]
+    sentry[Sentry<br/>frontend, API, worker]
 
-    user --> browser
-    browser --> frontend
-    frontend -->|REST JSON over /api<br/>JWT access + refresh| api
-    frontend -->|polls processing state| api
+    user --> spa
+    spa -->|REST JSON over /api<br/>JWT access token + refresh flow| api
+    spa -->|polls proposal/document status| api
+    spa --> sentry
+
     api --> admin
+    api <--> db
+    api <--> storage
     api -->|enqueue async jobs| redis
     redis --> worker
-    api <--> db
     worker <--> db
-    api <--> storage
     worker <--> storage
-    worker -->|embed documents and RFPs| google
-    worker -->|generate proposal JSON| google
-    worker -->|on Gemini rate limit| groq
-    frontend --> sentry
+
+    worker -->|RFP analysis and generation| claude
+    worker -->|document and query embeddings<br/>fallback generation/title extraction| gemini
+    worker -->|rerank top vector matches| cohere
+    worker -->|rate-limit fallback for small prompts| groq
+
+    api -->|checkout, portal, subscription status| stripe
+    stripe -->|signed webhook| api
     api --> sentry
     worker --> sentry
+```
+
+## Runtime Boundaries
+
+```mermaid
+flowchart LR
+    subgraph Frontend["frontend/src"]
+        routes[App routes<br/>Generator, Knowledge, Analytics<br/>Proposals, Editor, Settings, Pricing]
+        apiClient[api/client.js<br/>Axios base URL, JWT attach<br/>401 refresh interceptor]
+        auth[store/auth.js<br/>current user/session state]
+    end
+
+    subgraph Backend["backend/apps"]
+        accounts[accounts<br/>Organization, User<br/>auth/profile/org settings]
+        documents[documents<br/>Document, Chunk<br/>upload, validation, extraction]
+        proposals[proposals<br/>RFP, Proposal, GenerationEvent<br/>RAG retrieval, generation, export, analytics]
+        billing[billing<br/>Stripe checkout, portal<br/>webhook idempotency]
+        core[core<br/>permissions, throttling<br/>embeddings, admin IP gate, DLQ]
+    end
+
+    routes --> apiClient
+    routes --> auth
+    auth --> apiClient
+    apiClient --> accounts
+    apiClient --> documents
+    apiClient --> proposals
+    apiClient --> billing
+
+    documents --> core
+    proposals --> core
+    billing --> accounts
+    proposals --> documents
 ```
 
 ## Document Ingestion Flow
@@ -43,32 +82,33 @@ flowchart TB
 ```mermaid
 sequenceDiagram
     actor User
-    participant Frontend as React SPA
+    participant SPA as React SPA
     participant API as Django REST API
-    participant Storage as File Storage
+    participant Store as File Storage
     participant Redis
     participant Worker as Celery Worker
-    participant Google as Google AI Embeddings
+    participant Gemini as Google Gemini Embeddings
     participant DB as PostgreSQL + pgvector
 
-    User->>Frontend: Upload PDF, DOCX, or TXT
-    Frontend->>API: POST /api/documents/
-    API->>API: Validate JWT, org membership, document quota
-    API->>Storage: Save uploaded file
+    User->>SPA: Upload PDF, DOCX, or TXT
+    SPA->>API: POST /api/documents/
+    API->>API: Validate JWT, org membership, upload throttle, quota
+    API->>Store: Save uploaded file
     API->>DB: Create Document(status=pending)
     API->>Redis: Enqueue ingest_document(document_id)
-    API-->>Frontend: Return document record
+    API-->>SPA: Return document record
 
-    Frontend->>API: Poll GET /api/documents/
+    SPA->>API: Poll GET /api/documents/
     Redis->>Worker: Run ingest_document
     Worker->>DB: Set Document(status=processing)
-    Worker->>Storage: Read uploaded file
-    Worker->>Worker: Extract text and chunk with overlap
-    Worker->>Google: Batch embed chunks
-    Google-->>Worker: 768-dim vectors
+    Worker->>Store: Read uploaded file
+    Worker->>Worker: Sanitize PDF when needed
+    Worker->>Worker: Extract text and split into overlapping chunks
+    Worker->>Gemini: Batch embed chunk text
+    Gemini-->>Worker: 768-dimension vectors
     Worker->>DB: Replace Chunk rows for document
     Worker->>DB: Set Document(status=processed, chunk_count)
-    API-->>Frontend: Updated processing status
+    API-->>SPA: Updated processing state
 ```
 
 ## Proposal Generation Flow
@@ -76,67 +116,108 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     actor User
-    participant Frontend as React SPA
+    participant SPA as React SPA
     participant API as Django REST API
     participant Redis
     participant Worker as Celery Worker
-    participant Google as Google AI
-    participant Groq as Groq Fallback
+    participant Claude as Anthropic Claude
+    participant Gemini as Google Gemini
     participant DB as PostgreSQL + pgvector
+    participant Cohere as Cohere Rerank
+    participant Groq as Groq
 
-    User->>Frontend: Submit RFP text or file
-    Frontend->>API: POST /api/rfps/
-    API->>API: Validate JWT, org membership, proposal quota
-    API->>DB: Create RFP and Proposal(status=generating)
+    User->>SPA: Submit RFP text/file, tone, length, optional sections
+    SPA->>API: POST /api/rfps/
+    API->>API: Validate JWT, org membership, RFP checks, proposal quota
+    API->>DB: Create RFP and Proposal(status=generating, stage=queued)
     API->>Redis: Enqueue generate_proposal_task(proposal_id)
-    API-->>Frontend: Return proposal id
+    API-->>SPA: Return proposal id
 
-    Frontend->>API: Poll GET /api/proposals/{id}/
+    SPA->>API: Poll GET /api/proposals/{id}/
     Redis->>Worker: Run generate_proposal_task
-    Worker->>Google: Analyze RFP into structured brief
-    Worker->>Google: Embed RFP query
-    Google-->>Worker: Query vector
-    Worker->>DB: Search org-scoped chunks by cosine distance
-    DB-->>Worker: Top matching context chunks
-    Worker->>Google: Generate 10-section proposal JSON
-    alt Gemini rate limit or quota error
-        Worker->>Groq: Generate proposal JSON fallback
-        Groq-->>Worker: Proposal sections
-    else Gemini succeeds
-        Google-->>Worker: Proposal sections
+    Worker->>DB: Set stage=analyzing
+    Worker->>Claude: Analyze RFP into structured brief
+    alt Claude analyzer unavailable
+        Worker->>Gemini: Analyze RFP fallback
     end
-    Worker->>DB: Save Proposal(status=draft, sections)
-    API-->>Frontend: Draft is ready
+
+    Worker->>DB: Set stage=retrieving
+    Worker->>Gemini: Embed RFP query
+    Gemini-->>Worker: Query vector
+    Worker->>DB: Org-scoped pgvector cosine search
+    DB-->>Worker: Top matching chunks
+    Worker->>Cohere: Optional rerank top matches
+    Cohere-->>Worker: Ordered context chunks or fallback to vector order
+
+    Worker->>DB: Set stage=drafting
+    alt Claude generation enabled and available
+        Worker->>Claude: Generate proposal JSON from RFP brief + context
+    else Claude unavailable
+        Worker->>Gemini: Generate proposal fallback
+        opt Gemini rate-limited and prompt is small enough
+            Worker->>Groq: Generate proposal fallback
+        end
+    end
+
+    Worker->>DB: Save sections, labels, provider, status=draft
+    Worker->>DB: Persist GenerationEvent telemetry and quality signals
+    API-->>SPA: Draft is ready
+```
+
+## Billing Flow
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant SPA as Pricing/Settings UI
+    participant API as Django REST API
+    participant Stripe
+    participant DB as PostgreSQL
+
+    User->>SPA: Choose tier and billing cadence
+    SPA->>API: POST /api/billing/checkout/
+    API->>API: Validate org membership and checkout throttle
+    API->>Stripe: Create or reuse Customer
+    API->>Stripe: Create Checkout Session
+    API-->>SPA: Return checkout URL
+    SPA->>Stripe: Redirect user to hosted checkout
+
+    Stripe->>API: POST /api/billing/webhook/
+    API->>API: Verify signature and record StripeEvent id
+    API->>DB: Update Organization subscription tier/status
+
+    SPA->>API: GET /api/billing/subscription/
+    API-->>SPA: Current billing state and publishable key
 ```
 
 ## Deployment Topology
 
 ```mermaid
 flowchart LR
-    subgraph Local Development
-        localFrontend[frontend container<br/>Vite on :5173]
-        localBackend[backend container<br/>Django on :8000]
+    subgraph Local["Local development"]
+        localSpa[frontend container<br/>Vite on :5173]
+        localApi[backend container<br/>Django on :8000]
         localWorker[worker container<br/>Celery]
-        localRedis[redis container<br/>:6379]
+        localRedis[(redis:7-alpine<br/>:6379)]
         localDb[(optional localdb profile<br/>pgvector Postgres :5432)]
-        localMedia[(media volume)]
+        localMedia[(media_vol<br/>/app/media)]
 
-        localFrontend -->|/api proxy| localBackend
-        localBackend --> localRedis
+        localSpa -->|Vite proxy /api| localApi
+        localApi --> localRedis
         localRedis --> localWorker
-        localBackend --> localDb
+        localApi --> localDb
         localWorker --> localDb
-        localBackend --> localMedia
+        localApi --> localMedia
         localWorker --> localMedia
     end
 
-    subgraph Production
-        vercel[Vercel<br/>React build]
-        railway[Railway or Django host<br/>REST API]
-        prodWorker[Celery worker]
-        prodRedis[Redis]
+    subgraph Production["Production"]
+        vercel[Vercel<br/>React static build]
+        railway[Railway or Django host<br/>REST API + admin]
+        prodWorker[Celery worker process]
+        prodRedis[(Managed Redis)]
         supabaseDb[(Supabase Postgres<br/>pgvector)]
-        supabaseStorage[(Supabase Storage<br/>S3-compatible)]
+        supabaseStorage[(Supabase Storage<br/>S3-compatible bucket)]
 
         vercel -->|HTTPS /api| railway
         railway --> prodRedis
@@ -148,20 +229,21 @@ flowchart LR
     end
 ```
 
-## Core Boundaries
+## Data Ownership
 
-| Boundary | Responsibility |
-| --- | --- |
-| `frontend/src` | Authenticated SPA, document upload, RFP submission, proposal editing, PDF export, polling for async status. |
-| `backend/apps/accounts` | Organizations, users, roles, JWT-facing auth views, subscription tier quota metadata. |
-| `backend/apps/documents` | Uploaded document models, extraction, chunking, embedding, chunk persistence. |
-| `backend/apps/proposals` | RFP and proposal models, proposal generation task, RAG retrieval, LLM prompt and fallback handling. |
-| `backend/apps/core` | Shared embeddings client and DRF permission classes for org scope and quota enforcement. |
+| Area | Owns | Notes |
+| --- | --- | --- |
+| `accounts` | `Organization`, `User` | Subscription tier determines document, proposal, and seat quotas. |
+| `documents` | `Document`, `Chunk` | Chunks carry `org_id`, source metadata, category, and 768-dimension Gemini embeddings. |
+| `proposals` | `RFP`, `Proposal`, `GenerationEvent` | Generation stores stage metadata, selected provider, retrieval telemetry, and quality signals. |
+| `billing` | `StripeEvent` | Stripe event ids make webhook processing idempotent. |
+| `core` | shared infrastructure | Permission checks, throttles, embeddings client, admin IP allowlist, and task failure recording. |
 
-## Important Notes
+## Important Constraints
 
-- Tenant isolation is enforced through `org` foreign keys and org-scoped querysets/permissions.
-- Vector search is filtered by `org_id` before ranking chunks by pgvector cosine distance.
-- The frontend currently polls async status rather than using SSE or WebSockets.
-- The current embedding dimension is 768, configured for Google Gemini embeddings.
-- Gemini is the primary generation provider; Groq is only used as a rate-limit fallback.
+- Tenant isolation is enforced through `org` foreign keys, org-scoped querysets, and `IsOrgMember` permissions.
+- Vector search filters by `org_id` before ranking chunks by pgvector cosine distance.
+- Proposal status is exposed through polling; there is no active SSE or WebSocket path in the current code.
+- Claude is the primary proposal provider when enabled and configured; Gemini is used for embeddings and fallback generation.
+- Cohere rerank is optional and safely falls back to vector order when disabled or unavailable.
+- File storage is local by default and switches to Supabase S3-compatible storage with `USE_SUPABASE_STORAGE=True`.
