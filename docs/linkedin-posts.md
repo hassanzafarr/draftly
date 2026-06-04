@@ -21,6 +21,12 @@ Stack of ready-to-post LinkedIn updates from building **Draftly** (multi-tenant 
 15. [Stripe webhook idempotency → `StripeEvent` row before processing](#post-15) (short)
 16. [Railway deploy death-by-1000-cuts → CORS/CSRF/ALLOWED_HOSTS](#post-16) (short)
 17. [A user pasted an API key in chat → revoke first, wire later](#post-17) (short)
+18. [Forgot password is deceptively hard → token expiry, one-time use, Resend](#post-18) (short)
+19. [PDF vs DOCX export → two exports, two completely different approaches](#post-19) (short)
+20. [Shipped "analytics" that was just mock data → then built the real thing](#post-20) (short)
+21. [Moved from Railway to Azure Container Apps → what broke and why](#post-21) (long)
+22. [Replaced textareas with Tiptap → one editor per proposal section](#post-22) (short)
+23. [Resend over SendGrid for transactional email → developer experience wins](#post-23) (short)
 
 ---
 
@@ -460,4 +466,165 @@ If you work with AI assistants: bake this into your collaboration rules. The ass
 
 ---
 
-*All posts above are based on shipped work in Draftly as of 2026-05-23. Stack: Django + DRF + Celery + Redis + PostgreSQL/pgvector + React/Vite, deployed Railway + Vercel.*
+## Post 18
+
+**Format:** Short
+
+> Forgot password sounds like a half-hour feature. It took me most of a day, and I'm glad it did — the shortcuts I almost took would have shipped real security holes.
+
+The naive version: generate a random string, save it to the user row, email a link, check the string on submit. Done in 45 minutes. Also wrong in three ways.
+
+**What I did instead:**
+
+1. **Token is hashed before storage.** The raw token lives only in the email. What goes in the DB is `sha256(token)`. If someone dumps your users table, they can't use the tokens. Same principle as password hashing — store the check value, not the secret.
+
+2. **One-time use enforced.** After the user resets their password, the token row is deleted immediately. Not expired — gone. A token used once cannot be used again, not even if the email was forwarded or someone hits back in their browser.
+
+3. **Short expiry.** Tokens expire in 1 hour. If the email lands in spam and they find it three days later, they request a fresh one — they don't get to use a stale token that's been sitting in their inbox.
+
+For email delivery I'm using **Resend** with a simple HTML template. No attachment, no tracking pixel, just a clean "Reset your password" link. Resend's Django integration is like 10 lines.
+
+The feature itself is table stakes. The discipline in the implementation is what separates a password reset flow from a password *compromise* flow.
+
+> What's your token expiry window for password resets? 1 hour, 15 minutes, 24 hours? Curious how teams think about the tradeoff.
+
+---
+
+## Post 19
+
+**Format:** Short
+
+> Draftly exports proposals two ways: PDF and DOCX. I built them completely differently — PDF on the client, DOCX on the server — and it was the right call for each.
+
+**PDF: client-side with jsPDF**
+
+The user clicks "Export PDF." It renders immediately, no server round-trip. jsPDF reads the current Tiptap editor content, walks the HTML, and builds the document in the browser. Under a second. No Celery job, no S3, no waiting.
+
+The tradeoff: limited layout control. jsPDF isn't a browser rendering engine. Complex tables, mixed fonts, fine-grained page breaks — all painful. For a structured 10-section proposal with mostly paragraphs? It's fine.
+
+**DOCX: server-side with python-docx**
+
+The user clicks "Export DOCX." A POST fires to `/api/proposals/{id}/export/docx/`, Django builds the file using `python-docx`, and streams it back as a download.
+
+Why server-side? Because python-docx gives you real Word formatting — heading styles, proper paragraph margins, styled tables — that a client-side library just can't match. And because the source of truth for the proposal is the database, not whatever's in the editor DOM at click time. The server always exports the saved version.
+
+**The mental model I use:** if the output is primarily for viewing, client-side is fine. If it's going to someone's inbox or a client who'll edit it in Word, server-side with a proper library is worth the round-trip.
+
+> Anyone else doing hybrid export strategies? Or do you pick one approach and make it work for everything?
+
+---
+
+## Post 20
+
+**Format:** Short
+
+> For the first two months, our "Analytics" page showed beautiful Recharts graphs. The data was completely made up.
+
+Not deliberately — it was placeholder data I'd hardcoded while building the UI, with the intention of "hooking it up later." But shipping kept going and the fake graphs shipped to prod. Users could see a bar chart of "Proposals Generated This Month" that was always the same four bars. I only noticed when I generated my fifth proposal and the chart didn't budge.
+
+**Building the real thing forced me to decide what actually matters:**
+
+- Total proposals generated (all time + this month)
+- Success rate (% that reach `status = draft` vs `failed`)
+- Average generation time (timestamp delta, seconds)
+- Monthly trend (proposals per month, last 6 months)
+- Tone distribution (which writing tones users pick most)
+- Provider breakdown (Claude vs Gemini vs Groq — which LLM actually ran)
+
+That last one turned out to be the most useful *internally*. When a customer complained that proposals felt different quality this week, the provider breakdown query immediately showed they'd been hitting Groq (our third-tier fallback) all week because Claude was rate-limited for their org.
+
+The backend is one Django view, a handful of ORM aggregates, no heavy query. The frontend is Recharts wired to `/api/analytics/stats/`. Replaced maybe 80 lines of mock data with 120 lines of real code.
+
+The lesson: fake placeholder data is fine for UI prototyping. Just don't forget it's there.
+
+> What metrics do you actually look at in your SaaS analytics? I feel like most dashboards show what's easy to measure, not what's useful to know.
+
+---
+
+## Post 21
+
+**Format:** Long-form
+
+> We moved our backend from Railway to Azure Container Apps last week. The migration was smooth — right up until production started returning 403s on the admin panel and the health check endpoint started lying.
+
+**Why we moved**
+
+Railway's free tier was fine for solo dev, but the pricing model doesn't scale cleanly for a multi-tenant app where container uptime matters. Azure Container Apps gave us more predictable billing, better regional control (we needed francecentral for data residency reasons), and a deployment model that fits better with our Docker Compose setup locally.
+
+The migration itself — push a container, update environment variables, point DNS — took about two hours. Then the fun started.
+
+**The XFF header trap, again (but worse)**
+
+We already had the admin IP allowlist from Railway days. The middleware reads `X-Forwarded-For` and counts back by `ADMIN_TRUSTED_PROXY_COUNT` to find the real client IP. On Railway with one proxy, `count = 1` worked fine.
+
+Azure Container Apps sits behind two infrastructure layers. We hadn't updated `ADMIN_TRUSTED_PROXY_COUNT`. So the "trusted" IP the middleware resolved was an Azure internal IP, not the actual client. Every request either passed trivially (if we'd miscounted toward the internal IPs) or 403'd everyone including us. We'd essentially replaced a working gate with an always-open-or-always-closed toggle depending on which way we'd gotten the count wrong.
+
+Fix: document the correct count per platform in `.env.example`. Not just a comment — a table. "Railway: 1. Azure Container Apps: 2. Running locally: 0." This is not something you want to re-derive during an incident.
+
+**The health check that broke deploys**
+
+Azure Container Apps requires a health check endpoint to decide if a revision is healthy before routing traffic. We had `/api/health/` returning 200. What we didn't realize: Azure sends the health check *before* the environment variables are injected if you're using a managed identity flow. Our health check was calling `django.conf.settings.DATABASE_URL` on startup, which raised an error if the var wasn't available yet.
+
+Fix: make the health check dumb. It should check "is the process running" not "is the database accessible." `{"status": "ok"}`, 200, nothing else. Move the DB connectivity check to a separate `/api/health/db/` endpoint that's never pinged by infrastructure.
+
+**What surprised me most**
+
+Azure Container Apps has better structured log streaming than Railway for multi-container workloads (our API + Celery worker). Being able to tail logs by container label (`component: api` vs `component: worker`) during an incident is worth a lot. Railway's logging is fine for a monolith; it gets noisy fast when you have multiple containers emitting at once.
+
+The migration cost us one afternoon and about $0 in downtime. Most of that afternoon was configuration archaeology — making sure every env var, secret, and permission that lived in Railway's UI was now properly declared somewhere we could version.
+
+If you're running Django on Railway and considering Azure: it's worth it, but update your proxy count and make your health check dumb.
+
+> Any Azure Container Apps gotchas you've hit that you wish someone had documented? The XFF thing in particular feels like it should be in the first paragraph of every migration guide.
+
+---
+
+## Post 22
+
+**Format:** Short
+
+> We shipped 10 `<textarea>` elements for editing proposal sections. They worked. Users started asking for bold text, bullet points, and the ability to paste from Word. So we replaced them with Tiptap.
+
+Tiptap is a headless rich-text editor built on ProseMirror. "Headless" means it brings editing behavior but no default UI — you supply the toolbar, the styling, the controls. That's annoying for a quick prototype but exactly right for a product with a custom design system.
+
+**One editor per section, not one editor for the whole proposal.**
+
+That was the key architecture call. We have 10 proposal sections (executive summary, pricing, methodology, etc.). Each is its own Tiptap instance with its own state. This means:
+- Save is per-section, not all-or-nothing.
+- Scrolling into a section doesn't trigger re-renders for sections above it.
+- Word count is per-section, which is actually useful — users want to know if their pricing section is 800 words, not if the whole proposal is 8,000.
+
+The tricky part was preserving formatting across the page lifecycle. Tiptap stores content as JSON internally, but we persist HTML to the database (easier to render in DOCX/PDF exports). The pattern: store HTML, parse back to Tiptap's JSON format on load via the `generateJSON` utility. Loses nothing, survives a page refresh.
+
+**What we didn't add:** a floating toolbar. We kept it pinned to the top of each section — simpler, more predictable, and it doesn't disappear if the user accidentally clicks outside the editor.
+
+> Has anyone used Tiptap at scale? Curious how it holds up with sections that are 10k+ words or with collaborative editing enabled.
+
+---
+
+## Post 23
+
+**Format:** Short
+
+> We needed transactional email for password resets. I spent 20 minutes evaluating, chose Resend, and haven't thought about it since. That's the review.
+
+I've integrated SendGrid and Mailgun on previous projects. They work. The developer experience is — fine. Docs are dense, the SDK is enterprise-shaped, the dashboard has approximately 40 settings you have to visit before a test email goes out.
+
+**Resend is just different in the way that makes you feel like you're not fighting it.**
+
+The whole integration for Django:
+- `pip install resend`
+- Set `RESEND_API_KEY` in env.
+- Three lines of Python to send an email.
+
+That's it. No IP warmup wizard. No domain verification modal with five tabs. Just verify a DNS record, generate a key, send an email. The API is one endpoint. The Python client reflects that.
+
+For Draftly's use case — one transactional email type (password reset), low volume, clean HTML template — Resend is perfect. If I were sending millions of emails with complex segmentation and A/B subject lines, maybe the calculation changes. But for "send a link when a user forgets their password," the zero-configuration path is exactly what I want.
+
+The one thing I checked before committing: Resend's deliverability reputation. Gmail and Outlook both received test emails in inbox, not spam, with SPF/DKIM passing. That's the real test.
+
+> What's your default for transactional email in a small SaaS? Resend, Postmark, SES, something else? Curious if the "just works" experience holds up past the honeymoon phase.
+
+---
+
+*All posts above are based on shipped work in Draftly as of 2026-06-03. Stack: Django + DRF + Celery + Redis (Upstash) + PostgreSQL/pgvector (Supabase) + React/Vite, deployed Azure Container Apps + Vercel.*

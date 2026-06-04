@@ -7,7 +7,11 @@ Each subclass below pins its scope at class level.
 Rates are defined in `settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]`.
 """
 
+import logging
+
 from rest_framework.throttling import ScopedRateThrottle
+
+logger = logging.getLogger(__name__)
 
 
 class _PinnedScopeThrottle(ScopedRateThrottle):
@@ -22,7 +26,13 @@ class _PinnedScopeThrottle(ScopedRateThrottle):
             return True
         self.rate = self.get_rate()
         self.num_requests, self.duration = self.parse_rate(self.rate)
-        return super(ScopedRateThrottle, self).allow_request(request, view)
+        try:
+            return super(ScopedRateThrottle, self).allow_request(request, view)
+        except Exception:
+            # Cache backend unavailable (e.g. Redis down). Degrade gracefully
+            # rather than returning 500 — throttling is best-effort.
+            logger.exception("Throttle cache error on scope=%s; allowing request", self.scope)
+            return True
 
 
 class AuthLoginThrottle(_PinnedScopeThrottle):

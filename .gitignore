@@ -39,3 +39,6 @@ vault/
 
 # Dev utility scripts
 frontend/resize_logo.ps1
+
+# Internal docs — not for repo
+docs/linkedin-posts.md
