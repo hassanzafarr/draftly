@@ -113,6 +113,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    google_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
+    avatar_url = models.URLField(max_length=500, null=True, blank=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []

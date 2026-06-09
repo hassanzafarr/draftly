@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import * as Sentry from "@sentry/react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import useAuthStore from "./store/auth";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { AppShell } from "./components/AppShell";
@@ -45,6 +46,7 @@ export default function App() {
   }, [fetchMe]);
 
   return (
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ""}>
     <Sentry.ErrorBoundary fallback={<PageFallback />}>
       <ThemeProvider>
         <BrowserRouter>
@@ -79,6 +81,7 @@ export default function App() {
         </BrowserRouter>
       </ThemeProvider>
     </Sentry.ErrorBoundary>
+    </GoogleOAuthProvider>
   );
 }
 
