@@ -10,4 +10,6 @@ urlpatterns = [
     path("org/", views.org_settings, name="org-settings"),
     path("password-reset/", views.password_reset_request, name="password-reset-request"),
     path("password-reset/confirm/", views.password_reset_confirm, name="password-reset-confirm"),
+    path("google/", views.google_auth, name="google-auth"),
+    path("google/complete/", views.google_auth_complete, name="google-auth-complete"),
 ]

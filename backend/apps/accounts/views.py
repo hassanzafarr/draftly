@@ -3,12 +3,16 @@ import logging
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
+from django.db import transaction
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from rest_framework import serializers as drf_serializers
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from apps.core.throttling import (
@@ -18,7 +22,7 @@ from apps.core.throttling import (
     PasswordResetThrottle,
 )
 
-from .models import User
+from .models import Organization, User
 from .serializers import (
     OrganizationSerializer,
     PasswordResetConfirmSerializer,
@@ -30,9 +34,26 @@ from .serializers import (
 logger = logging.getLogger(__name__)
 
 
+class GoogleAwareTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """Reject email+password login attempts for Google-only accounts with a clear message."""
+
+    def validate(self, attrs):
+        email = attrs.get(self.username_field, "")
+        try:
+            user = User.objects.get(email=email)
+            if user.google_id and not user.has_usable_password():
+                raise drf_serializers.ValidationError(
+                    "This account uses Google Sign-In. Please use the Google button to sign in."
+                )
+        except User.DoesNotExist:
+            pass
+        return super().validate(attrs)
+
+
 class ThrottledTokenObtainPairView(TokenObtainPairView):
     """JWT login endpoint with per-IP brute-force throttling."""
 
+    serializer_class = GoogleAwareTokenObtainPairSerializer
     throttle_classes = [AuthLoginThrottle]
 
 
@@ -197,3 +218,175 @@ def org_settings(request):
         org.name = name
         org.save(update_fields=["name"])
     return Response(OrganizationSerializer(org).data)
+
+
+def _verify_google_access_token(access_token):
+    """
+    Verify a Google OAuth access token and return normalised user info.
+
+    Calls Google's tokeninfo endpoint to confirm the token belongs to this app,
+    then calls the userinfo endpoint for the full profile.
+    Raises ValueError if the token is invalid or not issued for this app.
+    """
+    import json
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    # 1. Verify the token is valid and issued for our Client ID.
+    tokeninfo_url = (
+        "https://oauth2.googleapis.com/tokeninfo?"
+        + urllib.parse.urlencode({"access_token": access_token})
+    )
+    try:
+        with urllib.request.urlopen(tokeninfo_url, timeout=5) as resp:
+            token_data = json.loads(resp.read())
+    except urllib.error.HTTPError:
+        raise ValueError("Invalid Google access token")
+
+    client_id = settings.GOOGLE_CLIENT_ID
+    if client_id and token_data.get("azp") != client_id and token_data.get("aud") != client_id:
+        raise ValueError("Google token not issued for this application")
+
+    if str(token_data.get("email_verified", "")).lower() != "true":
+        raise ValueError("Google email is not verified")
+
+    # 2. Fetch the full profile (given_name, picture, etc.).
+    userinfo_req = urllib.request.Request(
+        "https://www.googleapis.com/oauth2/v3/userinfo",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    try:
+        with urllib.request.urlopen(userinfo_req, timeout=5) as resp:
+            userinfo = json.loads(resp.read())
+    except urllib.error.HTTPError:
+        raise ValueError("Could not fetch Google profile")
+
+    return {
+        "sub": token_data.get("sub") or userinfo.get("sub"),
+        "email": userinfo.get("email") or token_data.get("email"),
+        "email_verified": True,
+        "given_name": userinfo.get("given_name", ""),
+        "picture": userinfo.get("picture", ""),
+    }
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@throttle_classes([AuthLoginThrottle])
+def google_auth(request):
+    """
+    Step 1 of Google sign-in.
+
+    Returns one of three outcomes:
+    - { access, refresh, user }       — existing Google user, logged in
+    - { status: "new_user", email, display_name } — new user, needs org name
+    - 409 with detail                 — email already registered via password
+    """
+    credential = request.data.get("credential")
+    if not credential:
+        return Response({"detail": "credential is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        idinfo = _verify_google_access_token(credential)
+    except ValueError as exc:
+        return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+    email = idinfo["email"]
+    google_id = idinfo["sub"]
+    avatar = idinfo.get("picture", "")
+    display_name = idinfo.get("given_name") or email.split("@")[0]
+
+    # Returning Google user
+    user = User.objects.filter(google_id=google_id).first()
+    if user:
+        if avatar and user.avatar_url != avatar:
+            user.avatar_url = avatar
+            user.save(update_fields=["avatar_url"])
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+            "user": UserSerializer(user).data,
+        })
+
+    # Email already registered via password — hard block
+    if User.objects.filter(email=email, google_id__isnull=True).exists():
+        return Response(
+            {"detail": "This email is already registered. Please sign in with your password."},
+            status=status.HTTP_409_CONFLICT,
+        )
+
+    # Brand-new user — ask frontend to collect org name
+    return Response({
+        "status": "new_user",
+        "email": email,
+        "display_name": display_name,
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@throttle_classes([AuthRegisterThrottle])
+def google_auth_complete(request):
+    """
+    Step 2 of Google sign-in for new users.
+
+    Accepts { credential, org_name }, re-verifies the Google token,
+    creates the org + user, and returns JWT tokens.
+    """
+    credential = request.data.get("credential")
+    org_name = request.data.get("org_name", "").strip()
+
+    if not credential:
+        return Response({"detail": "credential is required."}, status=status.HTTP_400_BAD_REQUEST)
+    if not org_name or len(org_name) < 2:
+        return Response(
+            {"detail": "Please enter your organisation name (at least 2 characters)."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        idinfo = _verify_google_access_token(credential)
+    except ValueError as exc:
+        return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+    email = idinfo["email"]
+    google_id = idinfo["sub"]
+    avatar = idinfo.get("picture", "")
+
+    # Guard: email registered with password in the window between step 1 and step 2
+    if User.objects.filter(email=email, google_id__isnull=True).exists():
+        return Response(
+            {"detail": "This email is already registered. Please sign in with your password."},
+            status=status.HTTP_409_CONFLICT,
+        )
+
+    # Guard: already completed (e.g. double-submit)
+    existing = User.objects.filter(google_id=google_id).first()
+    if existing:
+        refresh = RefreshToken.for_user(existing)
+        return Response({
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+            "user": UserSerializer(existing).data,
+        })
+
+    with transaction.atomic():
+        org = Organization.objects.create(name=org_name)
+        user = User(
+            email=email,
+            google_id=google_id,
+            avatar_url=avatar or None,
+            org=org,
+            role=User.Role.ADMIN,
+        )
+        user.set_unusable_password()
+        user.save()
+
+    refresh = RefreshToken.for_user(user)
+    return Response({
+        "access": str(refresh.access_token),
+        "refresh": str(refresh),
+        "user": UserSerializer(user).data,
+    }, status=status.HTTP_201_CREATED)

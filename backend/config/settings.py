@@ -304,6 +304,9 @@ STRIPE_PRICE_AGENCY_ANNUAL = config("STRIPE_PRICE_AGENCY_ANNUAL", default="")
 # Public URL of the frontend; used for Stripe redirects after checkout/portal.
 FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:5173").rstrip("/")
 
+# Google OAuth
+GOOGLE_CLIENT_ID = config("GOOGLE_CLIENT_ID", default="")
+
 # RFP input validation thresholds
 # Email — SMTP in prod, console in dev
 EMAIL_BACKEND = config("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")

@@ -13,6 +13,20 @@ const useAuthStore = create((set) => ({
     set({ user: me.data });
   },
 
+  googleLogin: async (credential) => {
+    const { data } = await api.post("/auth/google/", { credential });
+    localStorage.setItem("access_token", data.access);
+    localStorage.setItem("refresh_token", data.refresh);
+    set({ user: data.user });
+  },
+
+  googleComplete: async (credential, org_name) => {
+    const { data } = await api.post("/auth/google/complete/", { credential, org_name });
+    localStorage.setItem("access_token", data.access);
+    localStorage.setItem("refresh_token", data.refresh);
+    set({ user: data.user });
+  },
+
   logout: () => {
     localStorage.clear();
     set({ user: null });

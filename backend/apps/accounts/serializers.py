@@ -35,11 +35,15 @@ class OrganizationSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     org = OrganizationSerializer(read_only=True)
+    has_password = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ["id", "email", "role", "org", "created_at"]
-        read_only_fields = ["id", "created_at"]
+        fields = ["id", "email", "role", "org", "created_at", "avatar_url", "has_password"]
+        read_only_fields = ["id", "created_at", "avatar_url", "has_password"]
+
+    def get_has_password(self, obj):
+        return obj.has_usable_password()
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):

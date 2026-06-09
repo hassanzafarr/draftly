@@ -209,10 +209,16 @@ export default function Settings() {
               <div className="glass rounded-2xl p-6">
                 <div className="flex items-center gap-5">
                   <div className="relative h-16 w-16 overflow-hidden rounded-2xl ring-2 ring-violet/50">
-                    <span className="absolute inset-0 bg-gradient-to-br from-violet to-magenta" />
-                    <span className="relative z-10 flex h-full w-full items-center justify-center text-xl font-bold text-white">
-                      {initials}
-                    </span>
+                    {user?.avatar_url ? (
+                      <img src={user.avatar_url} alt="Profile" className="h-full w-full object-cover" />
+                    ) : (
+                      <>
+                        <span className="absolute inset-0 bg-gradient-to-br from-violet to-magenta" />
+                        <span className="relative z-10 flex h-full w-full items-center justify-center text-xl font-bold text-white">
+                          {initials}
+                        </span>
+                      </>
+                    )}
                   </div>
                   <div>
                     <p className="font-display text-xl font-semibold text-foreground">{displayName}</p>
@@ -404,50 +410,59 @@ export default function Settings() {
                     <Shield className="h-4 w-4 text-amber" />
                   </span>
                   <div>
-                    <h3 className="font-display text-base font-semibold text-foreground">Change Password</h3>
-                    <p className="text-xs text-muted-foreground">Update your account password</p>
+                    <h3 className="font-display text-base font-semibold text-foreground">Password</h3>
+                    <p className="text-xs text-muted-foreground">
+                      {user?.has_password ? "Update your account password" : "Your account uses Google Sign-In"}
+                    </p>
                   </div>
                 </div>
-                <div className="mt-6 space-y-4">
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Current Password</label>
-                    <input
-                      type="password"
-                      value={currentPw}
-                      onChange={(e) => setCurrentPw(e.target.value)}
-                      className="w-full rounded-xl border border-hairline bg-surface/60 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground backdrop-blur focus:border-violet/40 focus:outline-none"
-                      placeholder="••••••••"
-                    />
+
+                {user?.has_password ? (
+                  <div className="mt-6 space-y-4">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Current Password</label>
+                      <input
+                        type="password"
+                        value={currentPw}
+                        onChange={(e) => setCurrentPw(e.target.value)}
+                        className="w-full rounded-xl border border-hairline bg-surface/60 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground backdrop-blur focus:border-violet/40 focus:outline-none"
+                        placeholder="••••••••"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">New Password</label>
+                      <input
+                        type="password"
+                        value={newPw}
+                        onChange={(e) => setNewPw(e.target.value)}
+                        className="w-full rounded-xl border border-hairline bg-surface/60 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground backdrop-blur focus:border-violet/40 focus:outline-none"
+                        placeholder="Min 8 characters"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Confirm New Password</label>
+                      <input
+                        type="password"
+                        value={confirmPw}
+                        onChange={(e) => setConfirmPw(e.target.value)}
+                        className="w-full rounded-xl border border-hairline bg-surface/60 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground backdrop-blur focus:border-violet/40 focus:outline-none"
+                        placeholder="Re-enter new password"
+                      />
+                    </div>
+                    <button
+                      onClick={handleChangePassword}
+                      disabled={savingPw || !currentPw || !newPw}
+                      className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet to-magenta px-5 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-glow-violet)] disabled:opacity-50"
+                    >
+                      {savingPw ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+                      Change Password
+                    </button>
                   </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-muted-foreground">New Password</label>
-                    <input
-                      type="password"
-                      value={newPw}
-                      onChange={(e) => setNewPw(e.target.value)}
-                      className="w-full rounded-xl border border-hairline bg-surface/60 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground backdrop-blur focus:border-violet/40 focus:outline-none"
-                      placeholder="Min 8 characters"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Confirm New Password</label>
-                    <input
-                      type="password"
-                      value={confirmPw}
-                      onChange={(e) => setConfirmPw(e.target.value)}
-                      className="w-full rounded-xl border border-hairline bg-surface/60 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground backdrop-blur focus:border-violet/40 focus:outline-none"
-                      placeholder="Re-enter new password"
-                    />
-                  </div>
-                  <button
-                    onClick={handleChangePassword}
-                    disabled={savingPw || !currentPw || !newPw}
-                    className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet to-magenta px-5 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-glow-violet)] disabled:opacity-50"
-                  >
-                    {savingPw ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-                    Change Password
-                  </button>
-                </div>
+                ) : (
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    You signed in with Google. Password-based login is disabled for this account.
+                  </p>
+                )}
               </div>
 
               {/* Session info */}
@@ -456,7 +471,9 @@ export default function Settings() {
                 <div className="mt-4 space-y-3 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Auth method</span>
-                    <span className="text-foreground">JWT (access + refresh)</span>
+                    <span className="text-foreground">
+                      {user?.has_password ? "Email + Password" : "Google Sign-In"}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Access token</span>

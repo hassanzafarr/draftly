@@ -15,6 +15,7 @@
     "format:check": "prettier --check src"
   },
   "dependencies": {
+    "@react-oauth/google": "^0.13.5",
     "@sentry/react": "^10.51.0",
     "@tailwindcss/vite": "^4.2.4",
     "@tiptap/react": "^2.6.6",
