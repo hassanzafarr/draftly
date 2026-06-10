@@ -358,7 +358,8 @@ export default function Pricing() {
 
         {/* Footer note */}
         <p className="mt-8 text-center text-xs text-muted-foreground">
-          All plans include SSL encryption and GDPR-compliant data handling. Payments are securely processed by Stripe.
+          All plans include SSL encryption and GDPR-compliant data handling. Payments are securely
+          processed by Stripe.
         </p>
       </div>
     </div>

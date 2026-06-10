@@ -2,18 +2,45 @@ import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
 import {
-  UploadCloud, FileText, Brain, CheckCircle2, Loader2,
-  Briefcase, Layers, Trash2, FolderOpen, Sparkles, AlertCircle,
-  Search, X,
+  UploadCloud,
+  FileText,
+  Brain,
+  CheckCircle2,
+  Loader2,
+  Briefcase,
+  Layers,
+  Trash2,
+  FolderOpen,
+  Sparkles,
+  AlertCircle,
+  Search,
+  X,
 } from "lucide-react";
 import api from "../api/client";
 
 const CATEGORIES = [
-  { id: "company_profile", label: "Company Profile", description: "Brand guidelines, about us, team bios", icon: Briefcase, hex: "var(--cyan)" },
-  { id: "past_proposals",  label: "Past Proposals",  description: "Previously submitted proposals",       icon: Layers,    hex: "var(--magenta)" },
-  { id: "case_studies",    label: "Case Studies",     description: "Success stories and project outcomes", icon: Briefcase, hex: "var(--emerald)" },
+  {
+    id: "company_profile",
+    label: "Company Profile",
+    description: "Brand guidelines, about us, team bios",
+    icon: Briefcase,
+    hex: "var(--cyan)",
+  },
+  {
+    id: "past_proposals",
+    label: "Past Proposals",
+    description: "Previously submitted proposals",
+    icon: Layers,
+    hex: "var(--magenta)",
+  },
+  {
+    id: "case_studies",
+    label: "Case Studies",
+    description: "Success stories and project outcomes",
+    icon: Briefcase,
+    hex: "var(--emerald)",
+  },
 ];
-
 
 const CATEGORY_COLOR_MAP = {
   company_profile: "var(--cyan)",
@@ -139,7 +166,6 @@ export default function Knowledge() {
   return (
     <div className="px-6 py-6">
       <div className="mx-auto max-w-7xl">
-
         {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -10 }}
@@ -155,24 +181,30 @@ export default function Knowledge() {
                 Knowledge Base
               </h1>
               <p className="text-sm text-muted-foreground">
-                {docs.length} document{docs.length !== 1 ? "s" : ""} · {docs.reduce((s, d) => s + (d.chunk_count || 0), 0)} chunks embedded
+                {docs.length} document{docs.length !== 1 ? "s" : ""} ·{" "}
+                {docs.reduce((s, d) => s + (d.chunk_count || 0), 0)} chunks embedded
               </p>
             </div>
           </div>
         </motion.header>
 
         <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
-
           {/* LEFT — Upload + categories */}
           <div className="space-y-6">
-
             {/* Drop zone */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragging(true);
+              }}
               onDragLeave={() => setDragging(false)}
-              onDrop={(e) => { e.preventDefault(); setDragging(false); handleAdd(e.dataTransfer.files); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragging(false);
+                handleAdd(e.dataTransfer.files);
+              }}
               onClick={() => !uploading && inputRef.current?.click()}
               className={`group relative flex cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl border-2 border-dashed bg-surface/40 py-10 text-center backdrop-blur-md transition ${
                 dragging
@@ -192,19 +224,24 @@ export default function Knowledge() {
                 whileHover={{ rotate: 6, scale: 1.05 }}
                 className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet to-cyan shadow-[var(--shadow-glow-violet)]"
               >
-                {uploading
-                  ? <Loader2 className="h-6 w-6 animate-spin text-white" />
-                  : <UploadCloud className="h-6 w-6 text-white" />
-                }
+                {uploading ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-white" />
+                ) : (
+                  <UploadCloud className="h-6 w-6 text-white" />
+                )}
               </motion.span>
               <p className="text-base font-semibold text-foreground">
                 {uploading ? "Uploading…" : "Drag and drop files"}
               </p>
               <p className="text-xs text-muted-foreground">
-                {uploading
-                  ? "Please wait"
-                  : <>or click to browse · PDF, DOCX, TXT · adds to <span className="text-cyan">{activeCat?.label}</span></>
-                }
+                {uploading ? (
+                  "Please wait"
+                ) : (
+                  <>
+                    or click to browse · PDF, DOCX, TXT · adds to{" "}
+                    <span className="text-cyan">{activeCat?.label}</span>
+                  </>
+                )}
               </p>
               {dragging && (
                 <motion.div
@@ -252,7 +289,9 @@ export default function Knowledge() {
                         <p className="text-sm font-semibold text-foreground">{c.label}</p>
                         <p className="text-xs text-muted-foreground">{c.description}</p>
                       </div>
-                      <span className="font-mono text-xs tabular-nums text-muted-foreground">{count}</span>
+                      <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                        {count}
+                      </span>
                       {isActive && (
                         <motion.span
                           layoutId="cat-dot"
@@ -268,7 +307,6 @@ export default function Knowledge() {
 
           {/* RIGHT — Brain hub + file list */}
           <div className="space-y-6">
-
             {/* AI brain visualisation */}
             <motion.div
               initial={{ opacity: 0, scale: 0.96 }}
@@ -280,18 +318,36 @@ export default function Knowledge() {
               <div className="absolute h-44 w-44 animate-spin rounded-full border border-dashed border-cyan/30 [animation-duration:18s]" />
               <div className="absolute h-32 w-32 animate-spin rounded-full border border-dashed border-magenta/40 [animation-direction:reverse] [animation-duration:12s]" />
               <span className="radial-pulse absolute h-20 w-20 rounded-full border border-violet/40" />
-              <span className="radial-pulse absolute h-20 w-20 rounded-full border border-cyan/40" style={{ animationDelay: "1.2s" }} />
+              <span
+                className="radial-pulse absolute h-20 w-20 rounded-full border border-cyan/40"
+                style={{ animationDelay: "1.2s" }}
+              />
 
               {[...Array(4)].map((_, i) => {
-                const positions = [{ x: -110, y: -40 }, { x: 100, y: -50 }, { x: -90, y: 60 }, { x: 105, y: 50 }];
+                const positions = [
+                  { x: -110, y: -40 },
+                  { x: 100, y: -50 },
+                  { x: -90, y: 60 },
+                  { x: 105, y: 50 },
+                ];
                 return (
                   <motion.span
                     key={i}
-                    animate={{ x: [positions[i].x, positions[i].x * 0.6, positions[i].x], y: [positions[i].y, positions[i].y * 0.6, positions[i].y] }}
+                    animate={{
+                      x: [positions[i].x, positions[i].x * 0.6, positions[i].x],
+                      y: [positions[i].y, positions[i].y * 0.6, positions[i].y],
+                    }}
                     transition={{ duration: 4 + i, repeat: Infinity, ease: "easeInOut" }}
                     className="absolute flex h-9 w-9 items-center justify-center rounded-lg border border-hairline bg-surface-2/80 shadow-panel backdrop-blur"
                   >
-                    <FileText className="h-4 w-4" style={{ color: ["var(--cyan)", "var(--emerald)", "var(--magenta)", "var(--amber)"][i] }} />
+                    <FileText
+                      className="h-4 w-4"
+                      style={{
+                        color: ["var(--cyan)", "var(--emerald)", "var(--magenta)", "var(--amber)"][
+                          i
+                        ],
+                      }}
+                    />
                   </motion.span>
                 );
               })}
@@ -359,8 +415,7 @@ export default function Knowledge() {
                       >
                         {search
                           ? "No matching documents found."
-                          : `No files in ${activeCat?.label}. Drop one above to feed the brain.`
-                        }
+                          : `No files in ${activeCat?.label}. Drop one above to feed the brain.`}
                       </motion.p>
                     ) : (
                       filtered.map((doc, i) => {
@@ -373,7 +428,12 @@ export default function Knowledge() {
                             initial={{ opacity: 0, x: -16 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: 16 }}
-                            transition={{ delay: i * 0.04, type: "spring", stiffness: 260, damping: 26 }}
+                            transition={{
+                              delay: i * 0.04,
+                              type: "spring",
+                              stiffness: 260,
+                              damping: 26,
+                            }}
                             className="group relative overflow-hidden rounded-xl border border-hairline bg-surface/60 p-3 transition hover:border-violet/30"
                           >
                             <div className="flex items-center gap-3">
@@ -387,7 +447,9 @@ export default function Knowledge() {
                                 <FileText className="h-4 w-4" style={{ color: catColor }} />
                               </span>
                               <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-medium text-foreground">{doc.title}</p>
+                                <p className="truncate text-sm font-medium text-foreground">
+                                  {doc.title}
+                                </p>
                                 <div className="flex items-center gap-2 font-mono text-[10px] text-muted-foreground">
                                   <span className="uppercase">{doc.file_type}</span>
                                   {doc.chunk_count > 0 && (
@@ -436,21 +498,24 @@ export default function Knowledge() {
 }
 
 function StatusPill({ status }) {
-  if (status === "Ready") return (
-    <span className="flex items-center gap-1 rounded-full border border-emerald/40 bg-emerald/10 px-2 py-0.5 text-[10px] font-medium text-emerald">
-      <CheckCircle2 className="h-3 w-3" /> Ready
-    </span>
-  );
-  if (status === "Indexing") return (
-    <span className="flex items-center gap-1 rounded-full border border-amber/40 bg-amber/10 px-2 py-0.5 text-[10px] font-medium text-amber">
-      <Sparkles className="h-3 w-3" /> Indexing
-    </span>
-  );
-  if (status === "Failed") return (
-    <span className="flex items-center gap-1 rounded-full border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-[10px] font-medium text-destructive">
-      <AlertCircle className="h-3 w-3" /> Failed
-    </span>
-  );
+  if (status === "Ready")
+    return (
+      <span className="flex items-center gap-1 rounded-full border border-emerald/40 bg-emerald/10 px-2 py-0.5 text-[10px] font-medium text-emerald">
+        <CheckCircle2 className="h-3 w-3" /> Ready
+      </span>
+    );
+  if (status === "Indexing")
+    return (
+      <span className="flex items-center gap-1 rounded-full border border-amber/40 bg-amber/10 px-2 py-0.5 text-[10px] font-medium text-amber">
+        <Sparkles className="h-3 w-3" /> Indexing
+      </span>
+    );
+  if (status === "Failed")
+    return (
+      <span className="flex items-center gap-1 rounded-full border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-[10px] font-medium text-destructive">
+        <AlertCircle className="h-3 w-3" /> Failed
+      </span>
+    );
   return (
     <span className="flex items-center gap-1 rounded-full border border-violet/40 bg-violet/10 px-2 py-0.5 text-[10px] font-medium text-violet">
       <Loader2 className="h-3 w-3 animate-spin" /> Processing

@@ -3,17 +3,33 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
 import {
-  ArrowLeft, Save, Download, RefreshCw,
-  Sparkles, Check, FileText, Loader2, AlertCircle, FileCheck2, FileDown,
+  ArrowLeft,
+  Save,
+  Download,
+  RefreshCw,
+  Sparkles,
+  Check,
+  FileText,
+  Loader2,
+  AlertCircle,
+  FileCheck2,
+  FileDown,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import api from "../api/client";
 import ConfirmModal from "../components/ConfirmModal";
 
 const FALLBACK_SECTION_ORDER = [
-  "executive_summary", "understanding_requirements", "proposed_solution",
-  "relevant_experience", "team_qualifications", "project_timeline",
-  "methodology", "pricing", "why_us", "appendix",
+  "executive_summary",
+  "understanding_requirements",
+  "proposed_solution",
+  "relevant_experience",
+  "team_qualifications",
+  "project_timeline",
+  "methodology",
+  "pricing",
+  "why_us",
+  "appendix",
 ];
 
 const FALLBACK_SECTION_LABELS = {
@@ -42,9 +58,9 @@ function resolveSectionOrder(proposal, sections) {
 
 function labelFor(key, proposal) {
   return (
-    proposal?.section_labels?.[key]
-    || FALLBACK_SECTION_LABELS[key]
-    || key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+    proposal?.section_labels?.[key] ||
+    FALLBACK_SECTION_LABELS[key] ||
+    key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
   );
 }
 
@@ -95,7 +111,7 @@ export default function Editor() {
         const key = top.target.getAttribute("data-section-key");
         if (key) setActiveId(key);
       },
-      { rootMargin: "-20% 0px -60% 0px", threshold: 0 },
+      { rootMargin: "-20% 0px -60% 0px", threshold: 0 }
     );
     Object.values(sectionRefs.current).forEach((el) => el && observer.observe(el));
     return () => observer.disconnect();
@@ -153,13 +169,18 @@ export default function Editor() {
     let y = margin;
 
     const ensureSpace = (needed) => {
-      if (y + needed > pageHeight - margin) { doc.addPage(); y = margin; }
+      if (y + needed > pageHeight - margin) {
+        doc.addPage();
+        y = margin;
+      }
     };
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(20);
     doc.splitTextToSize(proposal.rfp_title || "Proposal", contentWidth).forEach((line) => {
-      ensureSpace(26); doc.text(line, margin, y); y += 24;
+      ensureSpace(26);
+      doc.text(line, margin, y);
+      y += 24;
     });
 
     doc.setFont("helvetica", "normal");
@@ -167,7 +188,8 @@ export default function Editor() {
     doc.setTextColor(120);
     doc.text(
       `${proposal.status === "final" ? "Finalized" : "Draft"}  •  ${new Date().toLocaleDateString()}`,
-      margin, y,
+      margin,
+      y
     );
     y += 24;
     doc.setTextColor(0);
@@ -176,11 +198,16 @@ export default function Editor() {
       const body = (sections[key] || "").trim();
       if (!body) return;
       ensureSpace(40);
-      doc.setFont("helvetica", "bold"); doc.setFontSize(13);
-      doc.text(labelFor(key, proposal), margin, y); y += 18;
-      doc.setFont("helvetica", "normal"); doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.text(labelFor(key, proposal), margin, y);
+      y += 18;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
       doc.splitTextToSize(body, contentWidth).forEach((line) => {
-        ensureSpace(16); doc.text(line, margin, y); y += 15;
+        ensureSpace(16);
+        doc.text(line, margin, y);
+        y += 15;
       });
       y += 12;
     });
@@ -198,7 +225,9 @@ export default function Editor() {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      const safeTitle = (proposal.rfp_title || "proposal").replace(/[^a-z0-9]+/gi, "_").toLowerCase();
+      const safeTitle = (proposal.rfp_title || "proposal")
+        .replace(/[^a-z0-9]+/gi, "_")
+        .toLowerCase();
       link.setAttribute("download", `${safeTitle}.docx`);
       document.body.appendChild(link);
       link.click();
@@ -228,13 +257,18 @@ export default function Editor() {
       <div className="flex h-screen flex-col items-center justify-center gap-6">
         <div className="relative flex h-24 w-24 items-center justify-center">
           <span className="radial-pulse absolute h-24 w-24 rounded-full border border-violet/40" />
-          <span className="radial-pulse absolute h-24 w-24 rounded-full border border-cyan/40" style={{ animationDelay: "0.8s" }} />
+          <span
+            className="radial-pulse absolute h-24 w-24 rounded-full border border-cyan/40"
+            style={{ animationDelay: "0.8s" }}
+          />
           <div className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-violet to-magenta shadow-[var(--shadow-glow-violet)]">
             <Sparkles className="h-7 w-7 text-white" />
           </div>
         </div>
         <div className="text-center">
-          <p className="font-display text-lg font-semibold text-foreground">Generating your proposal…</p>
+          <p className="font-display text-lg font-semibold text-foreground">
+            Generating your proposal…
+          </p>
           <p className="mt-1 text-sm text-muted-foreground">This usually takes 30–60 seconds.</p>
         </div>
       </div>
@@ -248,7 +282,9 @@ export default function Editor() {
         <div className="glass-strong w-full max-w-md rounded-2xl p-8 text-center">
           <AlertCircle className="mx-auto mb-3 h-10 w-10 text-destructive" />
           <p className="font-display font-semibold text-foreground">Generation failed</p>
-          <p className="mt-1 text-sm text-muted-foreground">{proposal.error_message || "Something went wrong."}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {proposal.error_message || "Something went wrong."}
+          </p>
           <button
             onClick={() => handleRegenerate()}
             className="mx-auto mt-5 flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet to-magenta px-5 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-glow-violet)]"
@@ -264,234 +300,254 @@ export default function Editor() {
   return (
     <>
       <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-[260px_1fr]">
-
         {/* Left section nav */}
-      <aside className="sticky top-0 z-10 hidden h-dvh flex-col border-r border-hairline p-5 backdrop-blur-xl lg:flex" style={{ background: "var(--sidebar-bg)" }}>
-        <button
-          onClick={() => navigate("/")}
-          className="flex items-center gap-2 text-xs text-muted-foreground transition hover:text-foreground"
+        <aside
+          className="sticky top-0 z-10 hidden h-dvh flex-col border-r border-hairline p-5 backdrop-blur-xl lg:flex"
+          style={{ background: "var(--sidebar-bg)" }}
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> Back to generator
-        </button>
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 text-xs text-muted-foreground transition hover:text-foreground"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Back to generator
+          </button>
 
-        <div className="mt-6 flex-1 overflow-y-auto">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-violet">Sections</p>
-          <ul className="mt-3 space-y-1">
-            {sectionOrder.map((key, i) => {
-              const active = activeId === key;
-              return (
-                <li key={key}>
-                  <button
-                    onClick={() => sectionRefs.current[key]?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                    className={`group relative flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left text-xs transition ${
-                      active
-                        ? "bg-violet/15 text-foreground"
-                        : "text-muted-foreground hover:bg-surface-2/60 hover:text-foreground"
-                    }`}
-                  >
-                    {active && (
-                      <motion.span
-                        layoutId="ed-sec-pill"
-                        className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-gradient-to-b from-violet to-magenta"
-                      />
-                    )}
-                    <span className="font-mono text-[10px] text-cyan">{String(i + 1).padStart(2, "0")}</span>
-                    <span className="leading-snug">{labelFor(key, proposal).split(" / ")[0]}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+          <div className="mt-6 flex-1 overflow-y-auto">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-violet">Sections</p>
+            <ul className="mt-3 space-y-1">
+              {sectionOrder.map((key, i) => {
+                const active = activeId === key;
+                return (
+                  <li key={key}>
+                    <button
+                      onClick={() =>
+                        sectionRefs.current[key]?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        })
+                      }
+                      className={`group relative flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left text-xs transition ${
+                        active
+                          ? "bg-violet/15 text-foreground"
+                          : "text-muted-foreground hover:bg-surface-2/60 hover:text-foreground"
+                      }`}
+                    >
+                      {active && (
+                        <motion.span
+                          layoutId="ed-sec-pill"
+                          className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-gradient-to-b from-violet to-magenta"
+                        />
+                      )}
+                      <span className="font-mono text-[10px] text-cyan">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <span className="leading-snug">
+                        {labelFor(key, proposal).split(" / ")[0]}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
 
-        <div className="mt-4 rounded-xl border border-hairline bg-surface-2/40 p-3 text-[11px] text-muted-foreground">
-          <p className="font-medium text-foreground">Tip</p>
-          <p className="mt-1">Hover any section to reveal regenerate &amp; edit controls.</p>
-        </div>
-      </aside>
+          <div className="mt-4 rounded-xl border border-hairline bg-surface-2/40 p-3 text-[11px] text-muted-foreground">
+            <p className="font-medium text-foreground">Tip</p>
+            <p className="mt-1">Hover any section to reveal regenerate &amp; edit controls.</p>
+          </div>
+        </aside>
 
-      {/* Main editor area */}
-      <div className="relative">
-
-        {/* Sticky header */}
-        <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-hairline px-6 py-4 backdrop-blur-xl" style={{ background: "oklch(0 0 0 / 0)" }}>
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet to-magenta">
-              <FileText className="h-4 w-4 text-white" />
-            </span>
-            <div className="min-w-0">
-              <p className="truncate font-display text-base font-semibold text-foreground">
-                {proposal.rfp_title || "Untitled Proposal"}
-              </p>
-              <p className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                {proposal.status === "final" ? (
-                  <span className="flex items-center gap-1 text-emerald">
-                    <FileCheck2 className="h-3 w-3" /> Finalized
-                  </span>
-                ) : "Draft"}
-                {savedAt && (
-                  <span className="text-emerald">
-                    <Check className="mr-0.5 inline h-3 w-3" />Saved {savedAt}
-                  </span>
-                )}
-              </p>
+        {/* Main editor area */}
+        <div className="relative">
+          {/* Sticky header */}
+          <header
+            className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-hairline px-6 py-4 backdrop-blur-xl"
+            style={{ background: "oklch(0 0 0 / 0)" }}
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet to-magenta">
+                <FileText className="h-4 w-4 text-white" />
+              </span>
+              <div className="min-w-0">
+                <p className="truncate font-display text-base font-semibold text-foreground">
+                  {proposal.rfp_title || "Untitled Proposal"}
+                </p>
+                <p className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                  {proposal.status === "final" ? (
+                    <span className="flex items-center gap-1 text-emerald">
+                      <FileCheck2 className="h-3 w-3" /> Finalized
+                    </span>
+                  ) : (
+                    "Draft"
+                  )}
+                  {savedAt && (
+                    <span className="text-emerald">
+                      <Check className="mr-0.5 inline h-3 w-3" />
+                      Saved {savedAt}
+                    </span>
+                  )}
+                </p>
+              </div>
             </div>
-          </div>
 
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              onClick={() => handleRegenerate()}
-              className="flex items-center gap-1.5 rounded-full border border-hairline bg-surface/60 px-3 py-1.5 text-xs text-muted-foreground transition hover:border-violet/40 hover:text-foreground"
-            >
-              <RefreshCw className="h-3.5 w-3.5" /> Regenerate
-            </button>
-            <button
-              onClick={() => handleSave(false)}
-              disabled={saving}
-              className="flex items-center gap-1.5 rounded-full border border-hairline bg-surface/60 px-3 py-1.5 text-xs text-foreground transition hover:border-violet/40 disabled:opacity-50"
-            >
-              <Save className={`h-3.5 w-3.5 ${saving ? "animate-pulse" : ""}`} />
-              {saving ? "Saving…" : "Save"}
-            </button>
-            <button
-              onClick={handleDownloadPDF}
-              className="flex items-center gap-1.5 rounded-full border border-hairline bg-surface/60 px-3 py-1.5 text-xs text-muted-foreground transition hover:border-cyan/40 hover:text-foreground"
-            >
-              <Download className="h-3.5 w-3.5" /> PDF
-            </button>
-            <button
-              onClick={handleDownloadDOCX}
-              className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-violet to-magenta px-4 py-1.5 text-xs font-semibold text-white shadow-[var(--shadow-glow-violet)]"
-            >
-              <FileDown className="h-3.5 w-3.5" /> Export DOCX
-            </button>
-            {proposal.status !== "final" && (
+            <div className="flex shrink-0 items-center gap-2">
               <button
-                onClick={() => handleSave(true)}
-                disabled={saving}
-                className="flex items-center gap-1.5 rounded-full border border-emerald/40 bg-emerald/10 px-3 py-1.5 text-xs font-semibold text-emerald transition hover:bg-emerald/20 disabled:opacity-50"
+                onClick={() => handleRegenerate()}
+                className="flex items-center gap-1.5 rounded-full border border-hairline bg-surface/60 px-3 py-1.5 text-xs text-muted-foreground transition hover:border-violet/40 hover:text-foreground"
               >
-                <Check className="h-3.5 w-3.5" /> Finalize
+                <RefreshCw className="h-3.5 w-3.5" /> Regenerate
               </button>
-            )}
-          </div>
-        </header>
-
-        {/* Section cards */}
-        <div className="mx-auto max-w-3xl px-6 py-10">
-          <div className="space-y-6">
-            {sectionOrder.map((key, i) => (
-              <motion.div
-                key={key}
-                data-section-key={key}
-                ref={(el) => { sectionRefs.current[key] = el; }}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04 }}
-                className="group relative rounded-2xl border border-hairline bg-surface/40 p-5 backdrop-blur-md transition hover:border-violet/30"
+              <button
+                onClick={() => handleSave(false)}
+                disabled={saving}
+                className="flex items-center gap-1.5 rounded-full border border-hairline bg-surface/60 px-3 py-1.5 text-xs text-foreground transition hover:border-violet/40 disabled:opacity-50"
               >
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-xs text-cyan">{String(i + 1).padStart(2, "0")}</span>
-                    <h3 className="font-display text-base font-semibold text-foreground">
-                      {labelFor(key, proposal)}
-                    </h3>
-                  </div>
-                  <button
-                    onClick={() => handleRegenerate(key)}
-                    disabled={regeneratingId === key}
-                    className="flex items-center gap-1 rounded-full border border-hairline bg-surface-2/60 px-2.5 py-1 text-[11px] text-foreground/85 opacity-0 transition hover:border-violet/40 group-hover:opacity-100 disabled:opacity-60"
-                  >
-                    {regeneratingId === key ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-3 w-3" />
-                    )}
-                    Regenerate
-                  </button>
-                </div>
-
-                <div className="relative">
-                  <AnimatePresence>
-                    {regeneratingId === key && (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/60 backdrop-blur-sm"
-                      >
-                        <div className="flex items-center gap-2 rounded-full border border-violet/40 bg-violet/15 px-3 py-1.5 text-xs text-violet">
-                          <Sparkles className="h-3.5 w-3.5 animate-pulse" /> Regenerating…
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  <textarea
-                    value={sections[key] || ""}
-                    onChange={(e) => setSections((s) => ({ ...s, [key]: e.target.value }))}
-                    rows={Math.max(4, Math.ceil((sections[key] || "").length / 90))}
-                    placeholder={`Write the ${labelFor(key, proposal)} section…`}
-                    className="block w-full resize-none rounded-lg bg-transparent px-1 -mx-1 text-sm leading-relaxed text-foreground/90 placeholder:text-muted-foreground/40 focus:outline-none"
-                  />
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Bottom actions */}
-          <div className="mt-10 flex items-center justify-between gap-3">
-            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Sparkles className="h-3.5 w-3.5 text-violet" />
-              End of draft
-            </span>
-            <div className="flex items-center gap-2">
+                <Save className={`h-3.5 w-3.5 ${saving ? "animate-pulse" : ""}`} />
+                {saving ? "Saving…" : "Save"}
+              </button>
               <button
                 onClick={handleDownloadPDF}
-                className="flex items-center gap-1.5 rounded-full border border-hairline bg-surface/60 px-4 py-2 text-xs font-medium text-muted-foreground transition hover:border-cyan/40 hover:text-foreground"
+                className="flex items-center gap-1.5 rounded-full border border-hairline bg-surface/60 px-3 py-1.5 text-xs text-muted-foreground transition hover:border-cyan/40 hover:text-foreground"
               >
                 <Download className="h-3.5 w-3.5" /> PDF
               </button>
               <button
                 onClick={handleDownloadDOCX}
-                className="flex items-center gap-1.5 rounded-full border border-cyan/40 bg-cyan/10 px-4 py-2 text-xs font-medium text-cyan transition hover:bg-cyan/20"
+                className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-violet to-magenta px-4 py-1.5 text-xs font-semibold text-white shadow-[var(--shadow-glow-violet)]"
               >
-                <FileDown className="h-3.5 w-3.5" /> DOCX
-              </button>
-              <button
-                onClick={() => handleSave(false)}
-                disabled={saving}
-                className="flex items-center gap-1.5 rounded-full border border-hairline bg-surface/60 px-4 py-2 text-xs font-medium text-foreground transition hover:border-violet/40 disabled:opacity-50"
-              >
-                <Save className="h-3.5 w-3.5" />
-                {saving ? "Saving…" : "Save Draft"}
+                <FileDown className="h-3.5 w-3.5" /> Export DOCX
               </button>
               {proposal.status !== "final" && (
                 <button
                   onClick={() => handleSave(true)}
                   disabled={saving}
-                  className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-violet to-magenta px-4 py-2 text-xs font-semibold text-white shadow-[var(--shadow-glow-violet)] disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-full border border-emerald/40 bg-emerald/10 px-3 py-1.5 text-xs font-semibold text-emerald transition hover:bg-emerald/20 disabled:opacity-50"
                 >
                   <Check className="h-3.5 w-3.5" /> Finalize
                 </button>
               )}
             </div>
+          </header>
+
+          {/* Section cards */}
+          <div className="mx-auto max-w-3xl px-6 py-10">
+            <div className="space-y-6">
+              {sectionOrder.map((key, i) => (
+                <motion.div
+                  key={key}
+                  data-section-key={key}
+                  ref={(el) => {
+                    sectionRefs.current[key] = el;
+                  }}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04 }}
+                  className="group relative rounded-2xl border border-hairline bg-surface/40 p-5 backdrop-blur-md transition hover:border-violet/30"
+                >
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-xs text-cyan">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <h3 className="font-display text-base font-semibold text-foreground">
+                        {labelFor(key, proposal)}
+                      </h3>
+                    </div>
+                    <button
+                      onClick={() => handleRegenerate(key)}
+                      disabled={regeneratingId === key}
+                      className="flex items-center gap-1 rounded-full border border-hairline bg-surface-2/60 px-2.5 py-1 text-[11px] text-foreground/85 opacity-0 transition hover:border-violet/40 group-hover:opacity-100 disabled:opacity-60"
+                    >
+                      {regeneratingId === key ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-3 w-3" />
+                      )}
+                      Regenerate
+                    </button>
+                  </div>
+
+                  <div className="relative">
+                    <AnimatePresence>
+                      {regeneratingId === key && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/60 backdrop-blur-sm"
+                        >
+                          <div className="flex items-center gap-2 rounded-full border border-violet/40 bg-violet/15 px-3 py-1.5 text-xs text-violet">
+                            <Sparkles className="h-3.5 w-3.5 animate-pulse" /> Regenerating…
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <textarea
+                      value={sections[key] || ""}
+                      onChange={(e) => setSections((s) => ({ ...s, [key]: e.target.value }))}
+                      rows={Math.max(4, Math.ceil((sections[key] || "").length / 90))}
+                      placeholder={`Write the ${labelFor(key, proposal)} section…`}
+                      className="block w-full resize-none rounded-lg bg-transparent px-1 -mx-1 text-sm leading-relaxed text-foreground/90 placeholder:text-muted-foreground/40 focus:outline-none"
+                    />
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Bottom actions */}
+            <div className="mt-10 flex items-center justify-between gap-3">
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Sparkles className="h-3.5 w-3.5 text-violet" />
+                End of draft
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleDownloadPDF}
+                  className="flex items-center gap-1.5 rounded-full border border-hairline bg-surface/60 px-4 py-2 text-xs font-medium text-muted-foreground transition hover:border-cyan/40 hover:text-foreground"
+                >
+                  <Download className="h-3.5 w-3.5" /> PDF
+                </button>
+                <button
+                  onClick={handleDownloadDOCX}
+                  className="flex items-center gap-1.5 rounded-full border border-cyan/40 bg-cyan/10 px-4 py-2 text-xs font-medium text-cyan transition hover:bg-cyan/20"
+                >
+                  <FileDown className="h-3.5 w-3.5" /> DOCX
+                </button>
+                <button
+                  onClick={() => handleSave(false)}
+                  disabled={saving}
+                  className="flex items-center gap-1.5 rounded-full border border-hairline bg-surface/60 px-4 py-2 text-xs font-medium text-foreground transition hover:border-violet/40 disabled:opacity-50"
+                >
+                  <Save className="h-3.5 w-3.5" />
+                  {saving ? "Saving…" : "Save Draft"}
+                </button>
+                {proposal.status !== "final" && (
+                  <button
+                    onClick={() => handleSave(true)}
+                    disabled={saving}
+                    className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-violet to-magenta px-4 py-2 text-xs font-semibold text-white shadow-[var(--shadow-glow-violet)] disabled:opacity-50"
+                  >
+                    <Check className="h-3.5 w-3.5" /> Finalize
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <ConfirmModal
-      open={!!regenConfirm}
-      onClose={() => setRegenConfirm(null)}
-      onConfirm={handleRegenConfirm}
-      title="Regenerate Proposal"
-      description={regenConfirm?.msg || ""}
-      confirmText="Regenerate"
-      cancelText="Keep Current"
-      variant="default"
-      icon={<RefreshCw className="h-6 w-6" />}
-    />
+      <ConfirmModal
+        open={!!regenConfirm}
+        onClose={() => setRegenConfirm(null)}
+        onConfirm={handleRegenConfirm}
+        title="Regenerate Proposal"
+        description={regenConfirm?.msg || ""}
+        confirmText="Regenerate"
+        cancelText="Keep Current"
+        variant="default"
+        icon={<RefreshCw className="h-6 w-6" />}
+      />
     </>
   );
 }

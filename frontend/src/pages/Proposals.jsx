@@ -2,18 +2,27 @@ import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  FileText, Search, Filter, ChevronRight, Plus, Sparkles,
-  Clock, CheckCircle2, AlertCircle, Loader2, Trash2,
+  FileText,
+  Search,
+  Filter,
+  ChevronRight,
+  Plus,
+  Sparkles,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Trash2,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import api from "../api/client";
 import ConfirmModal from "../components/ConfirmModal";
 
 const STATUS_CONFIG = {
-  draft:      { label: "Draft",      color: "amber",   icon: Clock },
-  final:      { label: "Finalized",  color: "emerald", icon: CheckCircle2 },
-  generating: { label: "Generating", color: "violet",  icon: Loader2 },
-  failed:     { label: "Failed",     color: "destructive", icon: AlertCircle },
+  draft: { label: "Draft", color: "amber", icon: Clock },
+  final: { label: "Finalized", color: "emerald", icon: CheckCircle2 },
+  generating: { label: "Generating", color: "violet", icon: Loader2 },
+  failed: { label: "Failed", color: "destructive", icon: AlertCircle },
 };
 
 const FILTER_OPTIONS = ["All", "Draft", "Final", "Generating", "Failed"];
@@ -27,7 +36,8 @@ export default function Proposals() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    api.get("/proposals/")
+    api
+      .get("/proposals/")
       .then(({ data }) => setProposals(data.results || data))
       .catch(() => toast.error("Failed to load proposals."))
       .finally(() => setLoading(false));
@@ -57,8 +67,7 @@ export default function Proposals() {
       const q = search.toLowerCase();
       result = result.filter(
         (p) =>
-          (p.rfp_title || "").toLowerCase().includes(q) ||
-          (p.tone || "").toLowerCase().includes(q),
+          (p.rfp_title || "").toLowerCase().includes(q) || (p.tone || "").toLowerCase().includes(q)
       );
     }
     return result;
@@ -143,7 +152,9 @@ export default function Proposals() {
                       className="absolute inset-0 -z-10 rounded-full bg-gradient-to-r from-violet to-cyan shadow-[var(--shadow-glow-violet)]"
                     />
                   )}
-                  <span className="relative">{f} ({counts[f] || 0})</span>
+                  <span className="relative">
+                    {f} ({counts[f] || 0})
+                  </span>
                 </button>
               );
             })}
@@ -191,7 +202,7 @@ export default function Proposals() {
                 const wordCount = p.sections
                   ? Object.values(p.sections).reduce(
                       (sum, s) => sum + (s || "").split(/\s+/).filter(Boolean).length,
-                      0,
+                      0
                     )
                   : 0;
 
@@ -205,7 +216,7 @@ export default function Proposals() {
                     transition={{
                       layout: { type: "spring", stiffness: 300, damping: 28 },
                       opacity: { delay: i * 0.03 },
-                      y: { delay: i * 0.03, type: "spring", stiffness: 220, damping: 24 }
+                      y: { delay: i * 0.03, type: "spring", stiffness: 220, damping: 24 },
                     }}
                     className="group glass relative w-full overflow-hidden rounded-2xl p-5 transition hover:border-violet/30"
                   >

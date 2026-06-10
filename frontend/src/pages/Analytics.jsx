@@ -14,9 +14,7 @@ import {
   BarChart,
   Bar,
 } from "recharts";
-import {
-  FileText, TrendingUp, Clock, Zap, BarChart2, Loader2, AlertCircle,
-} from "lucide-react";
+import { FileText, TrendingUp, Clock, Zap, BarChart2, Loader2, AlertCircle } from "lucide-react";
 import api from "../api/client";
 
 function useCount(target, duration = 1400) {
@@ -59,7 +57,8 @@ export default function Analytics() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    api.get("/analytics/stats/")
+    api
+      .get("/analytics/stats/")
       .then(({ data: d }) => setData(d))
       .catch(() => setError("Failed to load analytics."))
       .finally(() => setLoading(false));
@@ -72,7 +71,12 @@ export default function Analytics() {
   const finalized = useCount(data?.final_count || 0);
 
   const stats = [
-    { icon: FileText, label: "Total Proposals", value: Math.round(total).toString(), color: "cyan" },
+    {
+      icon: FileText,
+      label: "Total Proposals",
+      value: Math.round(total).toString(),
+      color: "cyan",
+    },
     { icon: TrendingUp, label: "Success Rate", value: `${success.toFixed(0)}%`, color: "emerald" },
     { icon: Clock, label: "Avg Gen Time", value: `${avgResp.toFixed(1)}s`, color: "magenta" },
     { icon: Zap, label: "Finalized", value: Math.round(finalized).toString(), color: "amber" },
@@ -186,7 +190,9 @@ export default function Analytics() {
                 }}
               />
               <div>
-                <p className="font-display text-lg font-bold tabular-nums text-foreground">{item.count}</p>
+                <p className="font-display text-lg font-bold tabular-nums text-foreground">
+                  {item.count}
+                </p>
                 <p className="text-[11px] text-muted-foreground">{item.label}</p>
               </div>
             </motion.div>
@@ -202,7 +208,9 @@ export default function Analytics() {
             transition={{ delay: 0.3 }}
             className="glass rounded-2xl p-6"
           >
-            <p className="font-display text-base font-semibold text-foreground">Monthly Performance</p>
+            <p className="font-display text-base font-semibold text-foreground">
+              Monthly Performance
+            </p>
             <p className="mt-1 text-xs text-muted-foreground">
               Proposals created vs. finalized over the last 12 months
             </p>
@@ -213,7 +221,10 @@ export default function Analytics() {
             ) : (
               <div className="mt-4 h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={monthlyPerformance} margin={{ left: -20, right: 0, top: 8, bottom: 0 }}>
+                  <AreaChart
+                    data={monthlyPerformance}
+                    margin={{ left: -20, right: 0, top: 8, bottom: 0 }}
+                  >
                     <defs>
                       <linearGradient id="g-drafted" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="var(--violet)" stopOpacity={0.6} />
@@ -225,8 +236,19 @@ export default function Analytics() {
                       </linearGradient>
                     </defs>
                     <CartesianGrid stroke="var(--hairline)" vertical={false} />
-                    <XAxis dataKey="month" stroke="var(--muted-foreground)" tickLine={false} axisLine={false} fontSize={11} />
-                    <YAxis stroke="var(--muted-foreground)" tickLine={false} axisLine={false} fontSize={11} />
+                    <XAxis
+                      dataKey="month"
+                      stroke="var(--muted-foreground)"
+                      tickLine={false}
+                      axisLine={false}
+                      fontSize={11}
+                    />
+                    <YAxis
+                      stroke="var(--muted-foreground)"
+                      tickLine={false}
+                      axisLine={false}
+                      fontSize={11}
+                    />
                     <Tooltip
                       contentStyle={{
                         background: "var(--surface)",
@@ -236,8 +258,24 @@ export default function Analytics() {
                         color: "var(--foreground)",
                       }}
                     />
-                    <Area type="monotone" dataKey="drafted" stroke="var(--violet)" strokeWidth={2.5} fill="url(#g-drafted)" animationDuration={1200} name="Created" />
-                    <Area type="monotone" dataKey="won" stroke="var(--emerald)" strokeWidth={2.5} fill="url(#g-won)" animationDuration={1400} name="Finalized" />
+                    <Area
+                      type="monotone"
+                      dataKey="drafted"
+                      stroke="var(--violet)"
+                      strokeWidth={2.5}
+                      fill="url(#g-drafted)"
+                      animationDuration={1200}
+                      name="Created"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="won"
+                      stroke="var(--emerald)"
+                      strokeWidth={2.5}
+                      fill="url(#g-won)"
+                      animationDuration={1400}
+                      name="Finalized"
+                    />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -251,7 +289,9 @@ export default function Analytics() {
             transition={{ delay: 0.4 }}
             className="glass rounded-2xl p-6"
           >
-            <p className="font-display text-base font-semibold text-foreground">Proposals by Tone</p>
+            <p className="font-display text-base font-semibold text-foreground">
+              Proposals by Tone
+            </p>
             <p className="mt-1 text-xs text-muted-foreground">
               Distribution of writing tones across your proposals
             </p>
@@ -309,7 +349,9 @@ export default function Analytics() {
                         />
                         <span className="text-sm font-medium text-foreground">{c.name}</span>
                       </div>
-                      <span className="font-display text-lg font-bold text-foreground tabular-nums">{c.value}</span>
+                      <span className="font-display text-lg font-bold text-foreground tabular-nums">
+                        {c.value}
+                      </span>
                     </motion.div>
                   ))}
                 </div>
@@ -326,7 +368,9 @@ export default function Analytics() {
             transition={{ delay: 0.5 }}
             className="glass mt-5 rounded-2xl p-6"
           >
-            <p className="font-display text-base font-semibold text-foreground">AI Provider Usage</p>
+            <p className="font-display text-base font-semibold text-foreground">
+              AI Provider Usage
+            </p>
             <p className="mt-1 text-xs text-muted-foreground">
               Which AI models are generating your proposals
             </p>
@@ -342,7 +386,12 @@ export default function Analytics() {
                     fontSize={11}
                     tickFormatter={(v) => v?.charAt(0).toUpperCase() + v?.slice(1)}
                   />
-                  <YAxis stroke="var(--muted-foreground)" tickLine={false} axisLine={false} fontSize={11} />
+                  <YAxis
+                    stroke="var(--muted-foreground)"
+                    tickLine={false}
+                    axisLine={false}
+                    fontSize={11}
+                  />
                   <Tooltip
                     contentStyle={{
                       background: "var(--surface)",
@@ -352,7 +401,13 @@ export default function Analytics() {
                       color: "var(--foreground)",
                     }}
                   />
-                  <Bar dataKey="count" fill="var(--violet)" radius={[6, 6, 0, 0]} animationDuration={1200} name="Proposals" />
+                  <Bar
+                    dataKey="count"
+                    fill="var(--violet)"
+                    radius={[6, 6, 0, 0]}
+                    animationDuration={1200}
+                    name="Proposals"
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>

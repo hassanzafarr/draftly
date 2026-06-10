@@ -6,7 +6,9 @@ export default function NotFound() {
       <p className="text-6xl font-bold text-gray-200 mb-4">404</p>
       <p className="text-lg font-medium text-gray-700 mb-2">Page not found</p>
       <p className="text-gray-400 mb-6">The page you&apos;re looking for doesn&apos;t exist.</p>
-      <Link to="/" className="text-blue-600 hover:underline font-medium">Go to Dashboard</Link>
+      <Link to="/" className="text-blue-600 hover:underline font-medium">
+        Go to Dashboard
+      </Link>
     </div>
   );
 }

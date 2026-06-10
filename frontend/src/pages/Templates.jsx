@@ -5,20 +5,48 @@ import { FileText, Sparkles, Layers, ArrowRight, Filter } from "lucide-react";
 import { templates, templateFilters } from "../lib/mock-data";
 
 const accentMap = {
-  violet:  { text: "text-violet",  bg: "bg-violet/15",  border: "border-violet/40",  glow: "var(--shadow-glow-violet)",  hex: "var(--violet)"  },
-  cyan:    { text: "text-cyan",    bg: "bg-cyan/15",    border: "border-cyan/40",    glow: "var(--shadow-glow-cyan)",    hex: "var(--cyan)"    },
-  magenta: { text: "text-magenta", bg: "bg-magenta/15", border: "border-magenta/40", glow: "var(--shadow-glow-magenta)", hex: "var(--magenta)" },
-  emerald: { text: "text-emerald", bg: "bg-emerald/15", border: "border-emerald/40", glow: "0 0 40px -8px var(--emerald)", hex: "var(--emerald)" },
-  amber:   { text: "text-amber",   bg: "bg-amber/15",   border: "border-amber/40",   glow: "0 0 40px -8px var(--amber)",   hex: "var(--amber)"   },
+  violet: {
+    text: "text-violet",
+    bg: "bg-violet/15",
+    border: "border-violet/40",
+    glow: "var(--shadow-glow-violet)",
+    hex: "var(--violet)",
+  },
+  cyan: {
+    text: "text-cyan",
+    bg: "bg-cyan/15",
+    border: "border-cyan/40",
+    glow: "var(--shadow-glow-cyan)",
+    hex: "var(--cyan)",
+  },
+  magenta: {
+    text: "text-magenta",
+    bg: "bg-magenta/15",
+    border: "border-magenta/40",
+    glow: "var(--shadow-glow-magenta)",
+    hex: "var(--magenta)",
+  },
+  emerald: {
+    text: "text-emerald",
+    bg: "bg-emerald/15",
+    border: "border-emerald/40",
+    glow: "0 0 40px -8px var(--emerald)",
+    hex: "var(--emerald)",
+  },
+  amber: {
+    text: "text-amber",
+    bg: "bg-amber/15",
+    border: "border-amber/40",
+    glow: "0 0 40px -8px var(--amber)",
+    hex: "var(--amber)",
+  },
 };
 
 export default function Templates() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState("All");
 
-  const filtered = templates.filter(
-    (t) => filter === "All" || t.category === filter.toLowerCase(),
-  );
+  const filtered = templates.filter((t) => filter === "All" || t.category === filter.toLowerCase());
 
   return (
     <div className="px-6 py-6">

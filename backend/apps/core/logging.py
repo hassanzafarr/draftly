@@ -14,9 +14,10 @@ _LOG_CONTEXT: contextvars.ContextVar[dict[str, Any]] = contextvars.ContextVar(
     default={},
 )
 
-_STANDARD_LOG_RECORD_ATTRS = set(
-    logging.LogRecord("", 0, "", 0, "", (), None).__dict__.keys()
-) | {"asctime", "message"}
+_STANDARD_LOG_RECORD_ATTRS = set(logging.LogRecord("", 0, "", 0, "", (), None).__dict__.keys()) | {
+    "asctime",
+    "message",
+}
 
 
 def set_logging_context(**context: Any) -> contextvars.Token:

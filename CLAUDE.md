@@ -70,6 +70,10 @@ npm run format         # prettier write
 
 Initial coverage: `apps/accounts/tests/test_auth.py` (4 tests — register, login, /me, multi-tenant isolation) and `src/store/auth.test.js` (3 tests — login, logout, fetchMe).
 
+### Pre-push lint gate
+
+A `pre-commit` pre-push hook (`.pre-commit-config.yaml`) blocks `git push` if ruff, eslint, or prettier fail. One-time setup per clone: `pip install -r backend/requirements-dev.txt && pre-commit install --hook-type pre-push`. Run `/lint` (project skill in `.claude/skills/lint/`) to auto-fix and verify before pushing. Manual check: `pre-commit run --all-files --hook-stage pre-push`. Never bypass with `--no-verify`.
+
 ---
 
 ## Architecture

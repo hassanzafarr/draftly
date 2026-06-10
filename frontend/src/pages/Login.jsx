@@ -10,10 +10,7 @@ export default function Login() {
       footer={
         <>
           New to Draftly?{" "}
-          <Link
-            to="/register"
-            className="font-medium text-foreground transition hover:text-violet"
-          >
+          <Link to="/register" className="font-medium text-foreground transition hover:text-violet">
             Create an account
           </Link>
         </>
