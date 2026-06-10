@@ -202,6 +202,34 @@ export function Generator() {
     setTickerIdx(0);
     setProposalId(null);
 
+            pollRef.current = setInterval(async () => {
+                try {
+                    const { data } = await api.get(`/proposals/${proposal.id}/`);
+                    if (data.status_stage) setStage(data.status_stage);
+                    if (data.stage_meta) setStageMeta(data.stage_meta);
+                    if (data.status === "draft") {
+                        clearInterval(pollRef.current);
+                        setStage("done");
+                        setTimeout(() => setPhase("result"), 350);
+                    } else if (data.status === "failed") {
+                        clearInterval(pollRef.current);
+                        toast.error("Proposal generation failed. Please try again.");
+                        reset();
+                    }
+                } catch {
+                    clearInterval(pollRef.current);
+                    toast.error("Lost connection while generating.");
+                    reset();
+                }
+            }, 2000);
+        } catch (err) {
+            const detail = err.response?.data?.detail || "";
+            if (err.response?.status === 403 && detail.toLowerCase().includes("quota")) {
+                toast.error(detail);
+                navigate("/pricing");
+            } else {
+                toast.error(detail || "Failed to create RFP.");
+            }
     try {
       // Only send an explicit title when a template is active — its name is a proper label.
       // For free-form input the backend will extract a smart title from the RFP text.
