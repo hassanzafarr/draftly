@@ -47,7 +47,7 @@ export default function App() {
   }, [fetchMe]);
 
   return (
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ""}>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || "no-client-id"}>
     <Sentry.ErrorBoundary fallback={<PageFallback />}>
       <ThemeProvider>
         <BrowserRouter>
