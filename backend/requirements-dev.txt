@@ -14,5 +14,5 @@ freezegun==1.5.1
 responses==0.25.3
 
 # Lint + format
-ruff==0.6.9
+ruff==0.15.16
 pre-commit==4.6.0   # pre-push lint gate: pre-commit install --hook-type pre-push
