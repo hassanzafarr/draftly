@@ -10,7 +10,6 @@ import useAuthStore from "../store/auth";
 export function AuthForm({ mode }) {
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
-  const googleLogin = useAuthStore((s) => s.googleLogin);
   const googleComplete = useAuthStore((s) => s.googleComplete);
 
   // Email/password form state
@@ -28,6 +27,40 @@ export function AuthForm({ mode }) {
   const [googleDisplayName, setGoogleDisplayName] = useState("");
   const [googleOrgName, setGoogleOrgName] = useState("");
   const [registered, setRegistered] = useState(false);
+
+  const openGooglePopup = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setError(null);
+      try {
+        const { data } = await api.post("/auth/google/", {
+          credential: tokenResponse.access_token,
+        });
+
+        if (data.status === "new_user") {
+          setGoogleCredential(tokenResponse.access_token);
+          setGoogleDisplayName(data.display_name || "");
+          setGoogleStep("org_name");
+        } else {
+          localStorage.setItem("access_token", data.access);
+          localStorage.setItem("refresh_token", data.refresh);
+          useAuthStore.setState({ user: data.user });
+          navigate("/");
+        }
+      } catch (err) {
+        const msg =
+          err.response?.data?.detail ||
+          "Google sign-in failed. Please try again.";
+        setError(msg);
+      } finally {
+        setGoogleLoading(false);
+      }
+    },
+    onError: () => {
+      setGoogleLoading(false);
+      setError("Google sign-in was cancelled or failed. Please try again.");
+    },
+    flow: "implicit",
+  });
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -96,40 +129,6 @@ export function AuthForm({ mode }) {
       </motion.div>
     );
   }
-
-  const openGooglePopup = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      setError(null);
-      try {
-        const { data } = await api.post("/auth/google/", {
-          credential: tokenResponse.access_token,
-        });
-
-        if (data.status === "new_user") {
-          setGoogleCredential(tokenResponse.access_token);
-          setGoogleDisplayName(data.display_name || "");
-          setGoogleStep("org_name");
-        } else {
-          localStorage.setItem("access_token", data.access);
-          localStorage.setItem("refresh_token", data.refresh);
-          useAuthStore.setState({ user: data.user });
-          navigate("/");
-        }
-      } catch (err) {
-        const msg =
-          err.response?.data?.detail ||
-          "Google sign-in failed. Please try again.";
-        setError(msg);
-      } finally {
-        setGoogleLoading(false);
-      }
-    },
-    onError: () => {
-      setGoogleLoading(false);
-      setError("Google sign-in was cancelled or failed. Please try again.");
-    },
-    flow: "implicit",
-  });
 
   async function handleGoogleOrgSubmit(e) {
     e.preventDefault();
