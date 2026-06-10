@@ -1,7 +1,14 @@
 import { useDropzone } from "react-dropzone";
 import { Upload, File } from "lucide-react";
 
-export default function UploadZone({ onDrop, accept = { "application/pdf": [], "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [], "text/plain": [] } }) {
+export default function UploadZone({
+  onDrop,
+  accept = {
+    "application/pdf": [],
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [],
+    "text/plain": [],
+  },
+}) {
   const { getRootProps, getInputProps, isDragActive, acceptedFiles } = useDropzone({
     onDrop,
     accept,
@@ -23,7 +30,9 @@ export default function UploadZone({ onDrop, accept = { "application/pdf": [], "
       ) : (
         <div className="text-gray-500">
           <Upload size={32} className="mx-auto mb-3 text-gray-400" />
-          <p className="font-medium">{isDragActive ? "Drop file here" : "Drag & drop or click to upload"}</p>
+          <p className="font-medium">
+            {isDragActive ? "Drop file here" : "Drag & drop or click to upload"}
+          </p>
           <p className="text-sm mt-1">PDF, DOCX, or TXT</p>
         </div>
       )}

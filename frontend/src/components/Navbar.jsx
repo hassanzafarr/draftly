@@ -20,15 +20,24 @@ export default function Navbar() {
         </Link>
 
         <div className="flex items-center gap-6">
-          <Link to="/" className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-blue-600">
+          <Link
+            to="/"
+            className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-blue-600"
+          >
             <LayoutDashboard size={16} />
             Dashboard
           </Link>
-          <Link to="/documents" className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-blue-600">
+          <Link
+            to="/documents"
+            className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-blue-600"
+          >
             <Upload size={16} />
             Documents
           </Link>
-          <Link to="/rfps/new" className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+          <Link
+            to="/rfps/new"
+            className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
             New RFP
           </Link>
           <div className="flex items-center gap-3 border-l pl-4">

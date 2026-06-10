@@ -1,5 +1,4 @@
-from datetime import datetime
-from datetime import timezone as dt_timezone
+from datetime import UTC, datetime
 
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken
@@ -13,7 +12,7 @@ class PasswordAwareJWTAuthentication(JWTAuthentication):
         if user.password_changed_at is not None:
             iat = validated_token.get("iat")
             if iat is not None:
-                issued_at = datetime.fromtimestamp(iat, tz=dt_timezone.utc)
+                issued_at = datetime.fromtimestamp(iat, tz=UTC)
                 if issued_at < user.password_changed_at:
                     raise InvalidToken("Token invalidated by password change.")
         return user

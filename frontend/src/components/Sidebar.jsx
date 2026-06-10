@@ -1,5 +1,16 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Home, FileText, Brain, BarChart3, Settings, LogOut, Sun, Moon, ClipboardList, CreditCard } from "lucide-react";
+import {
+  Home,
+  FileText,
+  Brain,
+  BarChart3,
+  Settings,
+  LogOut,
+  Sun,
+  Moon,
+  ClipboardList,
+  CreditCard,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { useTheme } from "./ThemeProvider";
 import useAuthStore from "../store/auth";
@@ -24,9 +35,20 @@ export function Sidebar() {
       className="sticky top-0 z-20 flex h-dvh w-[72px] shrink-0 flex-col items-center justify-between border-r border-hairline py-3 backdrop-blur-xl"
       style={{ background: "var(--sidebar-bg)" }}
     >
-      <Link to="/" className="group relative flex h-12 w-12 items-center justify-center rounded-xl" aria-label="Draftly Home">
-        <span className="absolute inset-0 rounded-xl opacity-0 blur-[16px] transition-all duration-300 group-hover:opacity-80" style={{ background: "linear-gradient(135deg, #7c3aed, #2563eb, #06b6d4)" }} />
-        <img src="/logo.png" alt="Draftly" className="relative h-11 w-11 object-contain drop-shadow-lg transition-transform duration-200 group-hover:scale-110" />
+      <Link
+        to="/"
+        className="group relative flex h-12 w-12 items-center justify-center rounded-xl"
+        aria-label="Draftly Home"
+      >
+        <span
+          className="absolute inset-0 rounded-xl opacity-0 blur-[16px] transition-all duration-300 group-hover:opacity-80"
+          style={{ background: "linear-gradient(135deg, #7c3aed, #2563eb, #06b6d4)" }}
+        />
+        <img
+          src="/logo.png"
+          alt="Draftly"
+          className="relative h-11 w-11 object-contain drop-shadow-lg transition-transform duration-200 group-hover:scale-110"
+        />
       </Link>
 
       <nav className="flex flex-col items-center gap-1.5">
@@ -78,7 +100,11 @@ export function Sidebar() {
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
             className="flex items-center justify-center"
           >
-            {theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+            {theme === "dark" ? (
+              <Sun className="h-[18px] w-[18px]" />
+            ) : (
+              <Moon className="h-[18px] w-[18px]" />
+            )}
           </motion.span>
           <span className="pointer-events-none absolute left-[52px] top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-md bg-surface-2 px-2 py-1 text-xs text-foreground opacity-0 shadow-lg ring-1 ring-hairline transition group-hover:opacity-100">
             {theme === "dark" ? "Light mode" : "Dark mode"}

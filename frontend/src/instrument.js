@@ -1,11 +1,15 @@
 import * as Sentry from "@sentry/react";
 
-const dsn = import.meta.env.VITE_SENTRY_DSN;
+let _initialized = false;
 
-if (dsn) {
+export function initSentry() {
+  if (_initialized) return;
+  const dsn = import.meta.env.VITE_SENTRY_DSN;
+  if (!dsn) return;
+  _initialized = true;
+
   const apiUrl = import.meta.env.VITE_API_URL;
   const traceTargets = [/^\//];
-
   if (apiUrl) {
     try {
       traceTargets.push(new URL(apiUrl).origin);
@@ -26,11 +30,7 @@ if (dsn) {
     ],
     tracesSampleRate: Number(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE ?? 0),
     tracePropagationTargets: traceTargets,
-    replaysSessionSampleRate: Number(
-      import.meta.env.VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE ?? 0
-    ),
-    replaysOnErrorSampleRate: Number(
-      import.meta.env.VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE ?? 1
-    ),
+    replaysSessionSampleRate: Number(import.meta.env.VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE ?? 0),
+    replaysOnErrorSampleRate: Number(import.meta.env.VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE ?? 1),
   });
 }

@@ -36,9 +36,7 @@ describe("useAuthStore", () => {
   });
 
   it("fetchMe on 401 sets user null and loading false (no crash)", async () => {
-    server.use(
-      http.get(`${API_BASE}/auth/me/`, () => new HttpResponse(null, { status: 401 }))
-    );
+    server.use(http.get(`${API_BASE}/auth/me/`, () => new HttpResponse(null, { status: 401 })));
 
     await useAuthStore.getState().fetchMe();
 

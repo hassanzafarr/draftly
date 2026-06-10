@@ -133,6 +133,17 @@ def create_checkout_session(request):
             success_url=f"{settings.FRONTEND_URL}/pricing?success=true",
             cancel_url=f"{settings.FRONTEND_URL}/pricing?canceled=true",
             automatic_tax={"enabled": True},
+            consent_collection={
+                "terms_of_service": "required",
+            },
+            custom_text={
+                "terms_of_service_acceptance": {
+                    "message": (
+                        f"I agree to the [Terms of Service]({settings.FRONTEND_URL}/terms) "
+                        f"and [Privacy Policy]({settings.FRONTEND_URL}/privacy)."
+                    ),
+                },
+            },
             metadata={
                 "org_id": str(org.id),
                 "tier": tier,

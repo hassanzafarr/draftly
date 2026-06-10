@@ -53,9 +53,8 @@ export default function ForgotPassword() {
           animate={{ opacity: 1, y: 0 }}
           className="rounded-xl border border-hairline bg-surface-2 px-4 py-5 text-center text-sm text-muted-foreground"
         >
-          If <span className="font-medium text-foreground">{email}</span> is
-          registered, a reset link is on its way. Check your spam folder if you
-          don&apos;t see it.
+          If <span className="font-medium text-foreground">{email}</span> is registered, a reset
+          link is on its way. Check your spam folder if you don&apos;t see it.
         </motion.div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">

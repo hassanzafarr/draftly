@@ -18,7 +18,8 @@ export default function Documents() {
   const [deleting, setDeleting] = useState(false);
 
   const fetchDocs = useCallback(() => {
-    api.get("/documents/")
+    api
+      .get("/documents/")
       .then((r) => setDocs(r.data.results || r.data))
       .finally(() => setLoading(false));
   }, []);
@@ -75,7 +76,9 @@ export default function Documents() {
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
-        <p className="text-gray-500 mt-1">Upload past proposals, case studies, and company profiles</p>
+        <p className="text-gray-500 mt-1">
+          Upload past proposals, case studies, and company profiles
+        </p>
       </div>
 
       <div className="mb-6">
