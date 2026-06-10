@@ -1,13 +1,7 @@
-
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
-export function AuthShell({
-  title,
-  subtitle,
-  children,
-  footer,
-}) {
+export function AuthShell({ title, subtitle, children, footer }) {
   return (
     <div className="relative min-h-dvh overflow-hidden">
       <div className="app-backdrop" />
@@ -17,26 +11,32 @@ export function AuthShell({
       <motion.div
         aria-hidden
         className="pointer-events-none absolute -top-32 -left-32 h-[420px] w-[420px] rounded-full"
-        style={{ background: "radial-gradient(closest-side, oklch(0.62 0.25 295 / 0.35), transparent 70%)" }}
+        style={{
+          background: "radial-gradient(closest-side, oklch(0.62 0.25 295 / 0.35), transparent 70%)",
+        }}
         animate={{ x: [0, 40, 0], y: [0, 30, 0] }}
         transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
         aria-hidden
         className="pointer-events-none absolute -bottom-32 -right-32 h-[460px] w-[460px] rounded-full"
-        style={{ background: "radial-gradient(closest-side, oklch(0.78 0.18 200 / 0.3), transparent 70%)" }}
+        style={{
+          background: "radial-gradient(closest-side, oklch(0.78 0.18 200 / 0.3), transparent 70%)",
+        }}
         animate={{ x: [0, -30, 0], y: [0, -40, 0] }}
         transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
         aria-hidden
         className="pointer-events-none absolute top-1/3 left-1/2 h-[340px] w-[340px] -translate-x-1/2 rounded-full"
-        style={{ background: "radial-gradient(closest-side, oklch(0.7 0.27 340 / 0.22), transparent 70%)" }}
+        style={{
+          background: "radial-gradient(closest-side, oklch(0.7 0.27 340 / 0.22), transparent 70%)",
+        }}
         animate={{ scale: [1, 1.15, 1] }}
         transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      <div className="relative z-10 flex min-h-dvh items-center justify-center px-4 py-10">
+      <div className="relative z-10 flex min-h-dvh items-center justify-center px-4 pt-10 pb-28">
         <motion.div
           initial={{ opacity: 0, y: 16, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -50,7 +50,11 @@ export function AuthShell({
                 style={{ background: "linear-gradient(135deg, #7c3aed, #2563eb, #06b6d4)" }}
                 aria-hidden
               />
-              <img src="/logo.png" alt="Draftly" className="relative h-10 w-10 object-contain drop-shadow-lg" />
+              <img
+                src="/logo.png"
+                alt="Draftly"
+                className="relative h-10 w-10 object-contain drop-shadow-lg"
+              />
             </span>
             <span className="font-display text-xl font-semibold tracking-tight text-foreground">
               Draftly

@@ -10,7 +10,6 @@ import useAuthStore from "../store/auth";
 export function AuthForm({ mode }) {
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
-  const googleLogin = useAuthStore((s) => s.googleLogin);
   const googleComplete = useAuthStore((s) => s.googleComplete);
 
   // Email/password form state
@@ -28,6 +27,8 @@ export function AuthForm({ mode }) {
   const [googleDisplayName, setGoogleDisplayName] = useState("");
   const [googleOrgName, setGoogleOrgName] = useState("");
   const [registered, setRegistered] = useState(false);
+  const [tosAccepted, setTosAccepted] = useState(false);
+  const [googleTosAccepted, setGoogleTosAccepted] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -35,6 +36,10 @@ export function AuthForm({ mode }) {
 
     if (mode === "signup" && orgName.trim().length < 2) {
       setError("Please enter your agency / company name.");
+      return;
+    }
+    if (mode === "signup" && !tosAccepted) {
+      setError("You must accept the Terms of Service and Privacy Policy to continue.");
       return;
     }
     if (!/^\S+@\S+\.\S+$/.test(email)) {
@@ -53,6 +58,7 @@ export function AuthForm({ mode }) {
           org_name: orgName.trim(),
           email: email.trim(),
           password,
+          terms_accepted: true,
         });
         setRegistered(true);
       } else {
@@ -71,30 +77,6 @@ export function AuthForm({ mode }) {
     } finally {
       setLoading(false);
     }
-  }
-
-  if (registered) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col items-center gap-4 py-2 text-center"
-      >
-        <MailCheck className="h-10 w-10 text-violet" />
-        <p className="text-sm text-foreground">
-          We sent a verification link to{" "}
-          <span className="font-medium">{email}</span>.
-          <br />
-          Check your inbox and click the link to activate your account.
-        </p>
-        <Link
-          to="/login"
-          className="text-xs text-muted-foreground transition hover:text-foreground"
-        >
-          Back to sign in
-        </Link>
-      </motion.div>
-    );
   }
 
   const openGooglePopup = useGoogleLogin({
@@ -116,9 +98,7 @@ export function AuthForm({ mode }) {
           navigate("/");
         }
       } catch (err) {
-        const msg =
-          err.response?.data?.detail ||
-          "Google sign-in failed. Please try again.";
+        const msg = err.response?.data?.detail || "Google sign-in failed. Please try again.";
         setError(msg);
       } finally {
         setGoogleLoading(false);
@@ -138,19 +118,44 @@ export function AuthForm({ mode }) {
       setError("Please enter your organisation name (at least 2 characters).");
       return;
     }
+    if (!googleTosAccepted) {
+      setError("You must accept the Terms of Service and Privacy Policy to continue.");
+      return;
+    }
     setGoogleLoading(true);
     try {
       await googleComplete(googleCredential, googleOrgName.trim());
       toast.success("Welcome! Your workspace is ready.");
       navigate("/");
     } catch (err) {
-      const msg =
-        err.response?.data?.detail ||
-        "Could not complete sign-up. Please try again.";
+      const msg = err.response?.data?.detail || "Could not complete sign-up. Please try again.";
       setError(msg);
     } finally {
       setGoogleLoading(false);
     }
+  }
+
+  if (registered) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col items-center gap-4 py-2 text-center"
+      >
+        <MailCheck className="h-10 w-10 text-violet" />
+        <p className="text-sm text-foreground">
+          We sent a verification link to <span className="font-medium">{email}</span>.
+          <br />
+          Check your inbox and click the link to activate your account.
+        </p>
+        <Link
+          to="/login"
+          className="text-xs text-muted-foreground transition hover:text-foreground"
+        >
+          Back to sign in
+        </Link>
+      </motion.div>
+    );
   }
 
   // Step 2: org name collection for new Google users
@@ -159,7 +164,8 @@ export function AuthForm({ mode }) {
       <form onSubmit={handleGoogleOrgSubmit} className="space-y-4">
         <div className="text-center">
           <p className="text-sm text-muted-foreground">
-            Welcome{googleDisplayName ? `, ${googleDisplayName}` : ""}! One last step — give your workspace a name.
+            Welcome{googleDisplayName ? `, ${googleDisplayName}` : ""}! One last step — give your
+            workspace a name.
           </p>
         </div>
 
@@ -186,6 +192,31 @@ export function AuthForm({ mode }) {
           )}
         </AnimatePresence>
 
+        <label className="flex cursor-pointer items-start gap-2.5">
+          <input
+            type="checkbox"
+            checked={googleTosAccepted}
+            onChange={(e) => setGoogleTosAccepted(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border border-hairline accent-violet"
+          />
+          <span className="text-xs leading-relaxed text-muted-foreground">
+            I agree to the{" "}
+            <Link
+              to="/terms"
+              className="text-foreground underline underline-offset-2 transition hover:opacity-70"
+            >
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link
+              to="/privacy"
+              className="text-foreground underline underline-offset-2 transition hover:opacity-70"
+            >
+              Privacy Policy
+            </Link>
+          </span>
+        </label>
+
         <motion.button
           type="submit"
           disabled={googleLoading}
@@ -211,7 +242,10 @@ export function AuthForm({ mode }) {
 
         <button
           type="button"
-          onClick={() => { setGoogleStep(null); setError(null); }}
+          onClick={() => {
+            setGoogleStep(null);
+            setError(null);
+          }}
           className="w-full text-center text-xs text-muted-foreground transition hover:text-foreground"
         >
           ← Go back
@@ -334,25 +368,45 @@ export function AuthForm({ mode }) {
         type="button"
         disabled={googleLoading}
         whileTap={{ scale: 0.98 }}
-        onClick={() => { setGoogleLoading(true); openGooglePopup(); }}
+        onClick={() => {
+          setGoogleLoading(true);
+          openGooglePopup();
+        }}
         className="flex h-11 w-full items-center justify-center gap-3 rounded-xl border border-hairline bg-surface-2 text-sm font-medium text-foreground transition hover:bg-surface-3 disabled:opacity-70"
       >
-        {googleLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <GoogleIcon />
-        )}
+        {googleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
         {googleLoading
           ? "Connecting…"
           : mode === "login"
-          ? "Continue with Google"
-          : "Sign up with Google"}
+            ? "Continue with Google"
+            : "Sign up with Google"}
       </motion.button>
 
       {mode === "signup" && (
-        <p className="text-center text-[11px] text-muted-foreground">
-          By creating an account you agree to our Terms &amp; Privacy Policy.
-        </p>
+        <label className="flex cursor-pointer items-start gap-2.5">
+          <input
+            type="checkbox"
+            checked={tosAccepted}
+            onChange={(e) => setTosAccepted(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border border-hairline accent-violet"
+          />
+          <span className="text-xs leading-relaxed text-muted-foreground">
+            I agree to the{" "}
+            <Link
+              to="/terms"
+              className="text-foreground underline underline-offset-2 transition hover:opacity-70"
+            >
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link
+              to="/privacy"
+              className="text-foreground underline underline-offset-2 transition hover:opacity-70"
+            >
+              Privacy Policy
+            </Link>
+          </span>
+        </label>
       )}
     </form>
   );
@@ -370,9 +424,7 @@ function Field({ icon, trailing, value, onChange, ...props }) {
         onChange={(e) => onChange(e.target.value)}
         className="h-11 w-full rounded-xl border border-hairline bg-surface-2 pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground/70 transition focus:border-violet/50 focus:outline-none focus:ring-2 focus:ring-violet/30"
       />
-      {trailing && (
-        <span className="absolute right-3 top-1/2 -translate-y-1/2">{trailing}</span>
-      )}
+      {trailing && <span className="absolute right-3 top-1/2 -translate-y-1/2">{trailing}</span>}
     </label>
   );
 }

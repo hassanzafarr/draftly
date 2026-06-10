@@ -12,13 +12,7 @@ export const coreFeatures = [
   { id: "3", title: "Brand-Aligned", caption: "Matches your tone and style" },
 ];
 
-export const tones = [
-  "Persuasive",
-  "Professional",
-  "Formal",
-  "Friendly",
-  "Technical",
-];
+export const tones = ["Persuasive", "Professional", "Formal", "Friendly", "Technical"];
 
 export const sampleProposalSections = [
   { id: "executive_summary", title: "Executive Summary" },
@@ -71,11 +65,11 @@ export const winRateTrend = [
 ];
 
 export const proposalsByCategory = [
-  { name: "Web & Apps",     value: 52, percentage: 35, color: "violet" },
-  { name: "Data & AI",      value: 37, percentage: 25, color: "cyan" },
-  { name: "Design",         value: 22, percentage: 15, color: "magenta" },
+  { name: "Web & Apps", value: 52, percentage: 35, color: "violet" },
+  { name: "Data & AI", value: 37, percentage: 25, color: "cyan" },
+  { name: "Design", value: 22, percentage: 15, color: "magenta" },
   { name: "Infrastructure", value: 22, percentage: 15, color: "emerald" },
-  { name: "Other",          value: 15, percentage: 10, color: "amber" },
+  { name: "Other", value: 15, percentage: 10, color: "amber" },
 ];
 
 export const templateFilters = ["All", "Web", "Mobile", "Data", "Design", "Infrastructure"];
@@ -84,7 +78,8 @@ export const templates = [
   {
     id: "t1",
     title: "Web Platform Redesign",
-    snippet: "Full-stack redesign proposal covering UX, architecture, and delivery milestones for modern web platforms.",
+    snippet:
+      "Full-stack redesign proposal covering UX, architecture, and delivery milestones for modern web platforms.",
     category: "web",
     accent: "violet",
     sectionsCount: 10,
@@ -93,7 +88,8 @@ export const templates = [
   {
     id: "t2",
     title: "Mobile App Development",
-    snippet: "End-to-end native or cross-platform mobile proposal with sprint planning and release roadmap.",
+    snippet:
+      "End-to-end native or cross-platform mobile proposal with sprint planning and release roadmap.",
     category: "mobile",
     accent: "cyan",
     sectionsCount: 10,
@@ -102,7 +98,8 @@ export const templates = [
   {
     id: "t3",
     title: "Data Analytics Dashboard",
-    snippet: "Business intelligence proposal with KPI definition, data pipeline design, and visualisation plan.",
+    snippet:
+      "Business intelligence proposal with KPI definition, data pipeline design, and visualisation plan.",
     category: "data",
     accent: "emerald",
     sectionsCount: 10,
@@ -111,7 +108,8 @@ export const templates = [
   {
     id: "t4",
     title: "Brand & Design System",
-    snippet: "Comprehensive design system proposal: tokens, component library, documentation, and hand-off.",
+    snippet:
+      "Comprehensive design system proposal: tokens, component library, documentation, and hand-off.",
     category: "design",
     accent: "magenta",
     sectionsCount: 10,
@@ -120,7 +118,8 @@ export const templates = [
   {
     id: "t5",
     title: "Cloud Infrastructure Migration",
-    snippet: "Step-by-step cloud migration proposal with risk assessment, cost modelling, and cutover plan.",
+    snippet:
+      "Step-by-step cloud migration proposal with risk assessment, cost modelling, and cutover plan.",
     category: "infrastructure",
     accent: "amber",
     sectionsCount: 10,
@@ -129,7 +128,8 @@ export const templates = [
   {
     id: "t6",
     title: "AI Integration Proposal",
-    snippet: "LLM and ML integration proposal with use-case mapping, model selection, and evaluation criteria.",
+    snippet:
+      "LLM and ML integration proposal with use-case mapping, model selection, and evaluation criteria.",
     category: "data",
     accent: "violet",
     sectionsCount: 10,

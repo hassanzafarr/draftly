@@ -1,10 +1,10 @@
 import { FileText, Trash2, Clock, CheckCircle, AlertCircle, Loader } from "lucide-react";
 
 const STATUS_CONFIG = {
-  pending:    { icon: Clock,        color: "text-yellow-500", label: "Pending" },
-  processing: { icon: Loader,       color: "text-blue-500",   label: "Processing" },
-  processed:  { icon: CheckCircle,  color: "text-green-500",  label: "Processed" },
-  failed:     { icon: AlertCircle,  color: "text-red-500",    label: "Failed" },
+  pending: { icon: Clock, color: "text-yellow-500", label: "Pending" },
+  processing: { icon: Loader, color: "text-blue-500", label: "Processing" },
+  processed: { icon: CheckCircle, color: "text-green-500", label: "Processed" },
+  failed: { icon: AlertCircle, color: "text-red-500", label: "Failed" },
 };
 
 export default function DocumentCard({ doc, onDelete }) {
@@ -18,7 +18,8 @@ export default function DocumentCard({ doc, onDelete }) {
       <div className="flex-1 min-w-0">
         <p className="font-medium text-gray-900 truncate">{doc.title}</p>
         <p className="text-xs text-gray-400 mt-0.5">
-          {doc.file_type?.toUpperCase()} · {doc.chunk_count} chunks · {new Date(doc.created_at).toLocaleDateString()}
+          {doc.file_type?.toUpperCase()} · {doc.chunk_count} chunks ·{" "}
+          {new Date(doc.created_at).toLocaleDateString()}
         </p>
         <div className={`flex items-center gap-1 mt-1 text-xs font-medium ${color}`}>
           <Icon size={12} className={doc.status === "processing" ? "animate-spin" : ""} />

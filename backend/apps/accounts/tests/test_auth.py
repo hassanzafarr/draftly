@@ -17,6 +17,7 @@ def test_register_creates_user_and_org(api_client):
         "org_name": "Acme Corp",
         "email": "founder@acme.test",
         "password": "StrongPass123!",
+        "terms_accepted": True,
     }
 
     res = api_client.post("/api/auth/register/", payload, format="json")
@@ -31,6 +32,7 @@ def test_register_creates_user_and_org(api_client):
     assert user.org_id == org.id
     assert user.role == User.Role.ADMIN
     assert user.check_password("StrongPass123!")
+    assert user.terms_accepted_at is not None
 
 
 def test_login_returns_jwt_pair(api_client, user):

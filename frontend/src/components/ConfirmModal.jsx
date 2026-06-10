@@ -37,7 +37,7 @@ export default function ConfirmModal({
     (e) => {
       if (e.key === "Escape" && !loading) onClose();
     },
-    [onClose, loading],
+    [onClose, loading]
   );
 
   useEffect(() => {
@@ -88,7 +88,8 @@ export default function ConfirmModal({
             transition={{ type: "spring", stiffness: 380, damping: 28 }}
             className="relative w-full max-w-[420px] overflow-hidden rounded-2xl"
             style={{
-              background: "linear-gradient(180deg, var(--glass-strong-top), var(--glass-strong-bottom))",
+              background:
+                "linear-gradient(180deg, var(--glass-strong-top), var(--glass-strong-bottom))",
               backdropFilter: "blur(22px) saturate(150%)",
               border: "1px solid var(--hairline-strong)",
               boxShadow: "var(--shadow-panel)",

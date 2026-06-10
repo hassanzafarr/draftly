@@ -122,7 +122,9 @@ def verify_email(request):
         pk = force_str(urlsafe_base64_decode(uid))
         user = User.objects.get(pk=pk)
     except (User.DoesNotExist, ValueError, TypeError):
-        return Response({"detail": "Invalid verification link."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"detail": "Invalid verification link."}, status=status.HTTP_400_BAD_REQUEST
+        )
 
     if user.is_active:
         return Response({"detail": "Account already verified."})
@@ -298,15 +300,16 @@ def _verify_google_access_token(access_token):
     import urllib.request
 
     # 1. Verify the token is valid and issued for our Client ID.
-    tokeninfo_url = (
-        "https://oauth2.googleapis.com/tokeninfo?"
-        + urllib.parse.urlencode({"access_token": access_token})
+    tokeninfo_url = "https://oauth2.googleapis.com/tokeninfo?" + urllib.parse.urlencode(
+        {"access_token": access_token}
     )
     try:
         with urllib.request.urlopen(tokeninfo_url, timeout=5) as resp:
             token_data = json.loads(resp.read())
-    except urllib.error.HTTPError:
-        raise ValueError("Invalid Google access token")
+    except urllib.error.HTTPError as exc:
+        raise ValueError("Invalid Google access token") from exc
+    except (urllib.error.URLError, TimeoutError) as exc:
+        raise ValueError("Could not reach Google to verify the token. Please try again.") from exc
 
     client_id = settings.GOOGLE_CLIENT_ID
     if client_id and token_data.get("azp") != client_id and token_data.get("aud") != client_id:
@@ -323,8 +326,10 @@ def _verify_google_access_token(access_token):
     try:
         with urllib.request.urlopen(userinfo_req, timeout=5) as resp:
             userinfo = json.loads(resp.read())
-    except urllib.error.HTTPError:
-        raise ValueError("Could not fetch Google profile")
+    except urllib.error.HTTPError as exc:
+        raise ValueError("Could not fetch Google profile") from exc
+    except (urllib.error.URLError, TimeoutError) as exc:
+        raise ValueError("Could not reach Google to fetch your profile. Please try again.") from exc
 
     return {
         "sub": token_data.get("sub") or userinfo.get("sub"),
@@ -368,11 +373,13 @@ def google_auth(request):
             user.avatar_url = avatar
             user.save(update_fields=["avatar_url"])
         refresh = RefreshToken.for_user(user)
-        return Response({
-            "access": str(refresh.access_token),
-            "refresh": str(refresh),
-            "user": UserSerializer(user).data,
-        })
+        return Response(
+            {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "user": UserSerializer(user).data,
+            }
+        )
 
     # Email already registered via password — hard block
     if User.objects.filter(email=email, google_id__isnull=True).exists():
@@ -382,11 +389,14 @@ def google_auth(request):
         )
 
     # Brand-new user — ask frontend to collect org name
-    return Response({
-        "status": "new_user",
-        "email": email,
-        "display_name": display_name,
-    }, status=status.HTTP_200_OK)
+    return Response(
+        {
+            "status": "new_user",
+            "email": email,
+            "display_name": display_name,
+        },
+        status=status.HTTP_200_OK,
+    )
 
 
 @api_view(["POST"])
@@ -430,11 +440,13 @@ def google_auth_complete(request):
     existing = User.objects.filter(google_id=google_id).first()
     if existing:
         refresh = RefreshToken.for_user(existing)
-        return Response({
-            "access": str(refresh.access_token),
-            "refresh": str(refresh),
-            "user": UserSerializer(existing).data,
-        })
+        return Response(
+            {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "user": UserSerializer(existing).data,
+            }
+        )
 
     with transaction.atomic():
         org = Organization.objects.create(name=org_name)
@@ -444,13 +456,17 @@ def google_auth_complete(request):
             avatar_url=avatar or None,
             org=org,
             role=User.Role.ADMIN,
+            terms_accepted_at=timezone.now(),
         )
         user.set_unusable_password()
         user.save()
 
     refresh = RefreshToken.for_user(user)
-    return Response({
-        "access": str(refresh.access_token),
-        "refresh": str(refresh),
-        "user": UserSerializer(user).data,
-    }, status=status.HTTP_201_CREATED)
+    return Response(
+        {
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+            "user": UserSerializer(user).data,
+        },
+        status=status.HTTP_201_CREATED,
+    )

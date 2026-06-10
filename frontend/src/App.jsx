@@ -6,6 +6,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import useAuthStore from "./store/auth";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { AppShell } from "./components/AppShell";
+import CookieConsentBanner from "./components/CookieConsentBanner";
 
 const Generator = lazy(() =>
   import("./components/Generator").then((m) => ({ default: m.Generator }))
@@ -24,12 +25,12 @@ const Pricing = lazy(() => import("./pages/Pricing"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
 
 function PageFallback() {
   return (
-    <div className="flex h-screen items-center justify-center text-muted-foreground">
-      Loading…
-    </div>
+    <div className="flex h-screen items-center justify-center text-muted-foreground">Loading…</div>
   );
 }
 
@@ -48,42 +49,44 @@ export default function App() {
 
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || "no-client-id"}>
-    <Sentry.ErrorBoundary fallback={<PageFallback />}>
-      <ThemeProvider>
-        <BrowserRouter>
-          <Toaster position="top-right" />
-          <Suspense fallback={<PageFallback />}>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/verify-email" element={<VerifyEmail />} />
-              <Route
-                path="/"
-                element={
-                  <PrivateRoute>
-                    <AppShell />
-                  </PrivateRoute>
-                }
-              >
-                <Route index element={<Generator />} />
-                <Route path="templates" element={<Templates />} />
-                <Route path="knowledge" element={<Knowledge />} />
-                <Route path="analytics" element={<Analytics />} />
-                <Route path="proposals" element={<Proposals />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="rfps/new" element={<NewRFP />} />
-                <Route path="proposals/:id" element={<Editor />} />
-                <Route path="pricing" element={<Pricing />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </ThemeProvider>
-    </Sentry.ErrorBoundary>
+      <Sentry.ErrorBoundary fallback={<PageFallback />}>
+        <ThemeProvider>
+          <BrowserRouter>
+            <Toaster position="top-right" />
+            <CookieConsentBanner />
+            <Suspense fallback={<PageFallback />}>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/verify-email" element={<VerifyEmail />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route
+                  path="/"
+                  element={
+                    <PrivateRoute>
+                      <AppShell />
+                    </PrivateRoute>
+                  }
+                >
+                  <Route index element={<Generator />} />
+                  <Route path="templates" element={<Templates />} />
+                  <Route path="knowledge" element={<Knowledge />} />
+                  <Route path="analytics" element={<Analytics />} />
+                  <Route path="proposals" element={<Proposals />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="rfps/new" element={<NewRFP />} />
+                  <Route path="proposals/:id" element={<Editor />} />
+                  <Route path="pricing" element={<Pricing />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </ThemeProvider>
+      </Sentry.ErrorBoundary>
     </GoogleOAuthProvider>
   );
 }
-

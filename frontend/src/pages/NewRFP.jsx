@@ -21,11 +21,15 @@ export default function NewRFP() {
       return;
     }
     if (trimmed.length < MIN_CHARS) {
-      toast.error(`RFP too short. Need at least ${MIN_CHARS} characters describing scope and requirements.`);
+      toast.error(
+        `RFP too short. Need at least ${MIN_CHARS} characters describing scope and requirements.`
+      );
       return;
     }
     if (trimmed.split(/\s+/).length < MIN_WORDS) {
-      toast.error(`RFP too short. Need at least ${MIN_WORDS} words describing scope and requirements.`);
+      toast.error(
+        `RFP too short. Need at least ${MIN_WORDS} words describing scope and requirements.`
+      );
       return;
     }
     setLoading(true);
@@ -51,7 +55,9 @@ export default function NewRFP() {
     <div className="max-w-2xl mx-auto">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">New RFP</h1>
-        <p className="text-gray-500 mt-1">Paste the project brief or RFP text and we&apos;ll generate a tailored proposal</p>
+        <p className="text-gray-500 mt-1">
+          Paste the project brief or RFP text and we&apos;ll generate a tailored proposal
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -68,7 +74,9 @@ export default function NewRFP() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">RFP / Project Brief Text</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            RFP / Project Brief Text
+          </label>
           <textarea
             required
             value={rawText}
@@ -77,7 +85,9 @@ export default function NewRFP() {
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono resize-none"
             placeholder="Paste the full RFP or project brief here..."
           />
-          <p className={`text-xs mt-1 ${rawText.trim().length < MIN_CHARS ? "text-red-500" : "text-gray-400"}`}>
+          <p
+            className={`text-xs mt-1 ${rawText.trim().length < MIN_CHARS ? "text-red-500" : "text-gray-400"}`}
+          >
             {rawText.length} characters {rawText.trim().length < MIN_CHARS && `(min ${MIN_CHARS})`}
           </p>
         </div>

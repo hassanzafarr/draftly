@@ -1,9 +1,20 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
-  Settings as SettingsIcon, User, Building2, Lock, Shield,
-  Save, Loader2, CheckCircle2, Crown, Sparkles,
-  Zap, Star, CreditCard, ExternalLink,
+  Settings as SettingsIcon,
+  User,
+  Building2,
+  Lock,
+  Shield,
+  Save,
+  Loader2,
+  CheckCircle2,
+  Crown,
+  Sparkles,
+  Zap,
+  Star,
+  CreditCard,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import api from "../api/client";
@@ -210,7 +221,11 @@ export default function Settings() {
                 <div className="flex items-center gap-5">
                   <div className="relative h-16 w-16 overflow-hidden rounded-2xl ring-2 ring-violet/50">
                     {user?.avatar_url ? (
-                      <img src={user.avatar_url} alt="Profile" className="h-full w-full object-cover" />
+                      <img
+                        src={user.avatar_url}
+                        alt="Profile"
+                        className="h-full w-full object-cover"
+                      />
                     ) : (
                       <>
                         <span className="absolute inset-0 bg-gradient-to-br from-violet to-magenta" />
@@ -221,15 +236,21 @@ export default function Settings() {
                     )}
                   </div>
                   <div>
-                    <p className="font-display text-xl font-semibold text-foreground">{displayName}</p>
-                    <p className="text-sm text-muted-foreground capitalize">{user?.role || "member"} · {user?.org?.name || "—"}</p>
+                    <p className="font-display text-xl font-semibold text-foreground">
+                      {displayName}
+                    </p>
+                    <p className="text-sm text-muted-foreground capitalize">
+                      {user?.role || "member"} · {user?.org?.name || "—"}
+                    </p>
                   </div>
                 </div>
               </div>
 
               {/* Email */}
               <div className="glass rounded-2xl p-6">
-                <h3 className="font-display text-base font-semibold text-foreground">Email Address</h3>
+                <h3 className="font-display text-base font-semibold text-foreground">
+                  Email Address
+                </h3>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Your email is used for login and notifications
                 </p>
@@ -246,7 +267,11 @@ export default function Settings() {
                     disabled={savingProfile || email === user?.email}
                     className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet to-magenta px-5 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-glow-violet)] disabled:opacity-50"
                   >
-                    {savingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    {savingProfile ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
                     Save
                   </button>
                 </div>
@@ -254,11 +279,15 @@ export default function Settings() {
 
               {/* Account info */}
               <div className="glass rounded-2xl p-6">
-                <h3 className="font-display text-base font-semibold text-foreground">Account Details</h3>
+                <h3 className="font-display text-base font-semibold text-foreground">
+                  Account Details
+                </h3>
                 <div className="mt-4 space-y-3 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Account ID</span>
-                    <span className="font-mono text-xs text-foreground">{user?.id?.slice(0, 8)}…</span>
+                    <span className="font-mono text-xs text-foreground">
+                      {user?.id?.slice(0, 8)}…
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Role</span>
@@ -266,7 +295,9 @@ export default function Settings() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Member since</span>
-                    <span className="text-foreground">{user?.created_at ? new Date(user.created_at).toLocaleDateString() : "—"}</span>
+                    <span className="text-foreground">
+                      {user?.created_at ? new Date(user.created_at).toLocaleDateString() : "—"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -300,7 +331,9 @@ export default function Settings() {
                         <TierIcon className="h-5 w-5" style={{ color: `var(--${tier.color})` }} />
                       </span>
                       <div>
-                        <p className="font-display text-lg font-bold text-foreground">{tier.label} Plan</p>
+                        <p className="font-display text-lg font-bold text-foreground">
+                          {tier.label} Plan
+                        </p>
                         <p className="text-xs text-muted-foreground">{tier.price}</p>
                       </div>
                     </div>
@@ -336,7 +369,10 @@ export default function Settings() {
                         key={f}
                         className="flex items-center gap-1.5 rounded-full border border-hairline bg-surface/40 px-3 py-1.5 text-xs text-foreground/80"
                       >
-                        <CheckCircle2 className="h-3 w-3" style={{ color: `var(--${tier.color})` }} />
+                        <CheckCircle2
+                          className="h-3 w-3"
+                          style={{ color: `var(--${tier.color})` }}
+                        />
                         {f}
                       </span>
                     ))}
@@ -346,7 +382,9 @@ export default function Settings() {
 
               {/* Org name */}
               <div className="glass rounded-2xl p-6">
-                <h3 className="font-display text-base font-semibold text-foreground">Organization Name</h3>
+                <h3 className="font-display text-base font-semibold text-foreground">
+                  Organization Name
+                </h3>
                 <p className="mt-1 text-xs text-muted-foreground">
                   This appears on your generated proposals
                 </p>
@@ -363,7 +401,11 @@ export default function Settings() {
                     disabled={savingOrg || orgName === user?.org?.name}
                     className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet to-magenta px-5 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-glow-violet)] disabled:opacity-50"
                   >
-                    {savingOrg ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    {savingOrg ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
                     Save
                   </button>
                 </div>
@@ -371,25 +413,37 @@ export default function Settings() {
 
               {/* Usage */}
               <div className="glass rounded-2xl p-6">
-                <h3 className="font-display text-base font-semibold text-foreground">Usage & Quotas</h3>
+                <h3 className="font-display text-base font-semibold text-foreground">
+                  Usage & Quotas
+                </h3>
                 <div className="mt-4 space-y-3 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Document quota</span>
-                    <span className="text-foreground">{user?.org?.doc_quota?.toLocaleString() || "—"}</span>
+                    <span className="text-foreground">
+                      {user?.org?.doc_quota?.toLocaleString() || "—"}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Proposal quota</span>
-                    <span className="text-foreground">{user?.org?.proposal_quota?.toLocaleString() || "—"} / month</span>
+                    <span className="text-foreground">
+                      {user?.org?.proposal_quota?.toLocaleString() || "—"} / month
+                    </span>
                   </div>
                   {user?.org?.current_period_end && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Billing period ends</span>
-                      <span className="text-foreground">{new Date(user.org.current_period_end).toLocaleDateString()}</span>
+                      <span className="text-foreground">
+                        {new Date(user.org.current_period_end).toLocaleDateString()}
+                      </span>
                     </div>
                   )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Organization created</span>
-                    <span className="text-foreground">{user?.org?.created_at ? new Date(user.org.created_at).toLocaleDateString() : "—"}</span>
+                    <span className="text-foreground">
+                      {user?.org?.created_at
+                        ? new Date(user.org.created_at).toLocaleDateString()
+                        : "—"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -410,9 +464,13 @@ export default function Settings() {
                     <Shield className="h-4 w-4 text-amber" />
                   </span>
                   <div>
-                    <h3 className="font-display text-base font-semibold text-foreground">Password</h3>
+                    <h3 className="font-display text-base font-semibold text-foreground">
+                      Password
+                    </h3>
                     <p className="text-xs text-muted-foreground">
-                      {user?.has_password ? "Update your account password" : "Your account uses Google Sign-In"}
+                      {user?.has_password
+                        ? "Update your account password"
+                        : "Your account uses Google Sign-In"}
                     </p>
                   </div>
                 </div>
@@ -420,7 +478,9 @@ export default function Settings() {
                 {user?.has_password ? (
                   <div className="mt-6 space-y-4">
                     <div>
-                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Current Password</label>
+                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                        Current Password
+                      </label>
                       <input
                         type="password"
                         value={currentPw}
@@ -430,7 +490,9 @@ export default function Settings() {
                       />
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">New Password</label>
+                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                        New Password
+                      </label>
                       <input
                         type="password"
                         value={newPw}
@@ -440,7 +502,9 @@ export default function Settings() {
                       />
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Confirm New Password</label>
+                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                        Confirm New Password
+                      </label>
                       <input
                         type="password"
                         value={confirmPw}
@@ -454,7 +518,11 @@ export default function Settings() {
                       disabled={savingPw || !currentPw || !newPw}
                       className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet to-magenta px-5 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-glow-violet)] disabled:opacity-50"
                     >
-                      {savingPw ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+                      {savingPw ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Lock className="h-4 w-4" />
+                      )}
                       Change Password
                     </button>
                   </div>

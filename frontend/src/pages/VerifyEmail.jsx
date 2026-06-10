@@ -26,9 +26,7 @@ export default function VerifyEmail() {
         setState("success");
       })
       .catch((err) => {
-        setMessage(
-          err.response?.data?.detail || "Verification failed. The link may have expired."
-        );
+        setMessage(err.response?.data?.detail || "Verification failed. The link may have expired.");
         setState(err.response?.status === 400 ? "error" : "error");
       });
   }, [uid, token]);
@@ -61,9 +59,7 @@ export default function VerifyEmail() {
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col items-center gap-4 py-2 text-center"
       >
-        {state === "loading" && (
-          <Loader2 className="h-10 w-10 animate-spin text-violet" />
-        )}
+        {state === "loading" && <Loader2 className="h-10 w-10 animate-spin text-violet" />}
 
         {state === "success" && (
           <>

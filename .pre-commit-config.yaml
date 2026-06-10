@@ -1,0 +1,28 @@
+# Lint gate — runs on `git push` (install: pre-commit install --hook-type pre-push)
+# Manual run: pre-commit run --all-files --hook-stage pre-push
+default_stages: [pre-push]
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9 # keep in sync with backend/requirements-dev.txt
+    hooks:
+      - id: ruff
+        files: ^backend/
+      - id: ruff-format
+        args: [--check]
+        files: ^backend/
+
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint (frontend)
+        entry: npm --prefix frontend run lint
+        language: system
+        files: ^frontend/src/.*\.(js|jsx)$
+        pass_filenames: false
+      - id: prettier-check
+        name: prettier check (frontend)
+        entry: npm --prefix frontend run format:check
+        language: system
+        files: ^frontend/src/.*\.(js|jsx|css)$
+        pass_filenames: false
