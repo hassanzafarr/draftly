@@ -35,7 +35,13 @@ export default function NewRFP() {
       const { data: proposal } = await api.post(`/rfps/${rfp.id}/generate/`);
       navigate(`/proposals/${proposal.id}`);
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Failed to create RFP.");
+      const detail = err.response?.data?.detail || "";
+      if (err.response?.status === 403 && detail.toLowerCase().includes("quota")) {
+        toast.error(detail);
+        navigate("/pricing");
+      } else {
+        toast.error(detail || "Failed to create RFP.");
+      }
     } finally {
       setLoading(false);
     }

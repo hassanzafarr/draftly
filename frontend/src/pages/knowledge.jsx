@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
 import {
@@ -31,6 +32,7 @@ function docToUiStatus(status) {
 }
 
 export default function Knowledge() {
+  const navigate = useNavigate();
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -94,7 +96,13 @@ export default function Knowledge() {
         setDocs((prev) => [newDoc, ...prev]);
         toast.success(`Uploaded: ${file.name}`);
       } catch (err) {
-        toast.error(err.response?.data?.detail || `Failed to upload ${file.name}`);
+        const detail = err.response?.data?.detail || "";
+        if (err.response?.status === 403 && detail.toLowerCase().includes("quota")) {
+          toast.error(detail);
+          navigate("/pricing");
+          break;
+        }
+        toast.error(detail || `Failed to upload ${file.name}`);
       }
     }
 
