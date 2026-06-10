@@ -8,11 +8,16 @@ setting `ADMIN_IP_ALLOWLIST` to a comma-separated list (e.g.
 
 import ipaddress
 import logging
+import time
+import uuid
 
 from django.conf import settings
 from django.http import HttpResponseForbidden
 
+from .logging import reset_logging_context, set_logging_context
+
 logger = logging.getLogger(__name__)
+request_logger = logging.getLogger("apps.core.request")
 
 
 def _parse_allowlist(raw: str):
@@ -91,3 +96,74 @@ class AdminIPAllowlistMiddleware:
         except ValueError:
             return False
         return any(ip_obj in net for net in self.networks)
+
+
+class RequestLogMiddleware:
+    """Emit a structured completion log for every HTTP request."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        request_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex
+        client_ip = _client_ip(request) or request.META.get("REMOTE_ADDR", "")
+        token = set_logging_context(
+            request_id=request_id,
+            http_method=request.method,
+            http_path=request.path,
+            client_ip=client_ip,
+        )
+        request.request_id = request_id
+        started_at = time.monotonic()
+
+        try:
+            response = self.get_response(request)
+        except Exception:
+            duration_ms = int((time.monotonic() - started_at) * 1000)
+            request_logger.exception(
+                "HTTP request failed",
+                extra={
+                    "event": "http_request_failed",
+                    "request_id": request_id,
+                    "http_method": request.method,
+                    "http_path": request.path,
+                    "duration_ms": duration_ms,
+                    "client_ip": client_ip,
+                    **_user_context(request),
+                },
+            )
+            raise
+        else:
+            duration_ms = int((time.monotonic() - started_at) * 1000)
+            response["X-Request-ID"] = request_id
+            status_code = getattr(response, "status_code", None)
+            level = logging.WARNING if status_code and status_code >= 500 else logging.INFO
+            request_logger.log(
+                level,
+                "HTTP request completed",
+                extra={
+                    "event": "http_request",
+                    "request_id": request_id,
+                    "http_method": request.method,
+                    "http_path": request.path,
+                    "http_status": status_code,
+                    "duration_ms": duration_ms,
+                    "client_ip": client_ip,
+                    **_user_context(request),
+                },
+            )
+            return response
+        finally:
+            reset_logging_context(token)
+
+
+def _user_context(request):
+    user = getattr(request, "user", None)
+    if not getattr(user, "is_authenticated", False):
+        return {}
+
+    context = {"user_id": str(getattr(user, "id", ""))}
+    org_id = getattr(user, "org_id", "")
+    if org_id:
+        context["org_id"] = str(org_id)
+    return context

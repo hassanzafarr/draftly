@@ -233,7 +233,9 @@ JWT tokens: 8-hour access, 7-day refresh (rotate-refresh enabled via `SIMPLE_JWT
 ## Implemented Features
 
 - Multi-tenant orgs with subscription tiers (starter / growth / agency)
-- User auth: JWT register, login, refresh, `/me` endpoint; admin/member roles per org
+- User auth: JWT register (email verification required), login, refresh, `/me` endpoint; admin/member roles per org
+- Email verification: `POST /api/auth/verify-email/` with `{uid, token}` from email link; new accounts have `is_active=False` until verified; login returns HTTP 403 with clear message for unverified accounts
+- JWT token invalidation on password change: `User.password_changed_at` is set by `change_password` and `password_reset_confirm`; `PasswordAwareJWTAuthentication` (`apps/core/authentication.py`) rejects tokens whose `iat` predates it
 - Profile & org settings: email update, password change, org name update via `/auth/profile/`, `/auth/password/`, `/auth/org/`
 - Document management: PDF/DOCX/TXT upload with category selection, async ingestion, chunking, pgvector embedding, quota enforcement
 - Consolidated knowledge base: upload with category (company_profile / past_proposals / case_studies), filter, search, drag-drop
@@ -254,9 +256,10 @@ JWT tokens: 8-hour access, 7-day refresh (rotate-refresh enabled via `SIMPLE_JWT
 ## Known Gaps
 
 - **Billing (Stripe) shipped but unaudited in prod**: Checkout, Portal, webhook with idempotency, and tests in place. Stripe Tax / EU VAT not yet enabled.
+- **Email verification frontend**: Backend sends `{FRONTEND_URL}/verify-email?uid=...&token=...`; frontend needs a `/verify-email` page that POSTs to `/api/auth/verify-email/`.
 - **No team invitations**: User model supports admin/member roles and multiple users per org, but no invite endpoint or UI exists.
 - **No SSE/WebSocket**: Frontend uses polling (3s proposals, 5s docs); no streaming endpoint.
 - **Test coverage**: Test infra in place (pytest backend + vitest frontend) but only auth smoke + multi-tenant isolation covered. Document upload, proposal generation, and page-level tests not yet written.
-- **No CI/CD**: Dockerfiles and Railway/Vercel configs exist but no GitHub Actions workflows.
+- **CI/CD**: `deploy.yml` deploys on push to main (lint → test → build → Azure). `ci.yml` runs lint + test + `pip-audit` / `npm audit --audit-level=high` on every PR. Dependabot configured weekly (pip + npm + GitHub Actions).
 - **Templates are mock**: Template gallery shows mock data — no backend Template model yet.
 - **Word-based chunking**: Chunk sizes vary for non-English or code-heavy docs.

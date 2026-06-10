@@ -73,5 +73,6 @@ class RegisterSerializer(serializers.Serializer):
             password=validated_data["password"],
             org=org,
             role=User.Role.ADMIN,
+            is_active=False,  # activated via email verification link
         )
         return user

@@ -14,6 +14,10 @@ ALLOWED_HOSTS = config(
     cast=Csv(),
 )
 SENTRY_DSN = config("SENTRY_DSN", default="")
+ENVIRONMENT = config(
+    "SENTRY_ENVIRONMENT",
+    default="development" if DEBUG else "production",
+)
 
 if SENTRY_DSN:
     import sentry_sdk
@@ -22,10 +26,7 @@ if SENTRY_DSN:
 
     sentry_sdk.init(
         dsn=SENTRY_DSN,
-        environment=config(
-            "SENTRY_ENVIRONMENT",
-            default="development" if DEBUG else "production",
-        ),
+        environment=ENVIRONMENT,
         integrations=[
             DjangoIntegration(),
             CeleryIntegration(),
@@ -55,6 +56,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
+    "apps.core.middleware.RequestLogMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "apps.core.middleware.AdminIPAllowlistMiddleware",
@@ -133,10 +135,75 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Logging
+LOG_LEVEL = config("LOG_LEVEL", default="INFO").upper()
+DJANGO_LOG_LEVEL = config("DJANGO_LOG_LEVEL", default=LOG_LEVEL).upper()
+LOG_FORMAT = config("LOG_FORMAT", default="console" if DEBUG else "json").lower()
+LOG_SERVICE = config("LOG_SERVICE", default="draftly-backend")
+_LOG_FORMATTER = "json" if LOG_FORMAT == "json" else "console"
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {
+        "request_context": {
+            "()": "apps.core.logging.RequestContextFilter",
+        },
+    },
+    "formatters": {
+        "console": {
+            "format": "%(levelname)s %(name)s %(message)s",
+        },
+        "json": {
+            "()": "apps.core.logging.JsonFormatter",
+            "service": LOG_SERVICE,
+            "environment": ENVIRONMENT,
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": _LOG_FORMATTER,
+            "filters": ["request_context"],
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": LOG_LEVEL,
+    },
+    "loggers": {
+        "apps": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "celery": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "django": {
+            "handlers": ["console"],
+            "level": DJANGO_LOG_LEVEL,
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "django.server": {
+            "handlers": ["console"],
+            "level": DJANGO_LOG_LEVEL,
+            "propagate": False,
+        },
+    },
+}
+
 # Django REST Framework
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "apps.core.authentication.PasswordAwareJWTAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
@@ -244,6 +311,7 @@ CELERY_BROKER_URL = config("REDIS_URL", default="redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = config("REDIS_URL", default="redis://localhost:6379/0")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
+CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 
 # File storage — local by default, Supabase Storage in production
 USE_SUPABASE_STORAGE = config("USE_SUPABASE_STORAGE", default=False, cast=bool)

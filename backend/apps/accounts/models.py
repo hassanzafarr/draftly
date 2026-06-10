@@ -115,6 +115,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     created_at = models.DateTimeField(auto_now_add=True)
     google_id = models.CharField(max_length=255, null=True, blank=True, unique=True)
     avatar_url = models.URLField(max_length=500, null=True, blank=True)
+    # Set whenever the user's password is explicitly changed; JWTs issued
+    # before this timestamp are rejected by PasswordAwareJWTAuthentication.
+    password_changed_at = models.DateTimeField(null=True, blank=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []

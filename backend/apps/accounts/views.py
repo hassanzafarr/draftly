@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.db import transaction
+from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import serializers as drf_serializers
@@ -51,10 +52,23 @@ class GoogleAwareTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 
 class ThrottledTokenObtainPairView(TokenObtainPairView):
-    """JWT login endpoint with per-IP brute-force throttling."""
+    """JWT login with brute-force throttling and a clear error for unverified accounts."""
 
     serializer_class = GoogleAwareTokenObtainPairSerializer
     throttle_classes = [AuthLoginThrottle]
+
+    def post(self, request, *args, **kwargs):
+        email = request.data.get("email", "").strip().lower()
+        try:
+            user = User.objects.get(email__iexact=email)
+            if not user.is_active and user.check_password(request.data.get("password", "")):
+                return Response(
+                    {"detail": "Please verify your email address before logging in."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+        except User.DoesNotExist:
+            pass
+        return super().post(request, *args, **kwargs)
 
 
 class ThrottledTokenRefreshView(TokenRefreshView):
@@ -70,7 +84,58 @@ def register(request):
     serializer = RegisterSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     user = serializer.save()
-    return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    verify_url = f"{settings.FRONTEND_URL}/verify-email?uid={uid}&token={token}"
+    try:
+        send_mail(
+            subject="Verify your Draftly email",
+            message=(
+                f"Hi,\n\n"
+                f"Thanks for signing up. Click the link below to verify your email address.\n\n"
+                f"{verify_url}\n\n"
+                f"If you didn't create this account, you can ignore this email.\n\n"
+                f"— Draftly"
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+    except Exception:
+        logger.exception("Failed to send verification email to %s", user.email)
+
+    return Response(
+        {**UserSerializer(user).data, "detail": "Check your email to verify your account."},
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def verify_email(request):
+    """Activate a user account using the uid+token from the verification email."""
+    uid = request.data.get("uid", "")
+    token = request.data.get("token", "")
+
+    try:
+        pk = force_str(urlsafe_base64_decode(uid))
+        user = User.objects.get(pk=pk)
+    except (User.DoesNotExist, ValueError, TypeError):
+        return Response({"detail": "Invalid verification link."}, status=status.HTTP_400_BAD_REQUEST)
+
+    if user.is_active:
+        return Response({"detail": "Account already verified."})
+
+    if not default_token_generator.check_token(user, token):
+        return Response(
+            {"detail": "Verification link is invalid or has expired."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    user.is_active = True
+    user.save(update_fields=["is_active"])
+    return Response({"detail": "Email verified. You can now log in."})
 
 
 @api_view(["GET"])
@@ -86,8 +151,6 @@ def update_profile(request):
     user = request.user
     email = request.data.get("email")
     if email:
-        from .models import User
-
         if User.objects.filter(email=email).exclude(pk=user.pk).exists():
             return Response(
                 {"detail": "Email already in use."},
@@ -95,7 +158,6 @@ def update_profile(request):
             )
         user.email = email
         user.save(update_fields=["email"])
-        # Keep Stripe customer in sync so receipts go to the right address.
         org = user.org
         if org and org.stripe_customer_id:
             try:
@@ -112,7 +174,7 @@ def update_profile(request):
 @permission_classes([IsAuthenticated])
 @throttle_classes([PasswordChangeThrottle])
 def change_password(request):
-    """Change the authenticated user's password."""
+    """Change the authenticated user's password and invalidate existing JWTs."""
     user = request.user
     current = request.data.get("current_password", "")
     new = request.data.get("new_password", "")
@@ -129,6 +191,7 @@ def change_password(request):
         )
 
     user.set_password(new)
+    user.password_changed_at = timezone.now()
     user.save()
     return Response({"detail": "Password changed successfully."})
 
@@ -175,7 +238,7 @@ def password_reset_request(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def password_reset_confirm(request):
-    """Validate the reset token and set the new password."""
+    """Validate the reset token, set the new password, and invalidate existing JWTs."""
     serializer = PasswordResetConfirmSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
@@ -195,6 +258,7 @@ def password_reset_confirm(request):
         )
 
     user.set_password(new_password)
+    user.password_changed_at = timezone.now()
     user.save()
     return Response({"detail": "Password reset successfully."})
 
