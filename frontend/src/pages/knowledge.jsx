@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import api from "../api/client";
+import { watchDocuments } from "../api/sse";
 
 const CATEGORIES = [
   {
@@ -84,16 +85,25 @@ export default function Knowledge() {
     fetchDocs();
   }, [fetchDocs]);
 
-  // Poll only when there are processing docs
+  // Watch ingestion status over SSE only while docs are in flight
+  // (watchDocuments falls back to interval polling if streaming fails).
+  // Keyed on the boolean so per-status updates don't restart the stream.
+  const hasProcessing = docs.some((d) => d.status === "processing" || d.status === "pending");
   useEffect(() => {
-    const hasProcessing = docs.some((d) => d.status === "processing" || d.status === "pending");
-    if (hasProcessing) {
-      pollRef.current = setInterval(fetchDocs, 5000);
-    } else {
-      clearInterval(pollRef.current);
-    }
-    return () => clearInterval(pollRef.current);
-  }, [docs, fetchDocs]);
+    if (!hasProcessing) return undefined;
+    pollRef.current = watchDocuments({
+      onStatus: (rows) => {
+        const byId = new Map(rows.map((r) => [r.id, r]));
+        setDocs((prev) => prev.map((d) => (byId.has(d.id) ? { ...d, ...byId.get(d.id) } : d)));
+      },
+      onDone: (fullDocs) => setDocs(fullDocs),
+      onError: () => toast.error("Lost connection while indexing documents."),
+    });
+    return () => {
+      pollRef.current?.();
+      pollRef.current = null;
+    };
+  }, [hasProcessing]);
 
   const handleAdd = async (fileList) => {
     if (!fileList?.length) return;

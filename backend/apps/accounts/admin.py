@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import Organization, User
+from .models import Invitation, Organization, User
 
 
 @admin.register(Organization)
@@ -22,3 +22,10 @@ class UserAdmin(BaseUserAdmin):
     add_fieldsets = ((None, {"fields": ("email", "password1", "password2", "org", "role")}),)
     ordering = ["email"]
     search_fields = ["email"]
+
+
+@admin.register(Invitation)
+class InvitationAdmin(admin.ModelAdmin):
+    list_display = ["email", "org", "role", "status", "created_at", "expires_at"]
+    list_filter = ["status", "role"]
+    search_fields = ["email", "org__name"]

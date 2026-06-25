@@ -79,6 +79,51 @@ class Proposal(models.Model):
         return f"Proposal for {self.rfp.title}"
 
 
+class Template(models.Model):
+    """A reusable proposal blueprint: a named set of section labels.
+
+    org=None marks a built-in template visible to every organization;
+    org-owned templates are private to that org.
+    """
+
+    class Category(models.TextChoices):
+        WEB = "web", "Web"
+        MOBILE = "mobile", "Mobile"
+        DATA = "data", "Data"
+        DESIGN = "design", "Design"
+        INFRASTRUCTURE = "infrastructure", "Infrastructure"
+        OTHER = "other", "Other"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    org = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name="templates", null=True, blank=True
+    )
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="templates"
+    )
+    title = models.CharField(max_length=255)
+    snippet = models.TextField(blank=True)
+    category = models.CharField(max_length=20, choices=Category.choices, default=Category.OTHER)
+    accent = models.CharField(max_length=20, default="violet")
+    # Ordered list of section display labels fed to RFP.sections on use.
+    sections = models.JSONField(default=list)
+    sort_order = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["sort_order", "title"]
+        indexes = [models.Index(fields=["org", "is_active"])]
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def is_builtin(self):
+        return self.org_id is None
+
+
 class GenerationEvent(models.Model):
     """Per-proposal telemetry for evaluating retrieval + generation quality."""
 

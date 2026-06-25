@@ -226,6 +226,7 @@ REST_FRAMEWORK = {
         "document_upload": config("THROTTLE_DOCUMENT_UPLOAD", default="30/hour"),
         "billing_checkout": config("THROTTLE_BILLING_CHECKOUT", default="10/hour"),
         "password_reset": config("THROTTLE_PASSWORD_RESET", default="5/hour"),
+        "team_invite": config("THROTTLE_TEAM_INVITE", default="20/hour"),
     },
 }
 
@@ -392,3 +393,10 @@ RFP_MIN_WORDS = config("RFP_MIN_WORDS", default=30, cast=int)
 RFP_MAX_CHARS = config("RFP_MAX_CHARS", default=200_000, cast=int)
 RFP_INTENT_CHECK_ENABLED = config("RFP_INTENT_CHECK_ENABLED", default=True, cast=bool)
 RFP_INTENT_MIN_CONFIDENCE = config("RFP_INTENT_MIN_CONFIDENCE", default=0.7, cast=float)
+
+# Server-Sent Events (status streaming). Streams hold a gunicorn gthread thread,
+# so the max duration must stay well under the worker --timeout; clients
+# reconnect (or fall back to polling) when a stream ends with `event: timeout`.
+SSE_POLL_INTERVAL_SECONDS = config("SSE_POLL_INTERVAL_SECONDS", default=1.0, cast=float)
+SSE_MAX_DURATION_SECONDS = config("SSE_MAX_DURATION_SECONDS", default=90, cast=int)
+SSE_HEARTBEAT_SECONDS = config("SSE_HEARTBEAT_SECONDS", default=15, cast=int)

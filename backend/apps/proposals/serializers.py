@@ -7,7 +7,7 @@ from rest_framework import serializers
 
 from apps.documents.pipeline import extract_text
 
-from .models import RFP, Proposal
+from .models import RFP, Proposal, Template
 
 log = logging.getLogger(__name__)
 
@@ -58,9 +58,11 @@ def _heuristic_title(text: str) -> str:
 
     sample = " ".join(text.split()[:120])
 
-    # 1. Explicit label patterns
+    # 1. Explicit label patterns — search the raw text (not the
+    #    whitespace-collapsed `sample`) so the `[^\n\.]` capture stops at the
+    #    end of the label's line instead of bleeding into the next line.
     for pat in [r"(?:project\s+name|title|subject|rfp\s+title)\s*[:\-]\s*([^\n\.]{3,80})"]:
-        m = re.search(pat, sample, re.IGNORECASE)
+        m = re.search(pat, text, re.IGNORECASE)
         if m:
             return _clean(m.group(1))
 
@@ -259,6 +261,42 @@ class ProposalSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+
+class TemplateSerializer(serializers.ModelSerializer):
+    is_builtin = serializers.BooleanField(read_only=True)
+    sections_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Template
+        fields = [
+            "id",
+            "title",
+            "snippet",
+            "category",
+            "accent",
+            "sections",
+            "sections_count",
+            "is_builtin",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "is_builtin", "created_at", "updated_at"]
+
+    def get_sections_count(self, obj):
+        return len(obj.sections or [])
+
+    def validate_sections(self, value):
+        if not isinstance(value, list) or not value:
+            raise serializers.ValidationError("Provide at least one section.")
+        cleaned = []
+        for s in value:
+            if not isinstance(s, str) or not s.strip():
+                raise serializers.ValidationError("Sections must be non-empty strings.")
+            if len(s) > 120:
+                raise serializers.ValidationError("Section names must be 120 characters or fewer.")
+            cleaned.append(s.strip())
+        return cleaned
 
 
 class ProposalUpdateSerializer(serializers.ModelSerializer):

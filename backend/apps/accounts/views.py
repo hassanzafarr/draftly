@@ -16,19 +16,24 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+from apps.core.permissions import IsOrgAdmin, IsOrgMember
 from apps.core.throttling import (
     AuthLoginThrottle,
     AuthRegisterThrottle,
     PasswordChangeThrottle,
     PasswordResetThrottle,
+    TeamInviteThrottle,
 )
 
-from .models import Organization, User
+from .models import Invitation, Organization, User
 from .serializers import (
+    InvitationSerializer,
+    InviteAcceptSerializer,
     OrganizationSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
     RegisterSerializer,
+    TeamMemberSerializer,
     UserSerializer,
 )
 
@@ -284,6 +289,221 @@ def org_settings(request):
         org.name = name
         org.save(update_fields=["name"])
     return Response(OrganizationSerializer(org).data)
+
+
+def _org_seats_used(org):
+    """Seats consumed = existing users + pending non-expired invites."""
+    pending_invites = _active_pending_invites(org).count()
+    return org.users.count() + pending_invites
+
+
+def _active_pending_invites(org):
+    """Pending invitations that can still be accepted."""
+    return Invitation.objects.filter(
+        org=org, status=Invitation.Status.PENDING, expires_at__gt=timezone.now()
+    )
+
+
+@api_view(["GET"])
+@permission_classes([IsOrgMember])
+def team_members(request):
+    """List all users in the caller's organization."""
+    members = User.objects.filter(org=request.user.org).order_by("created_at")
+    return Response(
+        {
+            "members": TeamMemberSerializer(members, many=True).data,
+            "seats_used": _org_seats_used(request.user.org),
+            "seat_limit": request.user.org.seat_limit,
+        }
+    )
+
+
+@api_view(["DELETE"])
+@permission_classes([IsOrgAdmin])
+def team_member_detail(request, pk):
+    """Remove a member from the organization (admin only, cannot remove yourself)."""
+    try:
+        member = User.objects.get(pk=pk, org=request.user.org)
+    except User.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    if member.pk == request.user.pk:
+        return Response(
+            {"detail": "You cannot remove yourself from the organization."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    member.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsOrgAdmin])
+@throttle_classes([TeamInviteThrottle])
+def team_invites(request):
+    """List pending invites or create a new one (admin only)."""
+    org = request.user.org
+
+    if request.method == "GET":
+        invites = _active_pending_invites(org)
+        return Response(InvitationSerializer(invites, many=True).data)
+
+    serializer = InvitationSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    email = serializer.validated_data["email"].strip().lower()
+    role = serializer.validated_data.get("role", User.Role.MEMBER)
+
+    if User.objects.filter(email__iexact=email).exists():
+        return Response(
+            {"detail": "A user with this email already has a Draftly account."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if _active_pending_invites(org).filter(email__iexact=email).exists():
+        return Response(
+            {"detail": "An invitation for this email is already pending."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if _org_seats_used(org) >= org.seat_limit:
+        return Response(
+            {
+                "detail": (
+                    f"Seat limit reached ({org.seat_limit} seats on the "
+                    f"{org.get_subscription_tier_display()} plan). "
+                    "Upgrade your plan to invite more teammates."
+                )
+            },
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    invite = Invitation.objects.create(org=org, email=email, role=role, invited_by=request.user)
+    accept_url = f"{settings.FRONTEND_URL}/accept-invite?token={invite.token}"
+    try:
+        send_mail(
+            subject=f"You've been invited to join {org.name} on Draftly",
+            message=(
+                f"Hi,\n\n"
+                f"{request.user.email} has invited you to join {org.name} on Draftly.\n\n"
+                f"Click the link below to accept the invitation and set up your account. "
+                f"This link expires in {Invitation.TTL_DAYS} days.\n\n"
+                f"{accept_url}\n\n"
+                f"If you weren't expecting this invitation, you can ignore this email.\n\n"
+                f"— Draftly"
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+    except Exception:
+        logger.exception("Failed to send invitation email to %s", email)
+        invite.delete()
+        return Response(
+            {"detail": "Could not send the invitation email. Please try again."},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    return Response(InvitationSerializer(invite).data, status=status.HTTP_201_CREATED)
+
+
+@api_view(["DELETE"])
+@permission_classes([IsOrgAdmin])
+def team_invite_detail(request, pk):
+    """Revoke a pending invitation (admin only)."""
+    try:
+        invite = Invitation.objects.get(
+            pk=pk, org=request.user.org, status=Invitation.Status.PENDING
+        )
+    except Invitation.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    invite.status = Invitation.Status.REVOKED
+    invite.save(update_fields=["status"])
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def invite_info(request, token):
+    """Public lookup of an invitation by token, for the accept-invite page."""
+    try:
+        invite = Invitation.objects.select_related("org", "invited_by").get(token=token)
+    except Invitation.DoesNotExist:
+        return Response({"detail": "Invitation not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    if invite.status != Invitation.Status.PENDING:
+        return Response(
+            {"detail": "This invitation is no longer valid."},
+            status=status.HTTP_410_GONE,
+        )
+    if invite.is_expired:
+        return Response({"detail": "This invitation has expired."}, status=status.HTTP_410_GONE)
+
+    return Response(
+        {
+            "email": invite.email,
+            "org_name": invite.org.name,
+            "role": invite.role,
+            "invited_by": invite.invited_by.email if invite.invited_by else None,
+            "expires_at": invite.expires_at,
+        }
+    )
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@throttle_classes([AuthRegisterThrottle])
+def invite_accept(request):
+    """Accept an invitation: create the user in the inviting org and log them in."""
+    serializer = InviteAcceptSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    try:
+        invite = Invitation.objects.select_related("org").get(
+            token=serializer.validated_data["token"]
+        )
+    except Invitation.DoesNotExist:
+        return Response({"detail": "Invitation not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    if invite.status != Invitation.Status.PENDING or invite.is_expired:
+        return Response(
+            {"detail": "This invitation is no longer valid."},
+            status=status.HTTP_410_GONE,
+        )
+    if User.objects.filter(email__iexact=invite.email).exists():
+        return Response(
+            {"detail": "This email is already registered. Please sign in instead."},
+            status=status.HTTP_409_CONFLICT,
+        )
+    # Seats may have filled up between invite creation and acceptance.
+    if invite.org.users.count() >= invite.org.seat_limit:
+        return Response(
+            {"detail": "This organization has no seats available. Ask your admin to upgrade."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    with transaction.atomic():
+        # Email ownership is proven by possession of the invite token,
+        # so the account is active immediately — no verification email.
+        user = User.objects.create_user(
+            email=invite.email,
+            password=serializer.validated_data["password"],
+            org=invite.org,
+            role=invite.role,
+            is_active=True,
+            terms_accepted_at=timezone.now(),
+        )
+        invite.status = Invitation.Status.ACCEPTED
+        invite.accepted_at = timezone.now()
+        invite.save(update_fields=["status", "accepted_at"])
+
+    refresh = RefreshToken.for_user(user)
+    return Response(
+        {
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+            "user": UserSerializer(user).data,
+        },
+        status=status.HTTP_201_CREATED,
+    )
 
 
 def _verify_google_access_token(access_token):

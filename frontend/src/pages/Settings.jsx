@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Settings as SettingsIcon,
@@ -15,6 +15,10 @@ import {
   Star,
   CreditCard,
   ExternalLink,
+  Users,
+  Send,
+  Trash2,
+  MailOpen,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import api from "../api/client";
@@ -30,21 +34,21 @@ const TIER_CONFIG = {
   },
   solo: {
     label: "Solo",
-    price: "$19 / month",
+    price: "$12 / month",
     color: "violet",
     icon: Sparkles,
     features: ["25 proposals/mo", "25 documents", "1 seat"],
   },
   studio: {
     label: "Studio",
-    price: "$89 / month",
+    price: "$49 / month",
     color: "magenta",
     icon: Star,
     features: ["150 proposals/mo", "250 documents", "5 seats"],
   },
   agency: {
     label: "Agency",
-    price: "$249 / month",
+    price: "$149 / month",
     color: "amber",
     icon: Crown,
     features: ["750 proposals/mo", "Unlimited documents", "10 seats"],
@@ -54,6 +58,7 @@ const TIER_CONFIG = {
 const TABS = [
   { id: "profile", label: "Profile", icon: User },
   { id: "organization", label: "Organization", icon: Building2 },
+  { id: "team", label: "Team", icon: Users },
   { id: "security", label: "Security", icon: Lock },
 ];
 
@@ -450,6 +455,9 @@ export default function Settings() {
             </motion.div>
           )}
 
+          {/* Team */}
+          {tab === "team" && <TeamTab user={user} />}
+
           {/* Security */}
           {tab === "security" && (
             <motion.div
@@ -556,5 +564,254 @@ export default function Settings() {
         </div>
       </div>
     </div>
+  );
+}
+
+function TeamTab({ user }) {
+  const isAdmin = user?.role === "admin";
+
+  const [members, setMembers] = useState([]);
+  const [seats, setSeats] = useState({ used: 0, limit: 0 });
+  const [invites, setInvites] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("member");
+  const [sending, setSending] = useState(false);
+
+  const loadTeam = useCallback(async () => {
+    try {
+      const requests = [api.get("/auth/team/members/")];
+      if (isAdmin) requests.push(api.get("/auth/team/invites/"));
+      const [membersRes, invitesRes] = await Promise.all(requests);
+      setMembers(membersRes.data.members);
+      setSeats({ used: membersRes.data.seats_used, limit: membersRes.data.seat_limit });
+      if (invitesRes) setInvites(invitesRes.data);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to load team.");
+    } finally {
+      setLoading(false);
+    }
+  }, [isAdmin]);
+
+  useEffect(() => {
+    loadTeam();
+  }, [loadTeam]);
+
+  const handleInvite = async (e) => {
+    e.preventDefault();
+    if (!inviteEmail.trim()) return;
+    setSending(true);
+    try {
+      await api.post("/auth/team/invites/", {
+        email: inviteEmail.trim(),
+        role: inviteRole,
+      });
+      toast.success(`Invitation sent to ${inviteEmail.trim()}.`);
+      setInviteEmail("");
+      setInviteRole("member");
+      await loadTeam();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Could not send the invitation.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleRevoke = async (invite) => {
+    try {
+      await api.delete(`/auth/team/invites/${invite.id}/`);
+      toast.success(`Invitation to ${invite.email} revoked.`);
+      await loadTeam();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Could not revoke the invitation.");
+    }
+  };
+
+  const handleRemoveMember = async (member) => {
+    if (!window.confirm(`Remove ${member.email} from the organization?`)) return;
+    try {
+      await api.delete(`/auth/team/members/${member.id}/`);
+      toast.success(`${member.email} removed.`);
+      await loadTeam();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Could not remove the member.");
+    }
+  };
+
+  const seatsFull = seats.limit > 0 && seats.used >= seats.limit;
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-violet" />
+      </div>
+    );
+  }
+
+  return (
+    <motion.div
+      key="team"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6"
+    >
+      {/* Seats */}
+      <div className="glass rounded-2xl p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-display text-base font-semibold text-foreground">Team</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Members and pending invitations count toward your seats
+            </p>
+          </div>
+          <span
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
+              seatsFull
+                ? "border-amber/40 bg-amber/10 text-amber"
+                : "border-hairline bg-surface/40 text-foreground/80"
+            }`}
+          >
+            {seats.used} of {seats.limit} seat{seats.limit !== 1 ? "s" : ""} used
+          </span>
+        </div>
+
+        {/* Invite form — admins only */}
+        {isAdmin && (
+          <form onSubmit={handleInvite} className="mt-5 flex flex-wrap gap-3">
+            <input
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="teammate@company.com"
+              className="min-w-[220px] flex-1 rounded-xl border border-hairline bg-surface/60 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground backdrop-blur focus:border-violet/40 focus:outline-none"
+            />
+            <select
+              value={inviteRole}
+              onChange={(e) => setInviteRole(e.target.value)}
+              aria-label="Role"
+              className="rounded-xl border border-hairline bg-surface/60 px-3 py-2.5 text-sm text-foreground backdrop-blur focus:border-violet/40 focus:outline-none"
+            >
+              <option value="member">Member</option>
+              <option value="admin">Admin</option>
+            </select>
+            <button
+              type="submit"
+              disabled={sending || !inviteEmail.trim() || seatsFull}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet to-magenta px-5 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-glow-violet)] disabled:opacity-50"
+            >
+              {sending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              Invite
+            </button>
+            {seatsFull && (
+              <p className="w-full text-xs text-amber">
+                All seats are in use. Upgrade your plan to invite more teammates.
+              </p>
+            )}
+          </form>
+        )}
+      </div>
+
+      {/* Members */}
+      <div className="glass rounded-2xl p-6">
+        <h3 className="font-display text-base font-semibold text-foreground">
+          Members ({members.length})
+        </h3>
+        <ul className="mt-4 divide-y divide-hairline">
+          {members.map((m) => {
+            const name = m.email.split("@")[0];
+            return (
+              <li key={m.id} className="flex items-center gap-4 py-3">
+                <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full ring-1 ring-violet/40">
+                  {m.avatar_url ? (
+                    <img src={m.avatar_url} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <>
+                      <span className="absolute inset-0 bg-gradient-to-br from-violet to-magenta" />
+                      <span className="relative z-10 flex h-full w-full items-center justify-center text-[11px] font-semibold text-white">
+                        {name.slice(0, 2).toUpperCase()}
+                      </span>
+                    </>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-foreground">
+                    {m.email}
+                    {m.id === user?.id && (
+                      <span className="ml-2 text-xs text-muted-foreground">(you)</span>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Joined {new Date(m.created_at).toLocaleDateString()}
+                    {!m.is_active && " · pending verification"}
+                  </p>
+                </div>
+                <span
+                  className={`rounded-full border px-2.5 py-0.5 text-[11px] capitalize ${
+                    m.role === "admin"
+                      ? "border-violet/40 bg-violet/10 text-violet"
+                      : "border-hairline bg-surface/40 text-foreground/70"
+                  }`}
+                >
+                  {m.role}
+                </span>
+                {isAdmin && m.id !== user?.id && (
+                  <button
+                    onClick={() => handleRemoveMember(m)}
+                    aria-label={`Remove ${m.email}`}
+                    className="rounded-lg p-2 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      {/* Pending invites — admins only */}
+      {isAdmin && (
+        <div className="glass rounded-2xl p-6">
+          <h3 className="font-display text-base font-semibold text-foreground">
+            Pending Invitations ({invites.length})
+          </h3>
+          {invites.length === 0 ? (
+            <p className="mt-3 text-sm text-muted-foreground">No pending invitations.</p>
+          ) : (
+            <ul className="mt-4 divide-y divide-hairline">
+              {invites.map((inv) => (
+                <li key={inv.id} className="flex items-center gap-4 py-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan/10 ring-1 ring-cyan/40">
+                    <MailOpen className="h-4 w-4 text-cyan" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm text-foreground">{inv.email}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Expires {new Date(inv.expires_at).toLocaleDateString()}
+                      {inv.invited_by_email && ` · invited by ${inv.invited_by_email}`}
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-hairline bg-surface/40 px-2.5 py-0.5 text-[11px] capitalize text-foreground/70">
+                    {inv.role}
+                  </span>
+                  <button
+                    onClick={() => handleRevoke(inv)}
+                    aria-label={`Revoke invitation to ${inv.email}`}
+                    className="rounded-lg p-2 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </motion.div>
   );
 }

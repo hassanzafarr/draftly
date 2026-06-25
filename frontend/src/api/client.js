@@ -9,6 +9,8 @@ const baseURL = normalizedApiUrl
     : `${normalizedApiUrl}/api`
   : "/api";
 
+export { baseURL };
+
 const api = axios.create({
   baseURL,
   headers: { "Content-Type": "application/json" },

@@ -30,6 +30,20 @@ class IsOrgMember(BasePermission):
         return bool(request.user and request.user.is_authenticated and request.user.org)
 
 
+class IsOrgAdmin(BasePermission):
+    """Allow only authenticated org members with the admin role."""
+
+    message = "Only organization admins can perform this action."
+
+    def has_permission(self, request, view):
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and request.user.org
+            and request.user.role == "admin"
+        )
+
+
 class OrgDocQuotaPermission(BasePermission):
     """Block document upload if org is at its doc quota."""
 

@@ -3,6 +3,7 @@ from rest_framework.decorators import api_view, permission_classes, throttle_cla
 from rest_framework.response import Response
 
 from apps.core.permissions import IsOrgMember, OrgDocQuotaPermission
+from apps.core.sse import sse_response, stream_changes
 from apps.core.throttling import DocumentUploadThrottle
 
 from .models import Document
@@ -58,3 +59,28 @@ def document_detail(request, pk):
     doc.file.delete(save=False)
     doc.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(["GET"])
+@permission_classes([IsOrgMember])
+def document_events(request):
+    """SSE stream of ingestion status for the org's in-flight documents.
+
+    Emits `event: status` with {documents: [{id, status, chunk_count,
+    error_message}]} whenever any document's status changes, then `event: done`
+    once nothing is pending/processing. Clients merge by id and refetch the
+    full list on done.
+    """
+    org_id = request.user.org_id
+    in_flight = (Document.Status.PENDING, Document.Status.PROCESSING)
+
+    def fetch_state():
+        rows = Document.objects.filter(org_id=org_id).values(
+            "id", "status", "chunk_count", "error_message"
+        )
+        return {"documents": [{**row, "id": str(row["id"])} for row in rows]}
+
+    def is_terminal(state):
+        return not any(doc["status"] in in_flight for doc in state["documents"])
+
+    return sse_response(stream_changes(fetch_state, is_terminal))

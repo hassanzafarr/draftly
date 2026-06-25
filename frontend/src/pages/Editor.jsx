@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import jsPDF from "jspdf";
 import api from "../api/client";
+import { watchProposal } from "../api/sse";
 import ConfirmModal from "../components/ConfirmModal";
 
 const FALLBACK_SECTION_ORDER = [
@@ -91,15 +92,22 @@ export default function Editor() {
     fetchProposal()
       .then((data) => {
         if (data.status === "generating") {
-          pollRef.current = setInterval(async () => {
-            const updated = await fetchProposal();
-            if (updated.status !== "generating") clearInterval(pollRef.current);
-          }, 3000);
+          // Live status over SSE (falls back to polling inside watchProposal).
+          pollRef.current = watchProposal(id, {
+            onStatus: (partial) => setProposal((prev) => (prev ? { ...prev, ...partial } : prev)),
+            onDone: (full) => {
+              setProposal(full);
+              if (full.sections) setSections(full.sections);
+            },
+            onError: () => toast.error("Lost connection while loading the proposal."),
+          });
         }
       })
       .catch(() => toast.error("Failed to load proposal."));
-    return () => clearInterval(pollRef.current);
-  }, [fetchProposal]);
+    return () => {
+      if (typeof pollRef.current === "function") pollRef.current();
+    };
+  }, [fetchProposal, id]);
 
   // Active section tracking on scroll
   useEffect(() => {

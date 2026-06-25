@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from .models import RFP, GenerationEvent, Proposal
+from .models import RFP, GenerationEvent, Proposal, Template
+
+
+@admin.register(Template)
+class TemplateAdmin(admin.ModelAdmin):
+    list_display = ["title", "category", "org", "is_active", "sort_order", "created_at"]
+    list_filter = ["category", "is_active"]
+    search_fields = ["title", "org__name"]
 
 
 @admin.register(RFP)
