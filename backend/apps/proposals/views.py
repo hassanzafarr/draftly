@@ -9,14 +9,16 @@ from rest_framework.decorators import api_view, permission_classes, throttle_cla
 from rest_framework.response import Response
 
 from apps.core.permissions import IsOrgMember, OrgProposalQuotaPermission
+from apps.core.sse import sse_response, stream_changes
 from apps.core.throttling import ProposalGenerateThrottle
 
-from .models import RFP, GenerationEvent, Proposal
+from .models import RFP, GenerationEvent, Proposal, Template
 from .serializers import (
     ProposalSerializer,
     ProposalUpdateSerializer,
     RFPCreateSerializer,
     RFPSerializer,
+    TemplateSerializer,
 )
 from .tasks import generate_proposal_task
 from .validators import classify_rfp_intent
@@ -64,6 +66,22 @@ def generate_proposal(request, rfp_pk):
         rfp = RFP.objects.get(pk=rfp_pk, org=request.user.org)
     except RFP.DoesNotExist:
         return Response(status=status.HTTP_404_NOT_FOUND)
+
+    # Length ceiling — re-checked here (not only at RFP creation) so RFPs created
+    # before the guard existed, or after RFP_MAX_CHARS was lowered, can't blow the
+    # LLM context window and burn quota on a doomed generation.
+    char_count = len(rfp.raw_text or "")
+    if char_count > settings.RFP_MAX_CHARS:
+        return Response(
+            {
+                "detail": (
+                    f"RFP is too large to generate from ({char_count:,} characters; "
+                    f"max {settings.RFP_MAX_CHARS:,}). Trim the RFP to its core scope "
+                    "and requirements, then try again."
+                )
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     # Semantic intent check — reject non-RFP content before consuming quota
     intent = classify_rfp_intent(rfp.raw_text)
@@ -119,6 +137,79 @@ def proposal_detail(request, pk):
     serializer.is_valid(raise_exception=True)
     serializer.save()
     return Response(ProposalSerializer(proposal).data)
+
+
+@api_view(["GET"])
+@permission_classes([IsOrgMember])
+def proposal_events(request, pk):
+    """SSE stream of generation status for one proposal.
+
+    Emits `event: status` with {status, status_stage, stage_meta, error_message}
+    on every change, then `event: done` once the proposal leaves `generating`.
+    Sections are intentionally excluded — the client fetches the full proposal
+    once on `done` instead of shipping the whole draft on every stage change.
+    """
+    if not Proposal.objects.filter(pk=pk, org=request.user.org).exists():
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    def fetch_state():
+        return (
+            Proposal.objects.filter(pk=pk)
+            .values("status", "status_stage", "stage_meta", "error_message")
+            .first()
+        )
+
+    return sse_response(
+        stream_changes(
+            fetch_state,
+            is_terminal=lambda state: state["status"] != Proposal.Status.GENERATING,
+        )
+    )
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsOrgMember])
+def template_list(request):
+    """List built-in + org templates, or create an org template."""
+    if request.method == "GET":
+        templates = Template.objects.filter(is_active=True).filter(
+            Q(org__isnull=True) | Q(org=request.user.org)
+        )
+        return Response(TemplateSerializer(templates, many=True).data)
+
+    serializer = TemplateSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    template = serializer.save(org=request.user.org, created_by=request.user)
+    return Response(TemplateSerializer(template).data, status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET", "PATCH", "DELETE"])
+@permission_classes([IsOrgMember])
+def template_detail(request, pk):
+    try:
+        template = Template.objects.filter(Q(org__isnull=True) | Q(org=request.user.org)).get(
+            pk=pk, is_active=True
+        )
+    except Template.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == "GET":
+        return Response(TemplateSerializer(template).data)
+
+    if template.is_builtin:
+        return Response(
+            {"detail": "Built-in templates cannot be modified."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    if request.method == "DELETE":
+        template.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    serializer = TemplateSerializer(template, data=request.data, partial=True)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(TemplateSerializer(template).data)
 
 
 @api_view(["GET"])

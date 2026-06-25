@@ -13,9 +13,9 @@ There are no proposal packs, usage top-ups, or one-time overage purchases in the
 | Tier | Monthly | Annual | Proposals/mo | Docs | Seats | Badge |
 | --- | --- | --- | --- | --- | --- | --- |
 | Free | $0 | - | 3 | 10 | 1 | - |
-| Solo | $19 | $182/yr | 25 | 25 | 1 | - |
-| Studio | $89 | $854/yr | 150 | 250 | 5 | Most Popular |
-| Agency | $249 | $2,390/yr | 750 | Unlimited | 10 | Best Value |
+| Solo | $12 | $115/yr | 25 | 25 | 1 | - |
+| Studio | $49 | $470/yr | 150 | 250 | 5 | Most Popular |
+| Agency | $149 | $1,430/yr | 750 | Unlimited | 10 | Best Value |
 
 Annual pricing uses a 20% discount.
 

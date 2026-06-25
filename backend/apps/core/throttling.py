@@ -68,3 +68,14 @@ class BillingCheckoutThrottle(_PinnedScopeThrottle):
 
 class PasswordResetThrottle(_PinnedScopeThrottle):
     scope_name = "password_reset"
+
+
+class TeamInviteThrottle(_PinnedScopeThrottle):
+    """Only throttles POST — GET list stays on default user rate."""
+
+    scope_name = "team_invite"
+
+    def allow_request(self, request, view):
+        if request.method != "POST":
+            return True
+        return super().allow_request(request, view)

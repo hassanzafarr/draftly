@@ -18,6 +18,7 @@ import { toast } from "react-hot-toast";
 import { suggestionChips, coreFeatures, tones, sampleProposalSections } from "../lib/mock-data";
 import useAuthStore from "../store/auth";
 import api from "../api/client";
+import { watchProposal } from "../api/sse";
 
 const LENGTH_OPTIONS = [
   { value: "concise", label: "Concise", hint: "~1 paragraph per section" },
@@ -138,6 +139,7 @@ export function Generator() {
 
   const MIN_CHARS = 200;
   const MIN_WORDS = 30;
+  const MAX_CHARS = 200000;
   const ALLOWED_EXTS = ["pdf", "docx", "txt"];
   const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
@@ -156,6 +158,13 @@ export function Generator() {
         activeTemplate
           ? "Describe your client's requirements or upload a document."
           : "Type an RFP brief or attach a file."
+      );
+      return;
+    }
+
+    if (trimmed.length > MAX_CHARS) {
+      toast.error(
+        `RFP too large (${trimmed.length.toLocaleString()} characters; max ${MAX_CHARS.toLocaleString()}). Trim it to the core scope and requirements.`
       );
       return;
     }
@@ -202,34 +211,6 @@ export function Generator() {
     setTickerIdx(0);
     setProposalId(null);
 
-            pollRef.current = setInterval(async () => {
-                try {
-                    const { data } = await api.get(`/proposals/${proposal.id}/`);
-                    if (data.status_stage) setStage(data.status_stage);
-                    if (data.stage_meta) setStageMeta(data.stage_meta);
-                    if (data.status === "draft") {
-                        clearInterval(pollRef.current);
-                        setStage("done");
-                        setTimeout(() => setPhase("result"), 350);
-                    } else if (data.status === "failed") {
-                        clearInterval(pollRef.current);
-                        toast.error("Proposal generation failed. Please try again.");
-                        reset();
-                    }
-                } catch {
-                    clearInterval(pollRef.current);
-                    toast.error("Lost connection while generating.");
-                    reset();
-                }
-            }, 2000);
-        } catch (err) {
-            const detail = err.response?.data?.detail || "";
-            if (err.response?.status === 403 && detail.toLowerCase().includes("quota")) {
-                toast.error(detail);
-                navigate("/pricing");
-            } else {
-                toast.error(detail || "Failed to create RFP.");
-            }
     try {
       // Only send an explicit title when a template is active — its name is a proper label.
       // For free-form input the backend will extract a smart title from the RFP text.
@@ -257,34 +238,39 @@ export function Generator() {
       });
       setProposalId(proposal.id);
 
-      pollRef.current = setInterval(async () => {
-        try {
-          const { data } = await api.get(`/proposals/${proposal.id}/`);
+      // Live status over SSE (falls back to polling inside watchProposal).
+      pollRef.current = watchProposal(proposal.id, {
+        onStatus: (data) => {
           if (data.status_stage) setStage(data.status_stage);
           if (data.stage_meta) setStageMeta(data.stage_meta);
-          if (data.status === "draft") {
-            clearInterval(pollRef.current);
-            setStage("done");
-            setTimeout(() => setPhase("result"), 350);
-          } else if (data.status === "failed") {
-            clearInterval(pollRef.current);
-            toast.error("Proposal generation failed. Please try again.");
+        },
+        onDone: (data) => {
+          if (data.status === "failed") {
+            toast.error(data.error_message || "Proposal generation failed. Please try again.");
             reset();
+            return;
           }
-        } catch {
-          clearInterval(pollRef.current);
+          setStage("done");
+          setTimeout(() => setPhase("result"), 350);
+        },
+        onError: () => {
           toast.error("Lost connection while generating.");
           reset();
-        }
-      }, 2000);
+        },
+      });
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed to create RFP.");
       reset();
     }
   }
 
+  function stopWatching() {
+    if (typeof pollRef.current === "function") pollRef.current();
+    pollRef.current = null;
+  }
+
   function reset() {
-    clearInterval(pollRef.current);
+    stopWatching();
     setPhase("idle");
     setInput("");
     setFiles([]);
@@ -321,7 +307,12 @@ export function Generator() {
     return () => clearInterval(t);
   }, [phase, stage, tickerMessages.length]);
 
-  useEffect(() => () => clearInterval(pollRef.current), []);
+  useEffect(
+    () => () => {
+      if (typeof pollRef.current === "function") pollRef.current();
+    },
+    []
+  );
 
   function openInEditor() {
     if (proposalId) navigate(`/proposals/${proposalId}`);

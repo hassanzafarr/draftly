@@ -111,9 +111,9 @@ Subscription quotas are enforced by `OrgDocQuotaPermission` and `OrgProposalQuot
 | Tier   | Monthly | Annual (20% off) | Proposals/mo | Docs | Seats |
 |--------|---------|------------------|--------------|------|-------|
 | free   | $0      | —                | 3            | 10   | 1     |
-| solo   | $19     | $182/yr          | 25           | 25   | 1     |
-| studio | $89     | $854/yr          | 150          | 250  | 5     |
-| agency | $249    | $2,390/yr        | 750          | unlim| 10    |
+| solo   | $12     | $115/yr          | 25           | 25   | 1     |
+| studio | $49     | $470/yr          | 150          | 250  | 5     |
+| agency | $149    | $1,430/yr        | 750          | unlim| 10    |
 
 Monthly quota resets on the 1st of each month (UTC). Only `status=processed` documents count toward the doc quota. Stripe is integrated end-to-end (`apps/billing/`): Checkout, Customer Portal, webhook with signature verification + idempotency via `StripeEvent`, and handlers for `checkout.session.completed`, `customer.subscription.updated|deleted`, `invoice.paid`, `invoice.payment_failed`. Tier is resolved from the line-item price id (NOT subscription metadata), so Customer Portal plan changes sync correctly. See [docs/pricing-model.md](docs/pricing-model.md) for the tier spec.
 

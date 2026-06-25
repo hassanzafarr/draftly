@@ -1,7 +1,7 @@
 from django.utils import timezone
 from rest_framework import serializers
 
-from .models import Organization, User
+from .models import Invitation, Organization, User
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
@@ -45,6 +45,55 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_has_password(self, obj):
         return obj.has_usable_password()
+
+
+class TeamMemberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "email", "role", "avatar_url", "is_active", "created_at"]
+        read_only_fields = fields
+
+
+class InvitationSerializer(serializers.ModelSerializer):
+    invited_by_email = serializers.EmailField(source="invited_by.email", read_only=True)
+    is_expired = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = Invitation
+        fields = [
+            "id",
+            "email",
+            "role",
+            "status",
+            "invited_by_email",
+            "is_expired",
+            "created_at",
+            "expires_at",
+        ]
+        read_only_fields = [
+            "id",
+            "status",
+            "invited_by_email",
+            "is_expired",
+            "created_at",
+            "expires_at",
+        ]
+
+    def validate_role(self, value):
+        if value not in User.Role.values:
+            raise serializers.ValidationError("Invalid role.")
+        return value
+
+
+class InviteAcceptSerializer(serializers.Serializer):
+    token = serializers.CharField()
+    password = serializers.CharField(min_length=8, write_only=True)
+    terms_accepted = serializers.BooleanField(default=False)
+
+    def validate_terms_accepted(self, value):
+        if not value:
+            raise serializers.ValidationError("You must accept the Terms of Service.")
+        return value
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):

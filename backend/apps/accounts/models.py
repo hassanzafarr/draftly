@@ -1,7 +1,10 @@
+import secrets
 import uuid
+from datetime import timedelta
 
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
+from django.utils import timezone
 
 
 class Organization(models.Model):
@@ -27,22 +30,22 @@ class Organization(models.Model):
             "docs": 25,
             "proposals": 25,
             "seats": 1,
-            "monthly_price_usd": 19,
-            "annual_price_usd": 182,
+            "monthly_price_usd": 12,
+            "annual_price_usd": 115,
         },
         "studio": {
             "docs": 250,
             "proposals": 150,
             "seats": 5,
-            "monthly_price_usd": 89,
-            "annual_price_usd": 854,
+            "monthly_price_usd": 49,
+            "annual_price_usd": 470,
         },
         "agency": {
             "docs": 999999,
             "proposals": 750,
             "seats": 10,
-            "monthly_price_usd": 249,
-            "annual_price_usd": 2390,
+            "monthly_price_usd": 149,
+            "annual_price_usd": 1430,
         },
     }
 
@@ -127,3 +130,47 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+
+def _generate_invite_token():
+    return secrets.token_urlsafe(32)
+
+
+class Invitation(models.Model):
+    """A pending invitation for someone to join an organization."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        ACCEPTED = "accepted", "Accepted"
+        REVOKED = "revoked", "Revoked"
+
+    TTL_DAYS = 7
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    org = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="invitations")
+    email = models.EmailField()
+    role = models.CharField(max_length=20, choices=User.Role.choices, default=User.Role.MEMBER)
+    invited_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, related_name="sent_invitations"
+    )
+    token = models.CharField(max_length=64, unique=True, default=_generate_invite_token)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    accepted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["org", "status"])]
+
+    def __str__(self):
+        return f"Invite {self.email} → {self.org.name} ({self.status})"
+
+    def save(self, *args, **kwargs):
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(days=self.TTL_DAYS)
+        super().save(*args, **kwargs)
+
+    @property
+    def is_expired(self):
+        return timezone.now() >= self.expires_at

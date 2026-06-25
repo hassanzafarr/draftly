@@ -7,7 +7,7 @@ from rest_framework import serializers
 
 from apps.documents.pipeline import extract_text
 
-from .models import RFP, Proposal
+from .models import RFP, Proposal, Template
 
 log = logging.getLogger(__name__)
 
@@ -259,6 +259,42 @@ class ProposalSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+
+class TemplateSerializer(serializers.ModelSerializer):
+    is_builtin = serializers.BooleanField(read_only=True)
+    sections_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Template
+        fields = [
+            "id",
+            "title",
+            "snippet",
+            "category",
+            "accent",
+            "sections",
+            "sections_count",
+            "is_builtin",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "is_builtin", "created_at", "updated_at"]
+
+    def get_sections_count(self, obj):
+        return len(obj.sections or [])
+
+    def validate_sections(self, value):
+        if not isinstance(value, list) or not value:
+            raise serializers.ValidationError("Provide at least one section.")
+        cleaned = []
+        for s in value:
+            if not isinstance(s, str) or not s.strip():
+                raise serializers.ValidationError("Sections must be non-empty strings.")
+            if len(s) > 120:
+                raise serializers.ValidationError("Section names must be 120 characters or fewer.")
+            cleaned.append(s.strip())
+        return cleaned
 
 
 class ProposalUpdateSerializer(serializers.ModelSerializer):
