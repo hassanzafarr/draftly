@@ -108,9 +108,11 @@ def test_embedding_rate_limit_marks_doc_failed_without_retry_loop(auth_client):
 
 
 def test_empty_document_fails_and_lands_in_dlq_after_retries(auth_client):
-    """Non-rate-limit errors retry (eagerly inline here), then record a DLQ row.
+    """Non-rate-limit errors retry, then record a DLQ row once retries exhaust.
 
-    Run the task directly: in eager mode the terminal re-raise would otherwise
+    Run the task directly with max_retries forced to 0 so the single inline
+    attempt takes the terminal branch (record DLQ + re-raise) instead of
+    raising Retry — in eager mode the terminal re-raise would otherwise
     propagate through the upload view and abort the request mid-test.
     """
     from apps.core.models import DeadLetterTask
@@ -119,7 +121,11 @@ def test_empty_document_fails_and_lands_in_dlq_after_retries(auth_client):
     doc = DocumentFactory(org=auth_client.user.org, status=Document.Status.PENDING)
     doc.file.save("empty.txt", ContentFile(b"   "), save=True)
 
-    with _mock_embed(), pytest.raises(ValueError, match="No text"):
+    with (
+        _mock_embed(),
+        patch.object(ingest_document, "max_retries", 0),
+        pytest.raises(ValueError, match="No text"),
+    ):
         ingest_document.apply(args=[str(doc.id)], throw=True)
 
     doc.refresh_from_db()

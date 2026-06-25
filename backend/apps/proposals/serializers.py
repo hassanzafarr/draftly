@@ -58,9 +58,11 @@ def _heuristic_title(text: str) -> str:
 
     sample = " ".join(text.split()[:120])
 
-    # 1. Explicit label patterns
+    # 1. Explicit label patterns — search the raw text (not the
+    #    whitespace-collapsed `sample`) so the `[^\n\.]` capture stops at the
+    #    end of the label's line instead of bleeding into the next line.
     for pat in [r"(?:project\s+name|title|subject|rfp\s+title)\s*[:\-]\s*([^\n\.]{3,80})"]:
-        m = re.search(pat, sample, re.IGNORECASE)
+        m = re.search(pat, text, re.IGNORECASE)
         if m:
             return _clean(m.group(1))
 

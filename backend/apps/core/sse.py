@@ -20,7 +20,7 @@ import time
 from collections.abc import Callable, Iterator
 
 from django.conf import settings
-from django.db import close_old_connections
+from django.db import close_old_connections, connection
 from django.http import StreamingHttpResponse
 
 
@@ -49,7 +49,13 @@ def stream_changes(
     last_beat = time.monotonic()
 
     while True:
-        close_old_connections()
+        # Never recycle the connection mid-transaction. Outside a transaction
+        # (normal request path) this reclaims connections past CONN_MAX_AGE;
+        # inside one (e.g. ATOMIC_REQUESTS or the per-test transaction) calling
+        # close_old_connections() would force-close the shared connection
+        # because autocommit is off, breaking the caller and later reuse.
+        if not connection.in_atomic_block:
+            close_old_connections()
         state = fetch_state()
         if state is None:
             yield format_sse(event="gone")
