@@ -26,6 +26,7 @@ from .validators import classify_rfp_intent
 
 logger = logging.getLogger(__name__)
 
+
 @api_view(["GET", "POST"])
 @permission_classes([IsOrgMember])
 def rfp_list(request):
