@@ -10,28 +10,38 @@
     <link rel="shortcut icon" href="/logo-48.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="/logo-192.png" />
     <meta name="description" content="Draftly - AI-powered RFP and proposal generator. Create professional proposals in seconds." />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="preload"
-      as="style"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-    />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-      media="print"
-      onload="this.media='all'"
-    />
-    <noscript>
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-      />
-    </noscript>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Instant shell shown before React boots — replaced once JS runs -->
+      <style>
+        #root-splash {
+          position: fixed; inset: 0;
+          background: #070b14;
+          display: flex; align-items: center; justify-content: center;
+          z-index: 9999;
+        }
+        .splash-dot {
+          width: 8px; height: 8px; border-radius: 50%;
+          background: #6366f1;
+          animation: splash-pulse 1.2s ease-in-out infinite;
+        }
+        .splash-dot:nth-child(2) { animation-delay: 0.2s; background: #818cf8; }
+        .splash-dot:nth-child(3) { animation-delay: 0.4s; background: #a5b4fc; }
+        @keyframes splash-pulse {
+          0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+          40% { transform: scale(1); opacity: 1; }
+        }
+        .splash-dots { display: flex; gap: 10px; }
+      </style>
+      <div id="root-splash">
+        <div class="splash-dots">
+          <div class="splash-dot"></div>
+          <div class="splash-dot"></div>
+          <div class="splash-dot"></div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

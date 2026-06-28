@@ -1,9 +1,14 @@
 import { create } from "zustand";
 import api from "../api/client";
 
+// If no token is stored, we know immediately the user is not logged in.
+// This avoids blocking the whole app on a network call for unauthenticated visitors.
+const hasToken = () => Boolean(localStorage.getItem("access_token"));
+
 const useAuthStore = create((set) => ({
   user: null,
-  loading: true,
+  // Only show loading spinner if we have a token and need to verify it.
+  loading: hasToken(),
 
   login: async (email, password) => {
     const { data } = await api.post("/auth/token/", { email, password });
@@ -29,10 +34,15 @@ const useAuthStore = create((set) => ({
 
   logout: () => {
     localStorage.clear();
-    set({ user: null });
+    set({ user: null, loading: false });
   },
 
   fetchMe: async () => {
+    if (!hasToken()) {
+      // No token — resolve immediately without a network call.
+      set({ user: null, loading: false });
+      return;
+    }
     try {
       const { data } = await api.get("/auth/me/");
       set({ user: data, loading: false });
