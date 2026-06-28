@@ -107,7 +107,21 @@ def generate_proposal(request, rfp_pk):
         length=length,
         status=Proposal.Status.GENERATING,
     )
-    generate_proposal_task.delay(str(proposal.id))
+    try:
+        generate_proposal_task.delay(str(proposal.id))
+    except Exception as broker_exc:
+        # Celery broker (Redis) is unreachable — mark the proposal as failed
+        # and return a JSON 503 so the frontend can display a readable message.
+        proposal.status = Proposal.Status.FAILED
+        proposal.status_stage = "failed"
+        proposal.error_message = f"Task queue unavailable: {broker_exc}"
+        proposal.save(update_fields=["status", "status_stage", "error_message"])
+        return Response(
+            {"detail": "Proposal generation service is temporarily unavailable. Please try again in a moment."},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+
     return Response(ProposalSerializer(proposal).data, status=status.HTTP_202_ACCEPTED)
 
 

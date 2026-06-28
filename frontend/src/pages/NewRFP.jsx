@@ -39,12 +39,46 @@ export default function NewRFP() {
       const { data: proposal } = await api.post(`/rfps/${rfp.id}/generate/`);
       navigate(`/proposals/${proposal.id}`);
     } catch (err) {
-      const detail = err.response?.data?.detail || "";
-      if (err.response?.status === 403 && detail.toLowerCase().includes("quota")) {
-        toast.error(detail);
+      // Log full error so it's visible in browser DevTools (Network + Console tabs)
+      console.error("[NewRFP] RFP creation failed:", {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message,
+      });
+
+      const httpStatus = err.response?.status;
+      const data = err.response?.data;
+      let message = "Failed to create RFP. Please try again.";
+
+      if (typeof data === "string" && data.trim().startsWith("<")) {
+        // Server returned HTML (e.g. Django's debug 500 page) — don't show raw HTML
+        message =
+          httpStatus === 500
+            ? "A server error occurred. Please try again or contact support."
+            : `Unexpected server response (HTTP ${httpStatus}).`;
+      } else if (data) {
+        if (typeof data.detail === "string") {
+          // Standard DRF error: { detail: "..." }
+          message = data.detail;
+        } else if (typeof data === "object") {
+          // DRF field/validation errors: { raw_text: ["too short"], title: ["required"] }
+          const parts = Object.entries(data)
+            .map(([field, errs]) => {
+              const errList = Array.isArray(errs) ? errs.join(" ") : String(errs);
+              return field === "non_field_errors" ? errList : `${field}: ${errList}`;
+            })
+            .filter(Boolean);
+          if (parts.length) message = parts.join(" · ");
+        }
+      } else if (!err.response) {
+        message = "Network error — check your connection and try again.";
+      }
+
+      if (httpStatus === 403 && message.toLowerCase().includes("quota")) {
+        toast.error(message);
         navigate("/pricing");
       } else {
-        toast.error(detail || "Failed to create RFP.");
+        toast.error(message);
       }
     } finally {
       setLoading(false);
