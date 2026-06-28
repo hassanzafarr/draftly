@@ -149,7 +149,9 @@ def generate_proposal(request, rfp_pk):
         proposal.error_message = f"Task queue unavailable: {broker_exc}"
         proposal.save(update_fields=["status", "status_stage", "error_message"])
         return Response(
-            {"detail": "Proposal generation service is temporarily unavailable. Please try again in a moment."},
+            {
+                "detail": "Proposal generation service is temporarily unavailable. Please try again in a moment."
+            },
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
 
