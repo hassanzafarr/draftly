@@ -58,25 +58,25 @@ LENGTH_PRESETS: dict[str, dict] = {
     "concise": {
         "per_section": "80-120 words (1 tight paragraph)",
         "total_cap": 1500,
-        "max_tokens": 2500,
+        "max_tokens": 4000,
         "label": "concise",
     },
     "standard": {
         "per_section": "150-250 words (2 paragraphs)",
         "total_cap": 3000,
-        "max_tokens": 4096,
+        "max_tokens": 8000,
         "label": "standard",
     },
     "detailed": {
         "per_section": "300-450 words (2-3 paragraphs)",
         "total_cap": 5000,
-        "max_tokens": 6500,
+        "max_tokens": 14000,
         "label": "detailed",
     },
     "comprehensive": {
         "per_section": "500-700 words (3-4 paragraphs, deep specifics)",
         "total_cap": 8000,
-        "max_tokens": 9000,
+        "max_tokens": 20000,
         "label": "comprehensive",
     },
 }
@@ -209,14 +209,66 @@ def _normalize_sections(raw_sections: dict, schema_keys: list[str] | None = None
     return out
 
 
-def _parse_sections(raw: str, provider: str, schema_keys: list[str] | None = None) -> dict:
+def _recover_truncated_json(text: str) -> dict | None:
+    """Best-effort recovery for JSON truncated mid-value (token limit hit).
+
+    Finds the last complete key-value pair, closes the object, and parses
+    whatever sections were fully written before the cut-off.
+    """
+    import logging
+
+    log = logging.getLogger(__name__)
+
+    # Find last position where a complete string value ends: ..."<value>"\s*(,|\n)
+    # Walk backwards looking for the last complete "key": "value" boundary.
+    last_complete = re.search(r'("(?:[^"\\]|\\.)*")\s*(?:,\s*"|\s*\})', text[::-1])
+    if not last_complete:
+        return None
+
+    # Trim to just past the last confirmed complete value, then close the object.
+    cut = len(text) - last_complete.start()
+    # Strip trailing comma/whitespace and close
+    candidate = text[:cut].rstrip().rstrip(",").rstrip() + "\n}"
     try:
-        parsed = json.loads(raw)
+        parsed = json.loads(candidate)
+        log.warning("Recovered truncated JSON: parsed %d keys from partial response", len(parsed))
+        return parsed
     except json.JSONDecodeError:
-        match = re.search(r"\{.*\}", raw, re.DOTALL)
-        if not match:
-            raise ValueError(f"{provider} did not return valid JSON.") from None
-        parsed = json.loads(match.group())
+        return None
+
+
+def _parse_sections(raw: str, provider: str, schema_keys: list[str] | None = None) -> dict:
+    import logging
+
+    log = logging.getLogger(__name__)
+
+    # Strip markdown code fences Gemini occasionally adds despite response_mime_type=json
+    cleaned = re.sub(r"^```(?:json)?\s*", "", raw.strip(), flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s*```$", "", cleaned.strip())
+
+    try:
+        parsed = json.loads(cleaned)
+    except json.JSONDecodeError:
+        # Try regex extraction (handles leading/trailing non-JSON text)
+        match = re.search(r"\{.*\}", cleaned, re.DOTALL)
+        if match:
+            try:
+                parsed = json.loads(match.group())
+            except json.JSONDecodeError:
+                parsed = None
+        else:
+            parsed = None
+
+        # Regex found nothing (no closing }) — likely token truncation mid-JSON
+        if parsed is None and cleaned.lstrip().startswith("{"):
+            log.warning(
+                "%s response appears truncated (no closing }). Attempting recovery.", provider
+            )
+            parsed = _recover_truncated_json(cleaned)
+
+        if parsed is None:
+            raise ValueError(f"{provider} did not return valid JSON. Raw: {raw[:300]!r}") from None
+
     return _normalize_sections(parsed, schema_keys)
 
 
@@ -402,6 +454,10 @@ def _generate_with_gemini(
     schema_keys: list[str] | None = None,
     max_tokens: int = 8192,
 ) -> dict:
+    import logging
+
+    log = logging.getLogger(__name__)
+
     _ensure_configured()
     model = genai.GenerativeModel(
         model_name=settings.GEMINI_MODEL,
@@ -413,6 +469,23 @@ def _generate_with_gemini(
     )
 
     response = model.generate_content(user_message)
+    candidate = (response.candidates or [None])[0]
+    finish_reason = getattr(candidate, "finish_reason", "unknown") if candidate else "no_candidate"
+    raw_len = len(response.text or "")
+    approx_input_tokens = (len(system_prompt) + len(user_message)) // 4
+    log.info(
+        "Gemini response: finish_reason=%s raw_len=%d approx_input_tokens=%d max_output_tokens=%d",
+        finish_reason,
+        raw_len,
+        approx_input_tokens,
+        max_tokens,
+    )
+    if str(finish_reason) in ("2", "MAX_TOKENS", "FinishReason.MAX_TOKENS"):
+        log.warning(
+            "Gemini hit max_output_tokens (%d) — JSON likely truncated. raw_len=%d",
+            max_tokens,
+            raw_len,
+        )
     return _parse_sections(response.text, "Gemini", schema_keys)
 
 
@@ -490,8 +563,9 @@ def _generate_with_fallbacks(
         )
         return "gemini", sections
     except Exception as exc:
-        if _is_rate_limit_error(exc) and groq_usable and settings.GROQ_API_KEY:
-            log.warning("Gemini rate-limited, falling back to Groq: %s", exc)
+        should_fallback = _is_rate_limit_error(exc) or isinstance(exc, ValueError)
+        if should_fallback and groq_usable and settings.GROQ_API_KEY:
+            log.warning("Gemini failed (%s), falling back to Groq: %s", type(exc).__name__, exc)
             sections = _generate_with_groq(
                 system_prompt, user_message, schema_keys, max_tokens=max_tokens
             )
