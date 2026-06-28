@@ -46,17 +46,10 @@ export default function NewRFP() {
         message: err.message,
       });
 
-      const httpStatus = err.response?.status;
       const data = err.response?.data;
-      let message = "Failed to create RFP. Please try again.";
+      let message = "Failed to create RFP.";
 
-      if (typeof data === "string" && data.trim().startsWith("<")) {
-        // Server returned HTML (e.g. Django's debug 500 page) — don't show raw HTML
-        message =
-          httpStatus === 500
-            ? "A server error occurred. Please try again or contact support."
-            : `Unexpected server response (HTTP ${httpStatus}).`;
-      } else if (data) {
+      if (data) {
         if (typeof data.detail === "string") {
           // Standard DRF error: { detail: "..." }
           message = data.detail;
@@ -70,11 +63,9 @@ export default function NewRFP() {
             .filter(Boolean);
           if (parts.length) message = parts.join(" · ");
         }
-      } else if (!err.response) {
-        message = "Network error — check your connection and try again.";
       }
 
-      if (httpStatus === 403 && message.toLowerCase().includes("quota")) {
+      if (err.response?.status === 403 && message.toLowerCase().includes("quota")) {
         toast.error(message);
         navigate("/pricing");
       } else {

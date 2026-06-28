@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 
 from django.conf import settings
@@ -23,6 +24,8 @@ from .serializers import (
 from .tasks import generate_proposal_task
 from .validators import classify_rfp_intent
 
+logger = logging.getLogger(__name__)
+
 
 @api_view(["GET", "POST"])
 @permission_classes([IsOrgMember])
@@ -32,7 +35,14 @@ def rfp_list(request):
         return Response(RFPSerializer(rfps, many=True).data)
 
     serializer = RFPCreateSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
+    if not serializer.is_valid():
+        logger.warning(
+            "RFP creation validation failed | user=%s org=%s errors=%s",
+            request.user.email,
+            getattr(request.user.org, "id", None),
+            serializer.errors,
+        )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     resolved_text = serializer.validated_data["resolved_text"]
     file = serializer.validated_data.get("file")
@@ -44,6 +54,14 @@ def rfp_list(request):
         raw_text=resolved_text,
         file=file,
         sections=serializer.validated_data.get("sections", []) or [],
+    )
+    logger.info(
+        "RFP created | rfp=%s user=%s org=%s title=%r chars=%d",
+        rfp.id,
+        request.user.email,
+        request.user.org_id,
+        rfp.title,
+        len(resolved_text),
     )
     return Response(RFPSerializer(rfp).data, status=status.HTTP_201_CREATED)
 
@@ -87,6 +105,13 @@ def generate_proposal(request, rfp_pk):
     intent = classify_rfp_intent(rfp.raw_text)
     min_conf = getattr(settings, "RFP_INTENT_MIN_CONFIDENCE", 0.7)
     if not intent["is_rfp"] and intent["confidence"] >= min_conf:
+        logger.warning(
+            "RFP generation blocked by intent check | rfp=%s user=%s confidence=%.2f reason=%s",
+            rfp_pk,
+            request.user.email,
+            intent["confidence"],
+            intent["reason"],
+        )
         return Response(
             {"detail": f"Input does not look like a valid RFP: {intent['reason']}"},
             status=status.HTTP_400_BAD_REQUEST,
@@ -112,6 +137,13 @@ def generate_proposal(request, rfp_pk):
     except Exception as broker_exc:
         # Celery broker (Redis) is unreachable — mark the proposal as failed
         # and return a JSON 503 so the frontend can display a readable message.
+        logger.error(
+            "Failed to enqueue proposal task — broker unavailable | proposal=%s rfp=%s user=%s error=%s",
+            proposal.id,
+            rfp_pk,
+            request.user.email,
+            broker_exc,
+        )
         proposal.status = Proposal.Status.FAILED
         proposal.status_stage = "failed"
         proposal.error_message = f"Task queue unavailable: {broker_exc}"
@@ -121,7 +153,15 @@ def generate_proposal(request, rfp_pk):
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
 
-
+    logger.info(
+        "Proposal generation queued | proposal=%s rfp=%s user=%s org=%s tone=%s length=%s",
+        proposal.id,
+        rfp_pk,
+        request.user.email,
+        request.user.org_id,
+        tone,
+        length,
+    )
     return Response(ProposalSerializer(proposal).data, status=status.HTTP_202_ACCEPTED)
 
 

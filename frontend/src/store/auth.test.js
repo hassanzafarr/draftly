@@ -23,7 +23,7 @@ describe("useAuthStore", () => {
     expect(useAuthStore.getState().user).toEqual(defaultUser);
   });
 
-  it("logout clears localStorage and resets user to null", () => {
+  it("logout clears localStorage, resets user, and sets loading false", () => {
     localStorage.setItem("access_token", "fake-access-token");
     localStorage.setItem("refresh_token", "fake-refresh-token");
     useAuthStore.setState({ user: defaultUser, loading: false });
@@ -33,10 +33,24 @@ describe("useAuthStore", () => {
     expect(localStorage.getItem("access_token")).toBeNull();
     expect(localStorage.getItem("refresh_token")).toBeNull();
     expect(useAuthStore.getState().user).toBeNull();
+    expect(useAuthStore.getState().loading).toBe(false);
+  });
+
+  it("fetchMe skips network call and resolves immediately when no token", async () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+
+    await useAuthStore.getState().fetchMe();
+
+    const state = useAuthStore.getState();
+    expect(state.user).toBeNull();
+    expect(state.loading).toBe(false);
   });
 
   it("fetchMe on 401 sets user null and loading false (no crash)", async () => {
     server.use(http.get(`${API_BASE}/auth/me/`, () => new HttpResponse(null, { status: 401 })));
+    // Simulate having a token so fetchMe actually makes the network call
+    localStorage.setItem("access_token", "expired-token");
 
     await useAuthStore.getState().fetchMe();
 
