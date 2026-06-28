@@ -261,13 +261,13 @@ def _parse_sections(raw: str, provider: str, schema_keys: list[str] | None = Non
 
         # Regex found nothing (no closing }) — likely token truncation mid-JSON
         if parsed is None and cleaned.lstrip().startswith("{"):
-            log.warning("%s response appears truncated (no closing }). Attempting recovery.", provider)
+            log.warning(
+                "%s response appears truncated (no closing }). Attempting recovery.", provider
+            )
             parsed = _recover_truncated_json(cleaned)
 
         if parsed is None:
-            raise ValueError(
-                f"{provider} did not return valid JSON. Raw: {raw[:300]!r}"
-            ) from None
+            raise ValueError(f"{provider} did not return valid JSON. Raw: {raw[:300]!r}") from None
 
     return _normalize_sections(parsed, schema_keys)
 

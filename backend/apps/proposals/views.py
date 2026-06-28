@@ -6,7 +6,12 @@ from django.db.models import Avg, Count, Q, Sum
 from django.db.models.functions import TruncMonth
 from django.http import HttpResponse
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes, renderer_classes, throttle_classes
+from rest_framework.decorators import (
+    api_view,
+    permission_classes,
+    renderer_classes,
+    throttle_classes,
+)
 from rest_framework.response import Response
 
 from apps.core.permissions import IsOrgMember, OrgProposalQuotaPermission
