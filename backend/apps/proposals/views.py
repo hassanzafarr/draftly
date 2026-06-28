@@ -2,8 +2,6 @@ import logging
 from datetime import datetime, timedelta
 
 from django.conf import settings
-
-logger = logging.getLogger(__name__)
 from django.db.models import Avg, Count, Q, Sum
 from django.db.models.functions import TruncMonth
 from django.http import HttpResponse
@@ -26,6 +24,7 @@ from .serializers import (
 from .tasks import generate_proposal_task
 from .validators import classify_rfp_intent
 
+logger = logging.getLogger(__name__)
 
 @api_view(["GET", "POST"])
 @permission_classes([IsOrgMember])
