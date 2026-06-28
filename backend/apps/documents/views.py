@@ -1,9 +1,9 @@
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes, throttle_classes
+from rest_framework.decorators import api_view, permission_classes, renderer_classes, throttle_classes
 from rest_framework.response import Response
 
 from apps.core.permissions import IsOrgMember, OrgDocQuotaPermission
-from apps.core.sse import sse_response, stream_changes
+from apps.core.sse import ServerSentEventRenderer, sse_response, stream_changes
 from apps.core.throttling import DocumentUploadThrottle
 
 from .models import Document
@@ -63,6 +63,7 @@ def document_detail(request, pk):
 
 @api_view(["GET"])
 @permission_classes([IsOrgMember])
+@renderer_classes([ServerSentEventRenderer])
 def document_events(request):
     """SSE stream of ingestion status for the org's in-flight documents.
 

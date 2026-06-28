@@ -22,6 +22,18 @@ from collections.abc import Callable, Iterator
 from django.conf import settings
 from django.db import close_old_connections, connection
 from django.http import StreamingHttpResponse
+from rest_framework.renderers import BaseRenderer
+
+
+class ServerSentEventRenderer(BaseRenderer):
+    """Lets DRF content negotiation pass for text/event-stream requests."""
+
+    media_type = "text/event-stream"
+    format = "event-stream"
+    charset = "utf-8"
+
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        return data
 
 
 def format_sse(data: dict | None = None, event: str | None = None) -> str:

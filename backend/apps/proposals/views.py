@@ -6,11 +6,11 @@ from django.db.models import Avg, Count, Q, Sum
 from django.db.models.functions import TruncMonth
 from django.http import HttpResponse
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes, throttle_classes
+from rest_framework.decorators import api_view, permission_classes, renderer_classes, throttle_classes
 from rest_framework.response import Response
 
 from apps.core.permissions import IsOrgMember, OrgProposalQuotaPermission
-from apps.core.sse import sse_response, stream_changes
+from apps.core.sse import ServerSentEventRenderer, sse_response, stream_changes
 from apps.core.throttling import ProposalGenerateThrottle
 
 from .models import RFP, GenerationEvent, Proposal, Template
@@ -197,6 +197,7 @@ def proposal_detail(request, pk):
 
 @api_view(["GET"])
 @permission_classes([IsOrgMember])
+@renderer_classes([ServerSentEventRenderer])
 def proposal_events(request, pk):
     """SSE stream of generation status for one proposal.
 
