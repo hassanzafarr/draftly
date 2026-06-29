@@ -19,7 +19,7 @@
     "@fontsource-variable/space-grotesk": "^5.2.10",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@react-oauth/google": "^0.13.5",
-    "@sentry/react": "^10.51.0",
+    "@sentry/react": "^10.62.0",
     "@tailwindcss/vite": "^4.2.4",
     "@tiptap/react": "^2.6.6",
     "@tiptap/starter-kit": "^2.6.6",
