@@ -3,12 +3,10 @@ import { createContext, useContext, useEffect, useState } from "react";
 const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState("dark");
-
-  useEffect(() => {
+  const [theme, setTheme] = useState(() => {
     const saved = window.localStorage.getItem("propoai-theme");
-    if (saved === "light" || saved === "dark") setTheme(saved);
-  }, []);
+    return saved === "light" || saved === "dark" ? saved : "dark";
+  });
 
   useEffect(() => {
     const root = document.documentElement;
