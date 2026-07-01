@@ -59,6 +59,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
 
     def get_proposals_used(self, obj):
         from apps.proposals.models import Proposal
+
         now = datetime.datetime.now(datetime.UTC)
         if obj.subscription_tier != "free" and obj.current_period_end:
             period_start = _billing_period_start(obj.current_period_end, obj.billing_cadence)
@@ -68,6 +69,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
 
     def get_docs_used(self, obj):
         from apps.documents.models import Document
+
         return Document.objects.filter(org=obj, status="processed").count()
 
 
