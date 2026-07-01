@@ -168,9 +168,14 @@ export default function Editor() {
   };
 
   const handleDownloadPDF = async () => {
-    const { default: jsPDF } = await import("jspdf");
+    let jsPDF;
+    try {
+      ({ default: jsPDF } = await import("jspdf"));
+    } catch (err) {
+      toast.error("Failed to load PDF exporter.");
+      return;
+    }
     const doc = new jsPDF({ unit: "pt", format: "a4" });
-    const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 48;
     const contentWidth = pageWidth - margin * 2;
