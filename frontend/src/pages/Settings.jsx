@@ -85,7 +85,7 @@ export default function Settings() {
 
   useEffect(() => {
     fetchMe();
-  }, []);
+  }, [fetchMe]);
 
   useEffect(() => {
     if (user) {
