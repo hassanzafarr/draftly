@@ -33,7 +33,8 @@ const useAuthStore = create((set) => ({
   },
 
   logout: () => {
-    localStorage.clear();
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
     set({ user: null, loading: false });
   },
 
