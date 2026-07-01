@@ -1,3 +1,5 @@
+import logging
+import warnings
 from datetime import timedelta
 from pathlib import Path
 
@@ -31,8 +33,24 @@ if SENTRY_DSN:
             DjangoIntegration(),
             CeleryIntegration(),
         ],
-        traces_sample_rate=config("SENTRY_TRACES_SAMPLE_RATE", default=0, cast=float),
+        # Default to 20 % trace sampling in production so performance issues
+        # and slow DB queries are visible in Sentry without overwhelming quota.
+        traces_sample_rate=config("SENTRY_TRACES_SAMPLE_RATE", default=0.2, cast=float),
         send_default_pii=config("SENTRY_SEND_DEFAULT_PII", default=False, cast=bool),
+    )
+elif not DEBUG:
+    # Sentry is not configured in production — server-side exceptions will be
+    # silently swallowed and 500 errors will be invisible.  Set the SENTRY_DSN
+    # environment variable in Railway to enable error reporting.
+    warnings.warn(
+        "SENTRY_DSN is not set. Unhandled exceptions in production will not "
+        "be captured. Set SENTRY_DSN in the Railway environment variables.",
+        RuntimeWarning,
+        stacklevel=1,
+    )
+    logging.getLogger(__name__).critical(
+        "SENTRY_DSN is not configured — production errors are invisible. "
+        "Set SENTRY_DSN in Railway to enable Sentry error reporting."
     )
 
 INSTALLED_APPS = [
