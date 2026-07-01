@@ -237,7 +237,8 @@ def stripe_webhook(request):
 
     # construct_event returns a StripeObject, but the handlers below use dict
     # methods (.get, subscripting) throughout — normalize to a plain dict.
-    event = event.to_dict()
+    if hasattr(event, "to_dict"):
+        event = event.to_dict()
 
     from .models import StripeEvent
 
