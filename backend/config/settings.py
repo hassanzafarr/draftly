@@ -337,7 +337,7 @@ if _redis_url.startswith("rediss://"):
     import ssl
 
     CELERY_BROKER_USE_SSL = {
-        "ssl_cert_reqs": ssl.CERT_NONE,
+        "ssl_cert_reqs": ssl.CERT_REQUIRED,
     }
     CELERY_REDIS_BACKEND_USE_SSL = {
         "ssl_cert_reqs": ssl.CERT_NONE,
