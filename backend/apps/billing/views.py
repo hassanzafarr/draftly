@@ -133,6 +133,8 @@ def create_checkout_session(request):
             success_url=f"{settings.FRONTEND_URL}/pricing?success=true",
             cancel_url=f"{settings.FRONTEND_URL}/pricing?canceled=true",
             automatic_tax={"enabled": True},
+            billing_address_collection="required",
+            customer_update={"address": "auto"},
             consent_collection={
                 "terms_of_service": "required",
             },
@@ -233,6 +235,11 @@ def stripe_webhook(request):
         logger.error("Stripe webhook parse error: %s", exc)
         return HttpResponse(status=400)
 
+    # construct_event returns a StripeObject, but the handlers below use dict
+    # methods (.get, subscripting) throughout — normalize to a plain dict.
+    if hasattr(event, "to_dict"):
+        event = event.to_dict()
+
     from .models import StripeEvent
 
     event_id = event.get("id", "")
@@ -309,7 +316,7 @@ def _on_checkout_completed(session, Organization):
 
     if subscription_id:
         try:
-            sub = stripe.Subscription.retrieve(subscription_id)
+            sub = stripe.Subscription.retrieve(subscription_id).to_dict()
             resolved_tier, resolved_cadence = _resolve_tier_from_subscription(sub)
             if resolved_tier:
                 tier = resolved_tier
