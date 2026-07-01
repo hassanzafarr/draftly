@@ -1,6 +1,19 @@
 # Stripe — Remaining Production Blockers
 
-Status as of 2026-05-23. P0/P1 webhook + checkout fixes already shipped (price→tier reverse-lookup, `StripeEvent` idempotency, `invoice.paid` handler, `FRONTEND_URL`, pinned API version, 17 tests passing). The items below must be resolved before charging real customers.
+Status as of 2026-05-23; **updated 2026-07-01**. P0/P1 webhook + checkout fixes already shipped (price→tier reverse-lookup, `StripeEvent` idempotency, `invoice.paid` handler, `FRONTEND_URL`, pinned API version, 17 tests passing). The items below must be resolved before charging real customers.
+
+> **Deploy note (2026-07-01):** Backend runs on **Azure Container Apps** (`draftly-api`, habitforge-rg, francecentral), not Railway. All "set X in Railway env" instructions below mean **set the env var on the `draftly-api` Container App**. Migrations run via the container, not `railway run`.
+
+### ✅ Completed since 2026-05-23
+
+- **#6 Quota window bound to billing period** — [permissions.py:60-77](backend/apps/core/permissions.py#L60-L77) resolves period start from `current_period_end` + cadence for paid tiers; calendar-month fallback for free.
+- **#7 Past-due frontend banner** — [AppShell.jsx:15-24](frontend/src/components/AppShell.jsx#L15-L24) renders "Payment failed — update payment method" when `subscription_status === "past_due"`. (Grace-period/auto-cancel policy still per #7 below.)
+- **#10 (part) StripeEvent pruning** — daily beat job `prune-stripe-events-daily` at 03:00 UTC ([celery.py:14](backend/config/celery.py#L14), [billing/tasks.py:13](backend/apps/billing/tasks.py#L13)). Sentry alert on the 500 path still open.
+- **#11 Stripe Tax** — `automatic_tax={"enabled": True}` live at [billing/views.py:135](backend/apps/billing/views.py#L135). Still need tax registrations set in dashboard.
+- **#14 Customer email sync** — [accounts/views.py:174](backend/apps/accounts/views.py#L174) calls `stripe.Customer.modify(...)` on email change.
+- **Bonus (not in original doc):** ToS/Privacy consent collection at checkout ([billing/views.py:136-146](backend/apps/billing/views.py#L136-L146)).
+
+Still open: all P0 ops items, #8 downgrade policy, #9 portal cancel config, #10 Sentry 500 alert, #12 promo codes, #13 proposal packs, #15 seats, #16 PCI verify, #17 replay runbook.
 
 ---
 
@@ -43,16 +56,14 @@ Status as of 2026-05-23. P0/P1 webhook + checkout fixes already shipped (price�
 
 ## P1 — fix before announcing or scaling
 
-### 6. Re-bind quota check to subscription period, not calendar month
-- File: [backend/apps/core/permissions.py:30-37](backend/apps/core/permissions.py#L30-L37).
-- Current: counts proposals where `created_at >= month_start` (UTC 1st-of-month).
-- Problem: user upgrades mid-month, their old usage carries against the new bigger quota — fine. But if they signed up mid-month, they get a partial month for full price. Worse, annual subscribers reset every UTC 1st even though they paid for 12 months.
-- Fix: use `Organization.current_period_end` (or its start) as the window. Reset proposal count at each Stripe billing period.
+### 6. Re-bind quota check to subscription period, not calendar month ✅ DONE (2026-07-01)
+- File: [backend/apps/core/permissions.py:60-77](backend/apps/core/permissions.py#L60-L77).
+- Shipped: `_billing_period_start(period_end, cadence)` derives the window start from `Organization.current_period_end`; paid tiers reset per Stripe billing period, free tier keeps UTC 1st-of-month fallback.
 
-### 7. Failed-payment recovery flow
-- Currently `invoice.payment_failed` → `subscription_status = "past_due"` and nothing happens. No email, no in-app banner, no grace-period logic, no auto-cancel.
-- Decide policy: Stripe Smart Retries handle ~3 retries over ~3 weeks, then `customer.subscription.deleted` fires (already handled). Need a frontend banner: "Payment failed — update card" reading `subscription_status`.
-- Quotas keep enforcing the paid tier during `past_due` — verify whether that's intended (we currently bill for value not delivered).
+### 7. Failed-payment recovery flow — ⚠️ PARTIAL (banner done 2026-07-01)
+- Done: in-app banner in [AppShell.jsx:15-24](frontend/src/components/AppShell.jsx#L15-L24) reads `subscription_status === "past_due"` → "Payment failed — update payment method".
+- Still open: no dunning email; relying on Stripe Smart Retries (~3 retries/~3 weeks) then `customer.subscription.deleted` (already handled). Decide grace-period/auto-cancel policy.
+- Still open: quotas keep enforcing the paid tier during `past_due` — confirm intended (currently bill for value not delivered).
 
 ### 8. Tier downgrade behavior is undefined
 - Stripe Portal allows immediate downgrade. With our code: `subscription.updated` fires with the new (cheaper) price → tier flips immediately → user may exceed new tier's quotas instantly.
@@ -62,18 +73,17 @@ Status as of 2026-05-23. P0/P1 webhook + checkout fixes already shipped (price�
 - Stripe Portal default lets users cancel directly. Confirm whether to allow self-serve cancel or require a contact-support flow. Configure under Stripe Dashboard → Billing → Customer Portal.
 - If self-serve cancel is allowed, confirm `customer.subscription.deleted` handler does the right thing (downgrade to free — already implemented).
 
-### 10. Webhook retry alerting
-- `StripeEvent` table grows unbounded. After 30 days, prune via a Celery beat job (or add a partial index + manual cleanup).
-- Stripe will retry a failing webhook for ~3 days. Add a Sentry alert on the `500` log path in [backend/apps/billing/views.py:222-225](backend/apps/billing/views.py#L222-L225) so we notice handler bugs before retries exhaust.
+### 10. Webhook retry alerting — ⚠️ PARTIAL (prune done 2026-07-01)
+- Done: `prune-stripe-events-daily` beat job deletes `StripeEvent` rows older than `STRIPE_EVENT_RETENTION_DAYS` (default 30) at 03:00 UTC ([celery.py:12-18](backend/config/celery.py#L12-L18), [billing/tasks.py:13-25](backend/apps/billing/tasks.py#L13-L25)).
+- Still open: Stripe retries a failing webhook for ~3 days. Add a Sentry alert on the `500` log path in [backend/apps/billing/views.py:254-258](backend/apps/billing/views.py#L254-L258) so we notice handler bugs before retries exhaust.
 
 ---
 
 ## P2 — operational hygiene
 
-### 11. Stripe Tax / EU VAT
-- Required for any sale into the EU (~5% of typical SaaS revenue).
-- Action: enable Stripe Tax in dashboard → set `automatic_tax: {"enabled": True}` on `checkout.Session.create()` call in [backend/apps/billing/views.py:120-138](backend/apps/billing/views.py#L120-L138).
-- Set tax registrations for any state/country we collect from.
+### 11. Stripe Tax / EU VAT — ⚠️ PARTIAL (code done 2026-07-01)
+- Done: `automatic_tax={"enabled": True}` on the checkout session ([backend/apps/billing/views.py:135](backend/apps/billing/views.py#L135)).
+- Still open: enable Stripe Tax in the dashboard and set tax registrations for any state/country we collect from.
 
 ### 12. Promo codes / trial periods
 - No coupon support in checkout call. If marketing wants a launch promo, add `allow_promotion_codes=True` to the Session.create kwargs.
@@ -83,9 +93,8 @@ Status as of 2026-05-23. P0/P1 webhook + checkout fixes already shipped (price�
 - `Organization` model removed `proposal_pack_balance` in the recent pricing revamp (commit `fe1fe4d`). Pricing docs still mention Boost/Plus/Power packs.
 - Reconcile: either re-add the field + a `payment_intent` flow + handler for `payment_intent.succeeded`, or remove the packs from marketing copy.
 
-### 14. Customer email sync on user email change
-- `Customer.create()` now passes `request.user.email`. If the user later changes email via `/auth/profile/`, the Stripe Customer is not updated. Stripe receipts go to the old address.
-- Add a post-save signal on `User.email` change → `stripe.Customer.modify(org.stripe_customer_id, email=new)`.
+### 14. Customer email sync on user email change ✅ DONE (2026-07-01)
+- Shipped: email update path calls `stripe.Customer.modify(org.stripe_customer_id, email=email)` ([backend/apps/accounts/views.py:174](backend/apps/accounts/views.py#L174)).
 
 ### 15. Multi-seat billing for Studio/Agency tiers
 - Tiers advertise "5 seats" / "10 seats" but billing is flat-rate per org. If the product grows into per-seat pricing later, the price IDs and `quantity` in `line_items` need rework.
@@ -108,12 +117,14 @@ Status as of 2026-05-23. P0/P1 webhook + checkout fixes already shipped (price�
 - [ ] `FRONTEND_URL` set to prod origin
 - [ ] `STRIPE_API_VERSION` set (default `2024-11-20.acacia` ok)
 - [ ] Stripe webhook endpoint configured with the 5 event types
-- [ ] Stripe Tax enabled if selling into EU
+- [ ] Stripe Tax enabled in dashboard + registrations (code done — P2 #11)
 - [ ] Customer Portal configured (cancel policy, upgrade rules)
 - [ ] End-to-end test in Stripe test mode (signup → upgrade → portal change → cancel → resub → failed-payment)
 - [ ] Sentry alert on billing webhook 500
-- [ ] Quota window aligned with billing period (P1 #6)
-- [ ] Past-due frontend banner in Settings (P1 #7)
+- [x] Quota window aligned with billing period (P1 #6) — 2026-07-01
+- [x] Past-due frontend banner (P1 #7, in AppShell) — 2026-07-01
+- [x] StripeEvent pruning beat job (P1 #10) — 2026-07-01
+- [x] Customer email sync on email change (P2 #14) — 2026-07-01
 
 ---
 

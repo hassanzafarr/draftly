@@ -326,11 +326,22 @@ if not DEBUG:
     X_FRAME_OPTIONS = "DENY"
 
 # Celery
-CELERY_BROKER_URL = config("REDIS_URL", default="redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = config("REDIS_URL", default="redis://localhost:6379/0")
+_redis_url = config("REDIS_URL", default="redis://localhost:6379/0")
+CELERY_BROKER_URL = _redis_url
+CELERY_RESULT_BACKEND = _redis_url
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_WORKER_HIJACK_ROOT_LOGGER = False
+
+if _redis_url.startswith("rediss://"):
+    import ssl
+
+    CELERY_BROKER_USE_SSL = {
+        "ssl_cert_reqs": ssl.CERT_REQUIRED,
+    }
+    CELERY_REDIS_BACKEND_USE_SSL = {
+        "ssl_cert_reqs": ssl.CERT_REQUIRED,
+    }
 
 # File storage — local by default, Supabase Storage in production
 USE_SUPABASE_STORAGE = config("USE_SUPABASE_STORAGE", default=False, cast=bool)

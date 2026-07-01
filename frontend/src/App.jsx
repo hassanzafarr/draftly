@@ -53,7 +53,32 @@ export default function App() {
       <Sentry.ErrorBoundary fallback={<PageFallback />}>
         <ThemeProvider>
           <BrowserRouter>
-            <Toaster position="top-right" />
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                style: {
+                  background: "var(--surface)",
+                  color: "var(--foreground)",
+                  border: "1px solid var(--hairline)",
+                  borderRadius: "var(--radius-xl)",
+                  fontSize: "0.875rem",
+                  maxWidth: "400px",
+                  boxShadow: "var(--shadow-panel)",
+                },
+                success: {
+                  iconTheme: {
+                    primary: "var(--emerald)",
+                    secondary: "var(--surface)",
+                  },
+                },
+                error: {
+                  iconTheme: {
+                    primary: "var(--destructive)",
+                    secondary: "var(--surface)",
+                  },
+                },
+              }}
+            />
             <CookieConsentBanner />
             <Suspense fallback={<PageFallback />}>
               <Routes>
