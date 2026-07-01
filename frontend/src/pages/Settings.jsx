@@ -84,6 +84,10 @@ export default function Settings() {
   const [portalLoading, setPortalLoading] = useState(false);
 
   useEffect(() => {
+    fetchMe();
+  }, []);
+
+  useEffect(() => {
     if (user) {
       setEmail(user.email || "");
       setOrgName(user.org?.name || "");
@@ -421,34 +425,130 @@ export default function Settings() {
                 <h3 className="font-display text-base font-semibold text-foreground">
                   Usage & Quotas
                 </h3>
-                <div className="mt-4 space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Document quota</span>
-                    <span className="text-foreground">
-                      {user?.org?.doc_quota?.toLocaleString() || "—"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Proposal quota</span>
-                    <span className="text-foreground">
-                      {user?.org?.proposal_quota?.toLocaleString() || "—"} / month
-                    </span>
-                  </div>
-                  {user?.org?.current_period_end && (
+                <div className="mt-5 space-y-5">
+                  {/* Proposals */}
+                  {(() => {
+                    const used = user?.org?.proposals_used ?? 0;
+                    const quota = user?.org?.proposal_quota ?? 0;
+                    if (!quota) return null;
+                    const pct = Math.min(Math.round((used / quota) * 100), 100);
+                    const atLimit = used >= quota;
+                    const isWarning = !atLimit && pct >= 80;
+                    return (
+                      <div>
+                        <div className="mb-1.5 flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Proposals this month</span>
+                          <span className={atLimit ? "font-semibold text-destructive" : "text-foreground"}>
+                            {used} / {quota}
+                          </span>
+                        </div>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-surface-2">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              atLimit
+                                ? "bg-destructive"
+                                : isWarning
+                                ? "bg-amber"
+                                : "bg-gradient-to-r from-violet to-magenta"
+                            }`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        {atLimit && (
+                          <p className="mt-1.5 text-xs text-destructive">
+                            Monthly proposal limit reached.{" "}
+                            <a
+                              href="/pricing"
+                              className="underline underline-offset-2 hover:text-foreground"
+                            >
+                              Upgrade plan →
+                            </a>
+                          </p>
+                        )}
+                        {isWarning && (
+                          <p className="mt-1.5 text-xs text-amber">
+                            {quota - used} proposal{quota - used !== 1 ? "s" : ""} remaining this month.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Documents */}
+                  {(() => {
+                    const used = user?.org?.docs_used ?? 0;
+                    const quota = user?.org?.doc_quota ?? 0;
+                    const unlimited = quota >= 999999;
+                    if (unlimited) {
+                      return (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Documents</span>
+                          <span className="text-foreground">{used} / Unlimited</span>
+                        </div>
+                      );
+                    }
+                    if (!quota) return null;
+                    const pct = Math.min(Math.round((used / quota) * 100), 100);
+                    const atLimit = used >= quota;
+                    const isWarning = !atLimit && pct >= 80;
+                    return (
+                      <div>
+                        <div className="mb-1.5 flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Documents</span>
+                          <span className={atLimit ? "font-semibold text-destructive" : "text-foreground"}>
+                            {used} / {quota}
+                          </span>
+                        </div>
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-surface-2">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              atLimit
+                                ? "bg-destructive"
+                                : isWarning
+                                ? "bg-amber"
+                                : "bg-gradient-to-r from-violet to-magenta"
+                            }`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        {atLimit && (
+                          <p className="mt-1.5 text-xs text-destructive">
+                            Document limit reached.{" "}
+                            <a
+                              href="/pricing"
+                              className="underline underline-offset-2 hover:text-foreground"
+                            >
+                              Upgrade plan →
+                            </a>
+                          </p>
+                        )}
+                        {isWarning && (
+                          <p className="mt-1.5 text-xs text-amber">
+                            {quota - used} document slot{quota - used !== 1 ? "s" : ""} remaining.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Misc */}
+                  <div className="space-y-3 border-t border-hairline pt-4 text-sm">
+                    {user?.org?.current_period_end && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Billing period ends</span>
+                        <span className="text-foreground">
+                          {new Date(user.org.current_period_end).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Billing period ends</span>
+                      <span className="text-muted-foreground">Organization created</span>
                       <span className="text-foreground">
-                        {new Date(user.org.current_period_end).toLocaleDateString()}
+                        {user?.org?.created_at
+                          ? new Date(user.org.created_at).toLocaleDateString()
+                          : "—"}
                       </span>
                     </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Organization created</span>
-                    <span className="text-foreground">
-                      {user?.org?.created_at
-                        ? new Date(user.org.created_at).toLocaleDateString()
-                        : "—"}
-                    </span>
                   </div>
                 </div>
               </div>

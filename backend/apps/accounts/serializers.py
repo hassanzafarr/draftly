@@ -1,10 +1,30 @@
+import calendar
+import datetime
+
 from django.utils import timezone
 from rest_framework import serializers
 
 from .models import Invitation, Organization, User
 
 
+def _billing_period_start(period_end, cadence):
+    if cadence == "annual":
+        try:
+            return period_end.replace(year=period_end.year - 1)
+        except ValueError:
+            return period_end.replace(year=period_end.year - 1, day=28)
+    if period_end.month == 1:
+        year, month = period_end.year - 1, 12
+    else:
+        year, month = period_end.year, period_end.month - 1
+    max_day = calendar.monthrange(year, month)[1]
+    return period_end.replace(year=year, month=month, day=min(period_end.day, max_day))
+
+
 class OrganizationSerializer(serializers.ModelSerializer):
+    proposals_used = serializers.SerializerMethodField()
+    docs_used = serializers.SerializerMethodField()
+
     class Meta:
         model = Organization
         fields = [
@@ -20,6 +40,8 @@ class OrganizationSerializer(serializers.ModelSerializer):
             "monthly_price_usd",
             "annual_price_usd",
             "created_at",
+            "proposals_used",
+            "docs_used",
         ]
         read_only_fields = [
             "id",
@@ -31,7 +53,24 @@ class OrganizationSerializer(serializers.ModelSerializer):
             "seat_limit",
             "monthly_price_usd",
             "annual_price_usd",
+            "proposals_used",
+            "docs_used",
         ]
+
+    def get_proposals_used(self, obj):
+        from apps.proposals.models import Proposal
+
+        now = datetime.datetime.now(datetime.UTC)
+        if obj.subscription_tier != "free" and obj.current_period_end:
+            period_start = _billing_period_start(obj.current_period_end, obj.billing_cadence)
+        else:
+            period_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        return Proposal.objects.filter(org=obj, created_at__gte=period_start).count()
+
+    def get_docs_used(self, obj):
+        from apps.documents.models import Document
+
+        return Document.objects.filter(org=obj, status="processed").count()
 
 
 class UserSerializer(serializers.ModelSerializer):
