@@ -45,7 +45,16 @@ def document_list(request):
         file_type=ext,
         category=category,
     )
-    ingest_document.delay(str(doc.id))
+    try:
+        ingest_document.delay(str(doc.id))
+    except Exception as broker_exc:
+        doc.status = Document.Status.FAILED
+        doc.error_message = f"Task queue unavailable: {broker_exc}"
+        doc.save(update_fields=["status", "error_message"])
+        return Response(
+            {"detail": "Document queue service is temporarily unavailable. Please try again."},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
     return Response(DocumentSerializer(doc).data, status=status.HTTP_201_CREATED)
 
 

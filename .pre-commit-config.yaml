@@ -1,6 +1,6 @@
-# Lint gate — runs on `git push` (install: pre-commit install --hook-type pre-push)
-# Manual run: pre-commit run --all-files --hook-stage pre-push
-default_stages: [pre-push]
+# Lint gate — runs on `git commit` (install: pre-commit install)
+# Manual run: pre-commit run --all-files
+default_stages: [pre-commit]
 
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
