@@ -196,7 +196,7 @@ export default function Proposals() {
         ) : (
           <div className="mt-6 space-y-3">
             <AnimatePresence mode="popLayout">
-              {filtered.map((p, i) => {
+              {filtered.map((p) => {
                 const cfg = STATUS_CONFIG[p.status] || STATUS_CONFIG.draft;
                 const StatusIcon = cfg.icon;
                 const wordCount = p.sections
@@ -209,15 +209,14 @@ export default function Proposals() {
                 return (
                   <motion.div
                     key={p.id}
-                    layout
-                    initial={{ opacity: 0, y: 12, scale: 1 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{
-                      layout: { type: "spring", stiffness: 300, damping: 28 },
-                      opacity: { delay: i * 0.03 },
-                      y: { delay: i * 0.03, type: "spring", stiffness: 220, damping: 24 },
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{
+                      opacity: 0,
+                      scale: 0.97,
+                      transition: { duration: 0.12, ease: "easeOut" },
                     }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
                     className="group glass relative w-full overflow-hidden rounded-2xl p-5 transition hover:border-violet/30"
                   >
                     <Link

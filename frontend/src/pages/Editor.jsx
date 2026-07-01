@@ -15,7 +15,6 @@ import {
   FileCheck2,
   FileDown,
 } from "lucide-react";
-import jsPDF from "jspdf";
 import api from "../api/client";
 import { watchProposal } from "../api/sse";
 import ConfirmModal from "../components/ConfirmModal";
@@ -168,7 +167,8 @@ export default function Editor() {
     }
   };
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
+    const { default: jsPDF } = await import("jspdf");
     const doc = new jsPDF({ unit: "pt", format: "a4" });
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { FileText, Sparkles, Layers, ArrowRight, Filter, Loader2, RefreshCw } from "lucide-react";
 import api from "../api/client";
 
@@ -53,6 +53,15 @@ export default function Templates() {
   const [filter, setFilter] = useState("All");
   const [templates, setTemplates] = useState([]);
   const [state, setState] = useState("loading"); // loading | ready | error
+  const [isInitial, setIsInitial] = useState(true);
+
+  // Disable stagger delay after initial load completes
+  useEffect(() => {
+    if (state === "ready") {
+      const timer = setTimeout(() => setIsInitial(false), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [state]);
 
   const fetchTemplates = async () => {
     setState("loading");
@@ -77,7 +86,8 @@ export default function Templates() {
   const filtered = templates.filter((t) => filter === "All" || t.category === filter.toLowerCase());
 
   return (
-    <div className="px-6 py-6">
+    <LayoutGroup id="templates-page">
+      <div className="px-6 py-6">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <motion.header
@@ -160,7 +170,7 @@ export default function Templates() {
 
         {/* Grid */}
         {state === "ready" && (
-          <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="relative mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             <AnimatePresence mode="popLayout">
               {filtered.map((t, i) => {
                 const a = accentMap[t.accent] ?? accentMap.violet;
@@ -169,12 +179,25 @@ export default function Templates() {
                 return (
                   <motion.button
                     key={t.id}
-                    layout
-                    initial={{ opacity: 0, y: 16, scale: 0.96 }}
+                    layout="position"
+                    initial={{ opacity: 0, y: 15, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -10, scale: 0.96 }}
-                    transition={{ delay: i * 0.05, type: "spring", stiffness: 220, damping: 24 }}
-                    whileHover={{ y: -6 }}
+                    exit={{
+                      opacity: 0,
+                      scale: 0.95,
+                      y: 10,
+                      transition: { duration: 0.2, ease: "easeInOut" },
+                    }}
+                    transition={{
+                      layout: { type: "spring", stiffness: 300, damping: 30 },
+                      opacity: { duration: 0.2 },
+                      default: {
+                        duration: 0.25,
+                        delay: isInitial ? Math.min(i, 6) * 0.05 : 0,
+                        ease: [0.25, 1, 0.5, 1],
+                      },
+                    }}
+                    whileHover={{ y: -6, transition: { type: "spring", stiffness: 400, damping: 26 } }}
                     onClick={() => navigate("/", { state: { template: t } })}
                     className="group relative overflow-hidden rounded-2xl border border-hairline bg-surface/60 p-6 text-left backdrop-blur-md transition hover:border-violet/40"
                     style={{ minHeight: 340 }}
@@ -240,5 +263,6 @@ export default function Templates() {
         )}
       </div>
     </div>
+    </LayoutGroup>
   );
 }

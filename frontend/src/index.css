@@ -1,9 +1,6 @@
-/* Self-hosted fonts — eliminates Google Fonts CDN round trips */
-@import "@fontsource-variable/inter";
-@import "@fontsource-variable/space-grotesk";
-@import "@fontsource/jetbrains-mono/400.css";
-@import "@fontsource/jetbrains-mono/500.css";
-
+/* Self-hosted fonts imported via main.jsx (JS) so Vite resolves the
+   package exports and emits @font-face + woff2. Bare CSS @import of npm
+   packages is dropped by the Tailwind v4 pipeline. */
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
@@ -54,8 +51,8 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
   --shadow-glow-violet: 0 0 40px -8px oklch(0.62 0.25 295 / 0.55);
@@ -192,6 +189,18 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+  }
+  /* Tailwind v4 resets interactive elements to cursor:default — restore pointer. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  label[for],
+  summary,
+  a[href] {
+    cursor: pointer;
+  }
+  button:disabled,
+  [role="button"][aria-disabled="true"] {
+    cursor: not-allowed;
   }
 }
 
