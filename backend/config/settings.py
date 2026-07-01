@@ -335,6 +335,7 @@ CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 
 if _redis_url.startswith("rediss://"):
     import ssl
+
     CELERY_BROKER_USE_SSL = {
         "ssl_cert_reqs": ssl.CERT_NONE,
     }

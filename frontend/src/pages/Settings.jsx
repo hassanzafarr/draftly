@@ -438,7 +438,11 @@ export default function Settings() {
                       <div>
                         <div className="mb-1.5 flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Proposals this month</span>
-                          <span className={atLimit ? "font-semibold text-destructive" : "text-foreground"}>
+                          <span
+                            className={
+                              atLimit ? "font-semibold text-destructive" : "text-foreground"
+                            }
+                          >
                             {used} / {quota}
                           </span>
                         </div>
@@ -448,8 +452,8 @@ export default function Settings() {
                               atLimit
                                 ? "bg-destructive"
                                 : isWarning
-                                ? "bg-amber"
-                                : "bg-gradient-to-r from-violet to-magenta"
+                                  ? "bg-amber"
+                                  : "bg-gradient-to-r from-violet to-magenta"
                             }`}
                             style={{ width: `${pct}%` }}
                           />
@@ -467,7 +471,8 @@ export default function Settings() {
                         )}
                         {isWarning && (
                           <p className="mt-1.5 text-xs text-amber">
-                            {quota - used} proposal{quota - used !== 1 ? "s" : ""} remaining this month.
+                            {quota - used} proposal{quota - used !== 1 ? "s" : ""} remaining this
+                            month.
                           </p>
                         )}
                       </div>
@@ -495,7 +500,11 @@ export default function Settings() {
                       <div>
                         <div className="mb-1.5 flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Documents</span>
-                          <span className={atLimit ? "font-semibold text-destructive" : "text-foreground"}>
+                          <span
+                            className={
+                              atLimit ? "font-semibold text-destructive" : "text-foreground"
+                            }
+                          >
                             {used} / {quota}
                           </span>
                         </div>
@@ -505,8 +514,8 @@ export default function Settings() {
                               atLimit
                                 ? "bg-destructive"
                                 : isWarning
-                                ? "bg-amber"
-                                : "bg-gradient-to-r from-violet to-magenta"
+                                  ? "bg-amber"
+                                  : "bg-gradient-to-r from-violet to-magenta"
                             }`}
                             style={{ width: `${pct}%` }}
                           />
