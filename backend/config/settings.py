@@ -340,7 +340,7 @@ if _redis_url.startswith("rediss://"):
         "ssl_cert_reqs": ssl.CERT_REQUIRED,
     }
     CELERY_REDIS_BACKEND_USE_SSL = {
-        "ssl_cert_reqs": ssl.CERT_NONE,
+        "ssl_cert_reqs": ssl.CERT_REQUIRED,
     }
 
 # File storage — local by default, Supabase Storage in production
