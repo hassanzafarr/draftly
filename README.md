@@ -1,6 +1,6 @@
 <div align="center">
 
-  # ⚡ Draftly
+  # Draftly
   ### Enterprise Multi-Tenant AI Proposal & RFP Generator (RAG)
 
   [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
@@ -14,48 +14,48 @@
 
   <p align="center">
     <b>Transform hours of manual proposal writing into seconds.</b><br>
-    Draftly is a full-stack, production-ready SaaS application that leverages <b>Retrieval-Augmented Generation (RAG)</b>, vector embeddings, and dual-LLM fallback strategies to generate tailored, 10-section RFP proposal drafts from organizational knowledge bases.
+    Draftly is a full-stack SaaS application that leverages <b>Retrieval-Augmented Generation (RAG)</b>, vector embeddings, and dual-LLM fallback strategies to generate tailored, 10-section RFP proposal drafts from organizational knowledge bases.
   </p>
 
-  <sub>Built with modern software engineering best practices: multi-tenant isolation, async job queues, pgvector similarity search, and automated unit testing.</sub>
+  <sub>Built with multi-tenant isolation, async job queues, pgvector similarity search, and automated test coverage.</sub>
 
 </div>
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
-- [✨ Recruiter & Engineering Highlights](#-recruiter--engineering-highlights)
-- [🖼️ Application Preview & Screenshots](#️-application-preview--screenshots)
-- [🎯 Problem & Solution](#-problem--solution)
-- [⚡ Core Features](#-core-features)
-- [🏗️ Architecture & Data Flow](#️-architecture--data-flow)
-- [💻 Tech Stack](#-tech-stack)
-- [🚀 Quick Start & Installation](#-quick-start--installation)
+- [Engineering & Architecture Highlights](#engineering--architecture-highlights)
+- [Application Preview & Screenshots](#application-preview--screenshots)
+- [Problem & Solution](#problem--solution)
+- [Key Features](#key-features)
+- [Architecture & Data Flow](#architecture--data-flow)
+- [Tech Stack](#tech-stack)
+- [Quick Start & Installation](#quick-start--installation)
   - [Docker Setup (Recommended)](#1-docker-setup-recommended)
   - [Local Development (Without Docker)](#2-local-development-without-docker)
-- [🔒 Security & Multi-Tenancy](#-security--multi-tenancy)
-- [💳 Billing & Subscription Engine](#-billing--subscription-engine)
-- [🧪 Testing & Quality Gate](#-testing--quality-gate)
-- [📖 API Reference Summary](#-api-reference-summary)
-- [📄 License & Contact](#-license--contact)
+- [Security & Multi-Tenancy](#security--multi-tenancy)
+- [Billing & Subscription Engine](#billing--subscription-engine)
+- [Testing & Quality Gate](#testing--quality-gate)
+- [API Reference](#api-reference)
+- [License & Contact](#license--contact)
 
 ---
 
-## ✨ Recruiter & Engineering Highlights
+## Engineering & Architecture Highlights
 
-If you're evaluating this repository for technical competence, here are the core architectural highlights:
+Key engineering decisions and architectural implementations in Draftly:
 
-* 🧠 **Production RAG Engine**: Implements end-to-end vector retrieval with `pgvector` and Google AI `text-embedding-004` (768-dimensional embeddings), chunking documents into ~500-word segments with 50-word overlap for high context recall.
-* 🛡️ **Fault-Tolerant Dual-LLM Pipeline**: Primary generation uses **Google Gemini 2.5 Flash**. On encountering rate limits (HTTP 429), the task seamlessly falls back to **Groq `llama-3.1-8b-instant`**, ensuring high uptime.
-* 🏢 **Strict Multi-Tenant Isolation**: Custom Django REST Framework permissions (`IsOrgMember`, `OrgDocQuotaPermission`, `OrgProposalQuotaPermission`) ensure zero cross-tenant data leakage and enforce strict row-level security on all database queries.
-* ⚡ **Asynchronous Worker Architecture**: Non-blocking document ingestion and proposal generation executed via **Celery** with **Redis** as broker/result backend, featuring status polling and exponential backoff retries.
-* 💳 **Full Stripe Subscription Integration**: End-to-end monetization featuring Stripe Checkout, Customer Portal, and webhook signature verification with idempotency protection via `StripeEvent` logging.
-* 🧪 **Robust Automated Test Suite**: Full test coverage with `pytest` on the backend and `Vitest` + `React Testing Library` + `MSW` (Mock Service Worker) on the frontend, protected by pre-push hooks.
+* **Production RAG Engine**: Implements end-to-end vector retrieval with `pgvector` and Google AI `text-embedding-004` (768-dimensional embeddings), chunking documents into ~500-word segments with 50-word overlap for high context recall.
+* **Fault-Tolerant Dual-LLM Pipeline**: Primary generation uses **Google Gemini 2.5 Flash**. On encountering rate limits (HTTP 429), the task seamlessly falls back to **Groq `llama-3.1-8b-instant`**, ensuring high uptime.
+* **Strict Multi-Tenant Isolation**: Custom Django REST Framework permissions (`IsOrgMember`, `OrgDocQuotaPermission`, `OrgProposalQuotaPermission`) ensure zero cross-tenant data leakage and enforce strict row-level security on all database queries.
+* **Asynchronous Worker Architecture**: Non-blocking document ingestion and proposal generation executed via **Celery** with **Redis** as broker/result backend, featuring status polling and exponential backoff retries.
+* **Full Stripe Subscription Integration**: End-to-end monetization featuring Stripe Checkout, Customer Portal, and webhook signature verification with idempotency protection via `StripeEvent` logging.
+* **Robust Automated Test Suite**: Full test coverage with `pytest` on the backend and `Vitest` + `React Testing Library` + `MSW` (Mock Service Worker) on the frontend, protected by pre-push hooks.
 
 ---
 
-## 🖼️ Application Preview & Screenshots
+## Application Preview & Screenshots
 
 ### 1. Proposal Generator & RFP Workspace
 *Paste RFP requirements, select past company case studies, customize generation tone, and trigger AI drafting.*
@@ -85,7 +85,7 @@ If you're evaluating this repository for technical competence, here are the core
 
 ---
 
-## 🎯 Problem & Solution
+## Problem & Solution
 
 | Problem | Draftly Solution |
 | :--- | :--- |
@@ -96,15 +96,15 @@ If you're evaluating this repository for technical competence, here are the core
 
 ---
 
-## ⚡ Core Features
+## Key Features
 
-### 📄 1. RAG Knowledge Base Ingestion
+### 1. RAG Knowledge Base Ingestion
 - Upload PDF, DOCX, and TXT company documents.
 - Automatic text extraction via `PyMuPDF` and `python-docx`.
 - Smart word-based chunking with configurable overlap.
 - Batched embedding generation stored directly in PostgreSQL using `pgvector`.
 
-### 📝 2. AI Proposal Generation Engine
+### 2. AI Proposal Generation Engine
 - Automatically parses RFP requirements and generates 10 tailored sections:
   1. Executive Summary
   2. Understanding Requirements
@@ -118,18 +118,18 @@ If you're evaluating this repository for technical competence, here are the core
   10. Appendix & Terminology
 - Automatic LLM fallback strategy (Gemini 2.5 Flash ➡️ Groq Llama 3.1 8B).
 
-### ✏️ 3. Rich Editor & Export Tools
+### 3. Rich Editor & Export Tools
 - Section-by-section Tiptap rich-text editor in React.
 - Export finalized proposals directly to **PDF** (styled layout) or **DOCX** (editable Word document).
 
-### 📊 4. Tiered Quota & Billing Management
+### 4. Tiered Quota & Billing Management
 - Subscription tiers: **Free**, **Solo**, **Studio**, and **Agency**.
 - Real-time enforcement of document uploads and monthly proposal generation limits.
 - Automated monthly quota resets on the 1st of each month (UTC).
 
 ---
 
-## 🏗️ Architecture & Data Flow
+## Architecture & Data Flow
 
 ```
                                ┌────────────────────────────────────────────────────────┐
@@ -177,7 +177,7 @@ If you're evaluating this repository for technical competence, here are the core
 
 ---
 
-## 💻 Tech Stack
+## Tech Stack
 
 ### Backend & Infrastructure
 - **Framework**: Python 3.11, Django 5.0, Django REST Framework
@@ -202,7 +202,7 @@ If you're evaluating this repository for technical competence, here are the core
 
 ---
 
-## 🚀 Quick Start & Installation
+## Quick Start & Installation
 
 ### Prerequisites
 - [Docker](https://www.docker.com/) and Docker Compose installed.
@@ -242,9 +242,9 @@ If you're evaluating this repository for technical competence, here are the core
    ```
 
 5. **Access the Application:**
-   - 🌐 **Frontend SPA**: `http://localhost:5173`
-   - ⚙️ **Django REST API**: `http://localhost:8000/api/`
-   - 🔧 **Django Admin Panel**: `http://localhost:8000/admin/`
+   - **Frontend SPA**: `http://localhost:5173`
+   - **Django REST API**: `http://localhost:8000/api/`
+   - **Django Admin Panel**: `http://localhost:8000/admin/`
 
 ---
 
@@ -282,7 +282,7 @@ npm run dev
 
 ---
 
-## 🔒 Security & Multi-Tenancy
+## Security & Multi-Tenancy
 
 Draftly enforces security at every layer of the application stack:
 
@@ -293,7 +293,7 @@ Draftly enforces security at every layer of the application stack:
 
 ---
 
-## 💳 Billing & Subscription Engine
+## Billing & Subscription Engine
 
 Draftly features a fully implemented Stripe billing engine in `apps/billing/`:
 
@@ -303,7 +303,7 @@ Draftly features a fully implemented Stripe billing engine in `apps/billing/`:
 
 ---
 
-## 🧪 Testing & Quality Gate
+## Testing & Quality Gate
 
 Draftly includes a comprehensive automated test suite to ensure system reliability and regression testing.
 
@@ -329,31 +329,31 @@ The repository enforces pre-push checks via `.pre-commit-config.yaml` to ensure 
 
 ---
 
-## 📖 API Reference Summary
+## API Reference
 
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :---: |
-| `POST` | `/api/accounts/register/` | Register user and organization | ❌ |
-| `POST` | `/api/accounts/login/` | Obtain JWT access/refresh token pair | ❌ |
-| `GET` | `/api/accounts/me/` | Fetch current user & org quotas | 🔒 |
-| `GET` | `/api/documents/` | List organization knowledge documents | 🔒 |
-| `POST` | `/api/documents/` | Upload document (triggers async ingestion) | 🔒 |
-| `POST` | `/api/rfps/` | Create RFP record | 🔒 |
-| `POST` | `/api/proposals/generate/` | Trigger AI RAG proposal generation task | 🔒 |
-| `GET` | `/api/proposals/{id}/` | Get proposal details & sections | 🔒 |
-| `GET` | `/api/analytics/stats/` | Fetch org analytics dashboard stats | 🔒 |
-| `POST` | `/api/billing/create-checkout/` | Initiate Stripe Checkout session | 🔒 |
+| `POST` | `/api/accounts/register/` | Register user and organization | No |
+| `POST` | `/api/accounts/login/` | Obtain JWT access/refresh token pair | No |
+| `GET` | `/api/accounts/me/` | Fetch current user & org quotas | Yes |
+| `GET` | `/api/documents/` | List organization knowledge documents | Yes |
+| `POST` | `/api/documents/` | Upload document (triggers async ingestion) | Yes |
+| `POST` | `/api/rfps/` | Create RFP record | Yes |
+| `POST` | `/api/proposals/generate/` | Trigger AI RAG proposal generation task | Yes |
+| `GET` | `/api/proposals/{id}/` | Get proposal details & sections | Yes |
+| `GET` | `/api/analytics/stats/` | Fetch org analytics dashboard stats | Yes |
+| `POST` | `/api/billing/create-checkout/` | Initiate Stripe Checkout session | Yes |
 | `POST` | `/api/billing/webhook/` | Stripe Webhook listener endpoint | Webhook Signature |
 
 ---
 
-## 📄 License & Contact
+## License & Contact
 
 Distributed under the **MIT License**. See `LICENSE` for more information.
 
 <div align="center">
 
-  **Crafted with precision by Hassan Zafar**
+  **Hassan Zafar**
   
   [![LinkedIn](https://img.shields.io/badge/LinkedIn-Profile-0A66C2?style=for-the-badge&logo=linkedin)](https://linkedin.com)
   [![GitHub](https://img.shields.io/badge/GitHub-Profile-181717?style=for-the-badge&logo=github)](https://github.com)
