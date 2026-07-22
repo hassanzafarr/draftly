@@ -33,8 +33,6 @@
 - [Tech Stack](#tech-stack)
 - [Security & Multi-Tenancy](#security--multi-tenancy)
 - [Billing & Subscription Engine](#billing--subscription-engine)
-- [Testing & Quality Gate](#testing--quality-gate)
-- [API Reference](#api-reference)
 - [License & Contact](#license--contact)
 
 ---
@@ -217,50 +215,6 @@ Draftly features a fully implemented Stripe billing engine in `apps/billing/`:
 * **Tier Resolution**: Resolves subscription tiers directly from Stripe line-item price IDs.
 * **Webhook Handling**: Handlers for `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, and `invoice.payment_failed`.
 * **Idempotency**: Prevents duplicate webhook processing using a dedicated `StripeEvent` event tracking model.
-
----
-
-## Testing & Quality Gate
-
-Draftly includes a comprehensive automated test suite to ensure system reliability and regression testing.
-
-### Backend Tests (pytest)
-```bash
-cd backend
-pytest                             # Run all tests
-pytest --cov=apps --cov-report=html # Run with HTML coverage report
-ruff check . && ruff format --check . # Run linter & formatter
-```
-
-### Frontend Tests (Vitest)
-```bash
-cd frontend
-npm test                # Watch mode
-npm run test:run        # Single run execution
-npm run test:cov        # Coverage report
-npm run lint            # ESLint check
-```
-
-### Pre-Commit & Pre-Push Hook Gate
-The repository enforces pre-push checks via `.pre-commit-config.yaml` to ensure code formatting, linting, and tests pass before git pushes are accepted.
-
----
-
-## API Reference
-
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :---: |
-| `POST` | `/api/accounts/register/` | Register user and organization | No |
-| `POST` | `/api/accounts/login/` | Obtain JWT access/refresh token pair | No |
-| `GET` | `/api/accounts/me/` | Fetch current user & org quotas | Yes |
-| `GET` | `/api/documents/` | List organization knowledge documents | Yes |
-| `POST` | `/api/documents/` | Upload document (triggers async ingestion) | Yes |
-| `POST` | `/api/rfps/` | Create RFP record | Yes |
-| `POST` | `/api/proposals/generate/` | Trigger AI RAG proposal generation task | Yes |
-| `GET` | `/api/proposals/{id}/` | Get proposal details & sections | Yes |
-| `GET` | `/api/analytics/stats/` | Fetch org analytics dashboard stats | Yes |
-| `POST` | `/api/billing/create-checkout/` | Initiate Stripe Checkout session | Yes |
-| `POST` | `/api/billing/webhook/` | Stripe Webhook listener endpoint | Webhook Signature |
 
 ---
 
