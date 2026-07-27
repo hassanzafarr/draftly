@@ -1,8 +1,8 @@
-django==5.2.15
-djangorestframework==3.16.1
+django==6.0.7
+djangorestframework==3.17.1
 djangorestframework-simplejwt==5.5.1
-django-cors-headers==4.4.0
-django-storages[s3]==1.14.4
+django-cors-headers==4.9.0
+django-storages[s3]==1.14.6
 psycopg2-binary==2.9.9; python_version < "3.12"
 psycopg2-binary==2.9.12; python_version >= "3.12"
 pgvector==0.3.2
