@@ -10,10 +10,12 @@ import {
   Moon,
   ClipboardList,
   CreditCard,
+  Sparkles,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useTheme } from "./ThemeProvider";
 import useAuthStore from "../store/auth";
+import useDemoTourStore from "../store/demoTour";
 
 const items = [
   { to: "/", label: "Generator", icon: Home },
@@ -29,6 +31,9 @@ export function Sidebar() {
   const { theme, toggle } = useTheme();
   const navigate = useNavigate();
   const logout = useAuthStore((s) => s.logout);
+  const user = useAuthStore((s) => s.user);
+  const openTour = useDemoTourStore((s) => s.openTour);
+  const isDemo = user?.org?.subscription_tier === "demo" || user?.email === "demo@draftly.software";
 
   return (
     <aside
@@ -110,6 +115,18 @@ export function Sidebar() {
             {theme === "dark" ? "Light mode" : "Dark mode"}
           </span>
         </button>
+        {isDemo && (
+          <button
+            onClick={openTour}
+            aria-label="Demo Tutorial"
+            className="group relative flex h-10 w-10 items-center justify-center rounded-xl border border-violet/30 bg-violet/10 text-violet transition hover:border-violet/50 hover:bg-violet/20 hover:text-white"
+          >
+            <Sparkles className="h-[18px] w-[18px]" />
+            <span className="pointer-events-none absolute left-[52px] top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-md bg-surface-2 px-2 py-1 text-xs text-foreground opacity-0 shadow-lg ring-1 ring-hairline transition group-hover:opacity-100">
+              Demo Tutorial
+            </span>
+          </button>
+        )}
         <Link
           to="/settings"
           aria-label="Settings"
