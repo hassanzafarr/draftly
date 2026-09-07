@@ -264,6 +264,6 @@ JWT tokens: 8-hour access, 7-day refresh (rotate-refresh enabled via `SIMPLE_JWT
 - **No team invitations**: User model supports admin/member roles and multiple users per org, but no invite endpoint or UI exists.
 - **No SSE/WebSocket**: Frontend uses polling (3s proposals, 5s docs); no streaming endpoint.
 - **Test coverage**: Test infra in place (pytest backend + vitest frontend) but only auth smoke + multi-tenant isolation covered. Document upload, proposal generation, and page-level tests not yet written.
-- **CI/CD**: `deploy.yml` deploys on push to main (lint → test → build → Azure). `ci.yml` runs lint + test + `pip-audit` / `npm audit --audit-level=high` on every PR. Dependabot configured weekly (pip + npm + GitHub Actions).
+- **CI/CD**: `ci.yml` runs lint + test + `pip-audit` / `npm audit --audit-level=high` on every PR. Dependabot configured weekly (pip + npm + GitHub Actions). Deploy itself is push-to-deploy via Railway (backend + worker + Redis) and Vercel (frontend) — no deploy GitHub Action.
 - **Templates are mock**: Template gallery shows mock data — no backend Template model yet.
 - **Word-based chunking**: Chunk sizes vary for non-English or code-heavy docs.
