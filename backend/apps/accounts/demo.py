@@ -127,20 +127,20 @@ def reset_demo_data(org, user):
     Document.objects.filter(org=org).delete()  # cascades to Chunk
 
     for filename, title, category, file_type in DEMO_SEED_FILES:
-        data = (DEMO_SEED_DIR / filename).read_bytes()
-        doc = Document(
-            org=org,
-            uploaded_by=user,
-            title=title,
-            file_type=file_type,
-            category=category,
-        )
-        doc.file.save(filename, ContentFile(data), save=False)
-        doc.save()
         try:
+            data = (DEMO_SEED_DIR / filename).read_bytes()
+            doc = Document(
+                org=org,
+                uploaded_by=user,
+                title=title,
+                file_type=file_type,
+                category=category,
+            )
+            doc.file.save(filename, ContentFile(data), save=False)
+            doc.save()
             ingest_document(str(doc.id))
         except Exception:
-            logger.exception("Demo seed document %s failed to ingest", filename)
+            logger.exception("Demo seed document %s failed to seed/ingest", filename)
 
     org.demo_reset_at = timezone.now()
     org.save(update_fields=["demo_reset_at"])

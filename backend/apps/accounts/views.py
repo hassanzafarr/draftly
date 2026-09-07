@@ -26,7 +26,7 @@ from apps.core.throttling import (
     TeamInviteThrottle,
 )
 
-from .demo import get_or_create_demo, is_demo_stale, reset_demo_data
+from .demo import get_or_create_demo, is_demo_stale
 from .models import Invitation, Organization, User
 from .serializers import (
     InvitationSerializer,
@@ -38,6 +38,7 @@ from .serializers import (
     TeamMemberSerializer,
     UserSerializer,
 )
+from .tasks import reset_demo_data_task
 
 logger = logging.getLogger(__name__)
 
@@ -515,7 +516,11 @@ def demo_login(request):
     """Log in as the shared public demo account, reseeding its data if stale."""
     org, user = get_or_create_demo()
     if is_demo_stale(org):
-        reset_demo_data(org, user)
+        # Mark fresh immediately so concurrent logins don't all trigger a reset,
+        # then do the actual wipe+reseed on the worker — never block login on it.
+        org.demo_reset_at = timezone.now()
+        org.save(update_fields=["demo_reset_at"])
+        reset_demo_data_task.delay()
 
     refresh = RefreshToken.for_user(user)
     return Response(
