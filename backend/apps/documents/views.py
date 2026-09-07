@@ -7,7 +7,7 @@ from rest_framework.decorators import (
 )
 from rest_framework.response import Response
 
-from apps.core.permissions import IsOrgMember, OrgDocQuotaPermission
+from apps.core.permissions import IsOrgMember, NotDemoOrgWritePermission, OrgDocQuotaPermission
 from apps.core.sse import ServerSentEventRenderer, sse_response, stream_changes
 from apps.core.throttling import DocumentUploadThrottle
 
@@ -17,7 +17,7 @@ from .tasks import ingest_document
 
 
 @api_view(["GET", "POST"])
-@permission_classes([IsOrgMember, OrgDocQuotaPermission])
+@permission_classes([IsOrgMember, NotDemoOrgWritePermission, OrgDocQuotaPermission])
 @throttle_classes([DocumentUploadThrottle])
 def document_list(request):
     if request.method == "GET":
@@ -59,7 +59,7 @@ def document_list(request):
 
 
 @api_view(["GET", "DELETE"])
-@permission_classes([IsOrgMember])
+@permission_classes([IsOrgMember, NotDemoOrgWritePermission])
 def document_detail(request, pk):
     try:
         doc = Document.objects.get(pk=pk, org=request.user.org)

@@ -61,7 +61,9 @@ class OrganizationSerializer(serializers.ModelSerializer):
         from apps.proposals.models import Proposal
 
         now = datetime.datetime.now(datetime.UTC)
-        if obj.subscription_tier != "free" and obj.current_period_end:
+        if obj.subscription_tier == "demo":
+            period_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif obj.subscription_tier != "free" and obj.current_period_end:
             period_start = _billing_period_start(obj.current_period_end, obj.billing_cadence)
         else:
             period_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)

@@ -44,6 +44,18 @@ class IsOrgAdmin(BasePermission):
         )
 
 
+class NotDemoOrgWritePermission(BasePermission):
+    """Block writes from the shared demo org — its document set is fixed/curated."""
+
+    message = "The demo account's documents are fixed. Sign up to upload your own."
+
+    def has_permission(self, request, view):
+        if request.method in ("GET", "HEAD", "OPTIONS"):
+            return True
+        org = request.user.org
+        return not (org and org.subscription_tier == "demo")
+
+
 class OrgDocQuotaPermission(BasePermission):
     """Block document upload if org is at its doc quota."""
 
@@ -67,9 +79,16 @@ class OrgProposalQuotaPermission(BasePermission):
             return True
         org = request.user.org
         now = datetime.datetime.now(datetime.UTC)
+        if org.subscription_tier == "demo":
+            # Shared demo account resets daily rather than monthly.
+            period_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            self.message = (
+                "Demo account is limited to 3 proposals per day. "
+                "Try again tomorrow, or sign up for your own account."
+            )
         # Paid subscribers: align quota window to Stripe billing period so
         # annual subscribers don't reset every UTC 1st of the calendar month.
-        if org.subscription_tier != "free" and org.current_period_end:
+        elif org.subscription_tier != "free" and org.current_period_end:
             period_start = _billing_period_start(org.current_period_end, org.billing_cadence)
         else:
             period_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)

@@ -26,7 +26,7 @@ from apps.core.throttling import (
     TeamInviteThrottle,
 )
 
-from .demo import get_or_create_demo, is_demo_stale
+from .demo import get_or_create_demo
 from .models import Invitation, Organization, User
 from .serializers import (
     InvitationSerializer,
@@ -38,7 +38,6 @@ from .serializers import (
     TeamMemberSerializer,
     UserSerializer,
 )
-from .tasks import reset_demo_data_task
 
 logger = logging.getLogger(__name__)
 
@@ -513,15 +512,10 @@ def invite_accept(request):
 @permission_classes([AllowAny])
 @throttle_classes([DemoLoginThrottle])
 def demo_login(request):
-    """Log in as the shared public demo account, reseeding its data if stale."""
-    org, user = get_or_create_demo()
-    if is_demo_stale(org):
-        # Mark fresh immediately so concurrent logins don't all trigger a reset,
-        # then do the actual wipe+reseed on the worker — never block login on it.
-        org.demo_reset_at = timezone.now()
-        org.save(update_fields=["demo_reset_at"])
-        reset_demo_data_task.delay()
-
+    """Log in as the shared public demo account. Its documents are seeded once
+    (via `manage.py seed_demo`) and never touched again — only its proposal
+    quota resets, daily (see OrgProposalQuotaPermission)."""
+    _org, user = get_or_create_demo()
     refresh = RefreshToken.for_user(user)
     return Response(
         {

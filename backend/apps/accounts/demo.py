@@ -1,12 +1,13 @@
 """Shared setup for the public demo account (login button, no signup required).
 
-Used by both the `seed_demo` management command (initial/manual seed) and the
-`demo_login` view (lazy reset when the demo org's data has gone stale).
+The demo org's documents are seeded once via `manage.py seed_demo` and left
+alone from then on — recruiters generate proposals against them but never
+upload/delete/reset them. Only the proposal quota resets (daily, see
+OrgProposalQuotaPermission).
 """
 
 import logging
 import uuid
-from datetime import timedelta
 from pathlib import Path
 
 from django.core.files.base import ContentFile
@@ -22,8 +23,6 @@ DEMO_ORG_ID = uuid.UUID("00000000-0000-0000-0000-0000000000d0")
 DEMO_USER_ID = uuid.UUID("00000000-0000-0000-0000-0000000000d1")
 DEMO_ORG_NAME = "Draftly Demo"
 DEMO_EMAIL = "demo@draftly.software"
-
-DEMO_RESET_INTERVAL = timedelta(hours=24)
 
 DEMO_SEED_DIR = Path(__file__).parent / "demo_seed"
 
@@ -113,12 +112,10 @@ def get_or_create_demo():
     return org, user
 
 
-def is_demo_stale(org):
-    return org.demo_reset_at is None or timezone.now() - org.demo_reset_at > DEMO_RESET_INTERVAL
-
-
 def reset_demo_data(org, user):
-    """Wipe the demo org's RFPs/proposals/documents and reseed the sample doc set."""
+    """Wipe the demo org's RFPs/proposals/documents and reseed the sample doc set.
+
+    Manual/one-off only (`manage.py seed_demo`) — never called automatically."""
     from apps.documents.models import Document
     from apps.documents.tasks import ingest_document
     from apps.proposals.models import RFP
