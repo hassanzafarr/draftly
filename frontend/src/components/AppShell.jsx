@@ -52,9 +52,6 @@ export function AppShell() {
             <div className="flex items-center gap-2.5">
               <span className="flex h-2 w-2 rounded-full bg-cyan shadow-sm shadow-cyan/50" />
               <span className="font-semibold text-foreground">Draftly Demo Sandbox</span>
-              <span className="hidden md:inline text-muted-foreground">
-                — Pre-seeded RAG document store & daily generation quota
-              </span>
             </div>
             <div className="flex items-center gap-2">
               <button
