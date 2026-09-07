@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from "react";
 import { Outlet, Link, useNavigate } from "react-router-dom";
-import { AlertTriangle, Sparkles } from "lucide-react";
+import { AlertTriangle, PlayCircle } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import useAuthStore from "../store/auth";
 import useDemoTourStore, { DEMO_TOUR_STORAGE_KEY } from "../store/demoTour";
@@ -58,7 +58,7 @@ export function AppShell() {
                 onClick={openTour}
                 className="flex items-center gap-1.5 rounded-lg border border-violet/40 bg-violet/15 px-2.5 py-1 text-xs font-medium text-violet transition hover:bg-violet/25 hover:text-white active:scale-95"
               >
-                <Sparkles className="h-3 w-3" />
+                <PlayCircle className="h-3 w-3" />
                 <span>Demo Tutorial</span>
               </button>
               <Link
