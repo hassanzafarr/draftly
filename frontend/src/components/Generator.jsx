@@ -692,7 +692,7 @@ export function Generator() {
                           initial={{ opacity: 0, y: 6 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: 6 }}
-                          className="glass-strong absolute bottom-full left-0 z-20 mb-2 w-44 overflow-hidden rounded-xl p-1 text-sm shadow-panel"
+                          className="absolute bottom-full left-0 z-20 mb-2 w-44 overflow-hidden rounded-xl border border-hairline bg-surface-2 p-1 text-sm shadow-panel"
                         >
                           {tones.map((t) => (
                             <li key={t}>
