@@ -32,6 +32,13 @@ const useAuthStore = create((set) => ({
     set({ user: data.user });
   },
 
+  demoLogin: async () => {
+    const { data } = await api.post("/auth/demo-login/");
+    localStorage.setItem("access_token", data.access);
+    localStorage.setItem("refresh_token", data.refresh);
+    set({ user: data.user });
+  },
+
   logout: () => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");

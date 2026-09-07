@@ -11,6 +11,7 @@ export function AuthForm({ mode }) {
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
   const googleComplete = useAuthStore((s) => s.googleComplete);
+  const demoLogin = useAuthStore((s) => s.demoLogin);
 
   // Email/password form state
   const [orgName, setOrgName] = useState("");
@@ -22,6 +23,7 @@ export function AuthForm({ mode }) {
 
   // Google two-step state
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
   const [googleStep, setGoogleStep] = useState(null); // null | "org_name"
   const [googleCredential, setGoogleCredential] = useState(null);
   const [googleDisplayName, setGoogleDisplayName] = useState("");
@@ -110,6 +112,19 @@ export function AuthForm({ mode }) {
     },
     flow: "implicit",
   });
+
+  async function handleDemoLogin() {
+    setError(null);
+    setDemoLoading(true);
+    try {
+      await demoLogin();
+      navigate("/");
+    } catch {
+      setError("Could not start the demo. Please try again in a moment.");
+    } finally {
+      setDemoLoading(false);
+    }
+  }
 
   async function handleGoogleOrgSubmit(e) {
     e.preventDefault();
@@ -381,6 +396,19 @@ export function AuthForm({ mode }) {
             ? "Continue with Google"
             : "Sign up with Google"}
       </motion.button>
+
+      {mode === "login" && (
+        <motion.button
+          type="button"
+          disabled={demoLoading}
+          whileTap={{ scale: 0.98 }}
+          onClick={handleDemoLogin}
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-hairline text-sm font-medium text-muted-foreground transition hover:border-violet/50 hover:text-foreground disabled:opacity-70"
+        >
+          {demoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {demoLoading ? "Loading demo…" : "View demo account"}
+        </motion.button>
+      )}
 
       {mode === "signup" && (
         <label className="flex cursor-pointer items-start gap-2.5">

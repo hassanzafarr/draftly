@@ -13,6 +13,7 @@ class Organization(models.Model):
         SOLO = "solo", "Solo"
         STUDIO = "studio", "Studio"
         AGENCY = "agency", "Agency"
+        DEMO = "demo", "Demo"
 
     class BillingCadence(models.TextChoices):
         MONTHLY = "monthly", "Monthly"
@@ -47,6 +48,13 @@ class Organization(models.Model):
             "monthly_price_usd": 149,
             "annual_price_usd": 1430,
         },
+        "demo": {
+            "docs": 12,
+            "proposals": 3,
+            "seats": 1,
+            "monthly_price_usd": 0,
+            "annual_price_usd": 0,
+        },
     }
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -61,6 +69,10 @@ class Organization(models.Model):
     stripe_subscription_id = models.CharField(max_length=255, blank=True, default="")
     subscription_status = models.CharField(max_length=50, blank=True, default="")
     current_period_end = models.DateTimeField(null=True, blank=True)
+
+    # Last time the public demo org's data was wiped and reseeded.
+    # Unused by non-demo orgs.
+    demo_reset_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.name

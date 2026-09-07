@@ -13,6 +13,7 @@ urlpatterns = [
     path("password-reset/confirm/", views.password_reset_confirm, name="password-reset-confirm"),
     path("google/", views.google_auth, name="google-auth"),
     path("google/complete/", views.google_auth_complete, name="google-auth-complete"),
+    path("demo-login/", views.demo_login, name="demo-login"),
     path("team/members/", views.team_members, name="team-members"),
     path("team/members/<uuid:pk>/", views.team_member_detail, name="team-member-detail"),
     path("team/invites/", views.team_invites, name="team-invites"),

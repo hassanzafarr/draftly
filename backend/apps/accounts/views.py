@@ -20,11 +20,13 @@ from apps.core.permissions import IsOrgAdmin, IsOrgMember
 from apps.core.throttling import (
     AuthLoginThrottle,
     AuthRegisterThrottle,
+    DemoLoginThrottle,
     PasswordChangeThrottle,
     PasswordResetThrottle,
     TeamInviteThrottle,
 )
 
+from .demo import get_or_create_demo, is_demo_stale, reset_demo_data
 from .models import Invitation, Organization, User
 from .serializers import (
     InvitationSerializer,
@@ -503,6 +505,25 @@ def invite_accept(request):
             "user": UserSerializer(user).data,
         },
         status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@throttle_classes([DemoLoginThrottle])
+def demo_login(request):
+    """Log in as the shared public demo account, reseeding its data if stale."""
+    org, user = get_or_create_demo()
+    if is_demo_stale(org):
+        reset_demo_data(org, user)
+
+    refresh = RefreshToken.for_user(user)
+    return Response(
+        {
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+            "user": UserSerializer(user).data,
+        }
     )
 
 

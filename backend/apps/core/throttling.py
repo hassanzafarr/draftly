@@ -39,6 +39,10 @@ class AuthLoginThrottle(_PinnedScopeThrottle):
     scope_name = "auth_login"
 
 
+class DemoLoginThrottle(_PinnedScopeThrottle):
+    scope_name = "demo_login"
+
+
 class AuthRegisterThrottle(_PinnedScopeThrottle):
     scope_name = "auth_register"
 

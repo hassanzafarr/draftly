@@ -245,6 +245,7 @@ REST_FRAMEWORK = {
         "billing_checkout": config("THROTTLE_BILLING_CHECKOUT", default="10/hour"),
         "password_reset": config("THROTTLE_PASSWORD_RESET", default="5/hour"),
         "team_invite": config("THROTTLE_TEAM_INVITE", default="20/hour"),
+        "demo_login": config("THROTTLE_DEMO_LOGIN", default="20/hour"),
     },
 }
 
