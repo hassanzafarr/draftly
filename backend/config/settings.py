@@ -165,7 +165,7 @@ LOGGING = {
     "disable_existing_loggers": False,
     "filters": {
         "request_context": {
-            "()": "apps.core.logging.RequestContextFilter",
+            "()" : "apps.core.logging.RequestContextFilter",
         },
     },
     "formatters": {
@@ -363,8 +363,8 @@ else:
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024  # 5 MB hard limit
 
-# AI keys — free tiers, no credit card required
-GOOGLE_AI_API_KEY = config("GOOGLE_AI_API_KEY")
+# AI keys — free tiers, no credit card required. All have defaults since they're optional.
+GOOGLE_AI_API_KEY = config("GOOGLE_AI_API_KEY", default="")
 GROQ_API_KEY = config("GROQ_API_KEY", default="")
 GROQ_MODEL = config("GROQ_MODEL", default="llama-3.1-8b-instant")
 
@@ -429,3 +429,4 @@ RFP_INTENT_MIN_CONFIDENCE = config("RFP_INTENT_MIN_CONFIDENCE", default=0.7, cas
 SSE_POLL_INTERVAL_SECONDS = config("SSE_POLL_INTERVAL_SECONDS", default=1.0, cast=float)
 SSE_MAX_DURATION_SECONDS = config("SSE_MAX_DURATION_SECONDS", default=90, cast=int)
 SSE_HEARTBEAT_SECONDS = config("SSE_HEARTBEAT_SECONDS", default=15, cast=int)
+
