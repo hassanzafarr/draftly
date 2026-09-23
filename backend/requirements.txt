@@ -21,3 +21,4 @@ whitenoise==6.7.0
 sentry-sdk[celery,django]==2.58.0
 stripe>=10.0.0
 google-auth==2.35.0
+mcp==2.2.0  # exposes MCPServer (not FastMCP, renamed in 2.x) from mcp.server.mcpserver
