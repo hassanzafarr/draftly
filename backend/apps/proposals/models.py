@@ -156,6 +156,13 @@ class GenerationEvent(models.Model):
     red_flags_hit = models.IntegerField(default=0)
     section_word_counts = models.JSONField(default=dict)  # {section_key: int}
 
+    # Groundedness — sentence-level check that generated claims trace back to
+    # a retrieved chunk (cosine similarity vs. chunks_used, see groundedness.py)
+    groundedness_rate = models.FloatField(default=0.0)
+    groundedness_sentence_total = models.IntegerField(default=0)
+    groundedness_sentence_grounded = models.IntegerField(default=0)
+    groundedness_sections = models.JSONField(default=dict)  # {section_key: {total, grounded, rate}}
+
     # Outcome
     success = models.BooleanField(default=False)
     error_message = models.TextField(blank=True)

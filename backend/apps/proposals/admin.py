@@ -31,6 +31,7 @@ class GenerationEventAdmin(admin.ModelAdmin):
         "rerank_used",
         "requirements_coverage",
         "red_flags_coverage",
+        "groundedness_rate",
         "total_latency_ms",
         "success",
     ]
@@ -53,6 +54,10 @@ class GenerationEventAdmin(admin.ModelAdmin):
         "red_flags_total",
         "red_flags_hit",
         "section_word_counts",
+        "groundedness_rate",
+        "groundedness_sentence_total",
+        "groundedness_sentence_grounded",
+        "groundedness_sections",
         "success",
         "error_message",
         "created_at",

@@ -11,6 +11,7 @@ from apps.core.embeddings import embed_text
 from apps.documents.models import Chunk
 
 from . import claude_provider
+from .groundedness import score_groundedness
 from .reranker import rerank_chunks
 
 DEFAULT_SECTIONS: list[tuple[str, str]] = [
@@ -665,6 +666,14 @@ def generate_proposal_with_metrics(
 
     _emit("polishing", {"provider": provider, "sections": len(sections)})
 
+    try:
+        groundedness = score_groundedness(sections, chunks)
+    except Exception:
+        import logging
+
+        logging.getLogger(__name__).warning("score_groundedness failed", exc_info=True)
+        groundedness = {}
+
     metrics = {
         **retrieval_meta,
         "provider": provider,
@@ -672,5 +681,6 @@ def generate_proposal_with_metrics(
         "total_latency_ms": int((time.perf_counter() - overall_started) * 1000),
         "rfp_brief": rfp_brief,
         "section_labels": {k: lbl for k, lbl in schema} if is_custom else {},
+        "groundedness": groundedness,
     }
     return sections, metrics

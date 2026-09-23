@@ -133,6 +133,7 @@ Last updated: 2026-05-14
 
 ## Already Shipped (related context)
 
+- 2026-09-23 — Sentence-level groundedness check (partial #15): each generated sentence embedded and cosine-compared against the chunks actually retrieved for that proposal; unsupported sentences flagged, `groundedness_rate` stored per-proposal on `GenerationEvent` and surfaced via `/api/metrics/generation/` ([backend/apps/proposals/groundedness.py](backend/apps/proposals/groundedness.py)). Not a full eval harness (no hold-out set, no ROUGE) — still worth doing #15 properly later.
 - 2026-05-14 — `Document.category` field + Knowledge UI filter ([backend/apps/documents/models.py:18-22](backend/apps/documents/models.py#L18-L22))
 - 2026-05-14 — Pattern C source-type labeling in retrieval prompt ([backend/apps/proposals/generator.py:59-79](backend/apps/proposals/generator.py#L59-L79))
 - Two-pass RFP analysis ([backend/apps/proposals/generator.py:90](backend/apps/proposals/generator.py#L90))

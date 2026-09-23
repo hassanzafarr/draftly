@@ -11,13 +11,13 @@ def _ensure_configured():
         _configured = True
 
 
-def embed_texts(texts: list[str]) -> list[list[float]]:
+def embed_texts(texts: list[str], task_type: str = "retrieval_document") -> list[list[float]]:
     """Batch embed a list of strings. Returns list of 768-dim vectors."""
     _ensure_configured()
     result = genai.embed_content(
         model=settings.EMBEDDING_MODEL,
         content=texts,
-        task_type="retrieval_document",
+        task_type=task_type,
         output_dimensionality=settings.EMBEDDING_DIMS,
     )
     return result["embedding"]

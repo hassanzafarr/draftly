@@ -17,6 +17,8 @@ def _persist_event(proposal, metrics: dict, *, success: bool, error_message: str
         except Exception as exc:
             logger.warning("evaluate_proposal failed for %s: %s", proposal.id, exc)
 
+    groundedness = metrics.get("groundedness") or {}
+
     defaults = {
         "org": proposal.org,
         "fetch_top_k": metrics.get("fetch_top_k", 0),
@@ -34,6 +36,10 @@ def _persist_event(proposal, metrics: dict, *, success: bool, error_message: str
         "red_flags_total": quality.get("red_flags_total", 0),
         "red_flags_hit": quality.get("red_flags_hit", 0),
         "section_word_counts": quality.get("section_word_counts", {}),
+        "groundedness_rate": groundedness.get("overall_rate", 0.0),
+        "groundedness_sentence_total": groundedness.get("sentence_total", 0),
+        "groundedness_sentence_grounded": groundedness.get("sentence_grounded", 0),
+        "groundedness_sections": groundedness.get("sections", {}),
         "success": success,
         "error_message": error_message,
     }

@@ -297,6 +297,7 @@ def generation_metrics(request):
             avg_requirements_total=Avg("requirements_total"),
             avg_red_flags_hit=Avg("red_flags_hit"),
             avg_red_flags_total=Avg("red_flags_total"),
+            avg_groundedness_rate=Avg("groundedness_rate"),
         )
 
     def _coverage(stats):
@@ -321,6 +322,9 @@ def generation_metrics(request):
             "total": total,
             "success_rate": round(successful.count() / total, 3),
             "rerank_adoption": round(reranked.count() / total, 3),
+            "avg_groundedness_rate": round(
+                successful.aggregate(v=Avg("groundedness_rate"))["v"] or 0, 3
+            ),
             "tokens_saved_estimate_chunks": (events.aggregate(s=Sum("fetch_top_k"))["s"] or 0)
             - (events.aggregate(s=Sum("rerank_top_k"))["s"] or 0),
             "with_rerank": _coverage(_avgs(reranked)),
@@ -336,6 +340,7 @@ def generation_metrics(request):
                     "requirements_total",
                     "red_flags_hit",
                     "red_flags_total",
+                    "groundedness_rate",
                     "total_latency_ms",
                     "success",
                 )[:20]
