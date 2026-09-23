@@ -47,6 +47,7 @@ Key engineering decisions and architectural implementations in Draftly:
 * **Asynchronous Worker Architecture**: Non-blocking document ingestion and proposal generation executed via **Celery** with **Redis** as broker/result backend, featuring status polling and exponential backoff retries.
 * **Full Stripe Subscription Integration**: End-to-end monetization featuring Stripe Checkout, Customer Portal, and webhook signature verification with idempotency protection via `StripeEvent` logging.
 * **Robust Automated Test Suite**: Full test coverage with `pytest` on the backend and `Vitest` + `React Testing Library` + `MSW` (Mock Service Worker) on the frontend, protected by pre-push hooks.
+* **Sentence-Level Groundedness Evaluation**: Every generated sentence is embedded and cosine-matched against the exact retrieval chunks used for that proposal, flagging claims unsupported by retrieved context. Scored per-generation and tracked via an internal metrics API — turns "is this output trustworthy" into a measured number, not a guess.
 
 ---
 
@@ -85,7 +86,7 @@ Key engineering decisions and architectural implementations in Draftly:
 | Problem | Draftly Solution |
 | :--- | :--- |
 | **Time-Consuming RFPs**: B2B sales teams spend 15+ hours drafting proposals manually. | **Sub-60s Draft Generation**: Draftly builds structured, 10-section proposals in seconds. |
-| **Hallucinations & Generic Reponses**: Off-the-shelf LLMs output generic, ungrounded text. | **Grounding via RAG**: Proposals are strictly synthesized from company case studies & reference docs. |
+| **Hallucinations & Generic Reponses**: Off-the-shelf LLMs output generic, ungrounded text. | **Grounding via RAG + Measured Eval**: Proposals are synthesized from company case studies & reference docs, with sentence-level groundedness scoring to catch unsupported claims. |
 | **Formatting Inconsistencies**: Proposals lack standard corporate structure. | **Deterministic 10-Section Schema**: Guarantees standard executive summary, methodology, pricing, etc. |
 | **Data Privacy Risks**: Mixing client context across organizations. | **Tenant-Isolated Vector Store**: pgvector cosine search is strictly scoped by `org_id`. |
 
@@ -112,6 +113,7 @@ Key engineering decisions and architectural implementations in Draftly:
   9. Why Choose Us
   10. Appendix & Terminology
 - Automatic LLM fallback strategy (Gemini 2.5 Flash ➡️ Groq Llama 3.1 8B).
+- **Groundedness scoring**: post-generation check that verifies each sentence traces back to a retrieved source chunk, catching unsupported/invented claims before they reach the editor.
 
 ### 3. Rich Editor & Export Tools
 - Section-by-section Tiptap rich-text editor in React.

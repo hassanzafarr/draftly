@@ -1,8 +1,16 @@
+import re
+import time
+
 from django.core.management.base import BaseCommand
+from google.api_core.exceptions import ResourceExhausted
 
 from apps.documents.models import Chunk
 from apps.proposals.groundedness import score_groundedness
 from apps.proposals.models import GenerationEvent
+
+MAX_RATE_LIMIT_RETRIES = 6
+DEFAULT_RETRY_DELAY_SECONDS = 60
+RETRY_DELAY_RE = re.compile(r"retry in ([\d.]+)s")
 
 
 class Command(BaseCommand):
@@ -11,7 +19,9 @@ class Command(BaseCommand):
         "groundedness check (groundedness_sentence_total == 0). Re-fetches the chunks each "
         "proposal actually used (by id, from chunks_used) and re-scores its stored sections. "
         "Makes one embedding API call per proposal (batched across its sentences) — costs "
-        "quota, so use --limit / --dry-run on a first pass."
+        "quota and shares the same free-tier rate limit as live traffic, so use --limit / "
+        "--dry-run on a first pass. Safe to re-run: already-scored events are skipped unless "
+        "--force is passed, so a run interrupted by rate limits just picks up where it left off."
     )
 
     def add_arguments(self, parser):
@@ -29,6 +39,30 @@ class Command(BaseCommand):
             action="store_true",
             help="Compute and print scores without saving",
         )
+        parser.add_argument(
+            "--sleep",
+            type=float,
+            default=1.5,
+            help="Seconds to pause between events, to stay under the shared embedding quota",
+        )
+
+    def _score_with_backoff(self, sections, chunks):
+        """Retry on free-tier rate limit (shared with live traffic) instead of dying mid-run."""
+        for attempt in range(1, MAX_RATE_LIMIT_RETRIES + 1):
+            try:
+                return score_groundedness(sections, chunks)
+            except ResourceExhausted as exc:
+                if attempt == MAX_RATE_LIMIT_RETRIES:
+                    raise
+                match = RETRY_DELAY_RE.search(str(exc))
+                delay = float(match.group(1)) + 5 if match else DEFAULT_RETRY_DELAY_SECONDS
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"Rate limited (attempt {attempt}/{MAX_RATE_LIMIT_RETRIES}), "
+                        f"waiting {delay:.0f}s…"
+                    )
+                )
+                time.sleep(delay)
 
     def handle(self, *args, **options):
         events = GenerationEvent.objects.filter(success=True).select_related("proposal")
@@ -54,7 +88,7 @@ class Command(BaseCommand):
                 skipped_no_chunks += 1
                 continue
 
-            result = score_groundedness(event.proposal.sections, chunks)
+            result = self._score_with_backoff(event.proposal.sections, chunks)
             if result["sentence_total"] == 0:
                 skipped_no_chunks += 1
                 continue
@@ -79,6 +113,9 @@ class Command(BaseCommand):
                         "groundedness_sections",
                     ]
                 )
+
+            if options["sleep"]:
+                time.sleep(options["sleep"])
 
         self.stdout.write("")
         self.stdout.write(
