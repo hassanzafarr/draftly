@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     "apps.proposals",
     "apps.core",
     "apps.billing",
+    "apps.mcp_tokens",
 ]
 
 MIDDLEWARE = [
