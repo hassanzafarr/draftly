@@ -3,7 +3,7 @@ import secrets
 import uuid
 
 from django.db import models
-from django.db.models.functions import Now
+from django.utils import timezone
 
 from apps.accounts.models import Organization
 
@@ -59,5 +59,6 @@ class MCPToken(models.Model):
             )
         except cls.DoesNotExist:
             return None
-        cls.objects.filter(pk=token.pk).update(last_used_at=Now())
+        token.last_used_at = timezone.now()
+        token.save(update_fields=["last_used_at"])
         return token
