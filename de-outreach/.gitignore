@@ -1,0 +1,12 @@
+# secrets
+.env
+# python
+__pycache__/
+*.pyc
+.DS_Store
+.vercel
+# CLI output: scraped contact data stays local, never committed
+leads*.json
+leads*.csv
+*.csv
+!tests/fixtures/*.csv

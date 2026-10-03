@@ -1,0 +1,626 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>DE Outreach</title>
+<meta name="description" content="Find German startups and companies, the people who run them and their likely emails, and write personalised applications from one template.">
+<style>
+:root{--bg:#f7f7f5;--card:#fff;--fg:#1c1c1a;--muted:#6b6b66;--line:#e4e3de;--accent:#d9481c;--ok:#1f8a4c;--warn:#a86b00;--err:#c0392b;--info:#2463b5}
+@media (prefers-color-scheme:dark){:root{--bg:#141413;--card:#1e1e1c;--fg:#ecebe6;--muted:#9a998f;--line:#302f2b;--accent:#f07a45;--ok:#4cc27d;--warn:#e0a53a;--err:#e8705f;--info:#6ea8f2}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,system-ui,"Segoe UI",sans-serif}
+main{max-width:900px;margin:0 auto;padding:32px 16px}h1{margin:0 0 4px;font-size:24px}h2{font-size:16px;margin:0 0 10px}h2 small{font-weight:400;color:var(--muted)}
+p.sub{margin:0 0 20px;color:var(--muted)}a{color:var(--accent)}.muted{color:var(--muted)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:16px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
+textarea{min-height:300px;resize:vertical;line-height:1.5}textarea.list{min-height:120px}
+.ph{font-size:13px;color:var(--muted);margin:8px 0 0}.ph code{background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:0 5px;margin:0 4px 4px 0;cursor:pointer;display:inline-block}
+.row2{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}.row2>*{flex:1;min-width:140px}.row2>button,.row2>.chk{flex:0 0 auto;min-width:0}
+.opts{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:10px;font-size:13px;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-left:6px;vertical-align:middle}.seg button{border:0;border-radius:0;padding:5px 10px}
+.seg button[aria-pressed=true]{background:var(--accent);color:#fff}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}.tabs button[aria-selected=true]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.status{font-size:13px;color:var(--muted);margin:10px 0 0;min-height:1.5em}.status.err{color:var(--err)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:1;align-items:center}
+.bar>input{flex:1;min-width:180px;width:auto;background:var(--card)}.bar select{width:auto;background:var(--card)}
+.chk{display:flex;gap:6px;align-items:center;font-size:14px;color:var(--muted);white-space:nowrap}.chk input{width:auto}
+details{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:8px}details.sent{opacity:.55}
+summary{cursor:pointer;padding:12px 14px;display:flex;gap:10px;align-items:center;list-style:none}summary::-webkit-details-marker{display:none}
+summary::before{content:"▸";color:var(--muted)}details[open] summary::before{content:"▾"}
+.name{font-weight:600}.meta{color:var(--muted);font-size:13px;margin-left:auto;text-align:right}
+.badge{font-size:12px;padding:1px 8px;border-radius:99px;border:1px solid currentColor;white-space:nowrap}
+.ok{color:var(--ok)}.warn{color:var(--warn)}.site{color:var(--accent)}.inbox{color:var(--info)}.none{color:var(--muted)}.err{color:var(--err)}
+.body{padding:0 14px 14px;border-top:1px solid var(--line)}.r{margin:10px 0 0;font-size:14px;overflow-wrap:anywhere;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.r>b{color:var(--muted);font-weight:500;flex:0 0 72px}.r select,.r input{width:auto;flex:1;min-width:200px;padding:5px 8px;font-size:14px}
+.one{color:var(--muted);font-size:14px;margin:10px 0 0}ul.jobs{margin:6px 0 0;padding-left:20px;font-size:14px}
+pre{white-space:pre-wrap;font:inherit;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;margin:10px 0}
+.acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button,a.btn{font:inherit;font-size:13px;cursor:pointer;border-radius:8px;padding:6px 12px;border:1px solid var(--line);background:var(--card);color:var(--fg);text-decoration:none}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}button:disabled{opacity:.5;cursor:default}
+a.lnk{color:var(--muted);font-size:13px}.note{font-size:13px;color:var(--warn);margin:8px 0 0}
+details.tips{border-style:dashed;margin-top:12px}details.tips summary{font-size:14px;padding:8px 12px}details.tips ul{margin:0;padding:0 14px 12px 34px;font-size:14px;color:var(--muted)}
+footer{color:var(--muted);font-size:13px;margin-top:32px}
+</style></head><body><main>
+<h1>DE Outreach</h1>
+<p class="sub">Find startups and companies in Germany, the people who run them (from the legally required Impressum) and their likely emails. Write one application and get a personalised draft for each company. No keys needed, and everything you type stays in your browser.</p>
+
+<section class="panel">
+  <h2>1. Your details</h2>
+  <div class="grid">
+    <label class="f">Your name<input data-k="my_name" placeholder="Alex Schmidt" autocomplete="name"></label>
+    <label class="f">Target role<input data-k="role" placeholder="Full-Stack / AI Engineer"></label>
+    <label class="f">Phone<input data-k="phone" placeholder="+49 …" autocomplete="tel"></label>
+    <label class="f">LinkedIn<input data-k="linkedin" placeholder="https://linkedin.com/in/..."></label>
+    <label class="f">GitHub<input data-k="github" placeholder="https://github.com/..."></label>
+    <label class="f">Portfolio / website<input data-k="portfolio" placeholder="https://..."></label>
+    <label class="f">CV link (Lebenslauf)<input data-k="cv" placeholder="https://... (PDF)"></label>
+    <label class="f">Based in / relocation<input data-k="location" placeholder="Berlin, or: open to relocating to Germany"></label>
+    <label class="f">Earliest start<input data-k="start_date" placeholder="ab sofort / 1. Januar 2027"></label>
+    <label class="f">Salary expectation<input data-k="salary" placeholder="65.000 € brutto/Jahr (optional)"></label>
+    <label class="f">Work permit<input data-k="work_permit" placeholder="EU Blue Card eligible / Chancenkarte / EU citizen"></label>
+  </div>
+
+  <h2>2. Email template</h2>
+  <div class="opts">
+    <span>Language<span class="seg" id="lang"><button type="button" data-v="de">Deutsch</button><button type="button" data-v="en">English</button></span></span>
+    <span>Tone<span class="seg" id="tone"><button type="button" data-v="sie">Formal (Sie)</button><button type="button" data-v="du">Casual (du)</button></span></span>
+  </div>
+  <label class="f">Subject<input data-t="subject"></label>
+  <label class="f" style="margin-top:10px">Body<textarea data-t="body"></textarea></label>
+  <p class="ph" id="vars">Click to insert: <code>{greeting}</code><code>{hook}</code><code>{closing}</code><code>{first_name}</code><code>{last_name}</code><code>{company}</code><code>{one_liner}</code><code>{job_title}</code><code>{position}</code><code>{city}</code><code>{my_name}</code><code>{role}</code><code>{phone}</code><code>{linkedin}</code><code>{github}</code><code>{portfolio}</code><code>{cv}</code><code>{location}</code><code>{start_date}</code><code>{salary}</code><code>{work_permit}</code>
+  <button id="reset" type="button">Reset template</button></p>
+  <p class="ph"><code>{greeting}</code> adapts to language, tone and recipient (<i>Sehr geehrte Frau Dr. Weber,</i> · <i>Hallo Jonas,</i> · <i>Sehr geehrte Damen und Herren,</i> for an inbox). <code>{hook}</code> mentions the job you found or the company's one-liner. <code>{position}</code> is the job title, or your target role. Any line whose placeholder is empty is dropped, so <code>Gehaltsvorstellung: {salary}</code> disappears if you leave salary blank.</p>
+  <p class="ph">Email labels: <span class="badge ok">verified</span> <span class="badge warn">unverified</span> from Apify (step 4) · <span class="badge site">on site</span> personal address on the company's site or Impressum · <span class="badge site">in job ad</span> · <span class="badge warn">pattern</span> built from a real address on the same domain · <span class="badge warn">guess</span> most common German pattern, may bounce · <span class="badge inbox">jobs inbox</span> e.g. bewerbung@ · <span class="badge none">generic</span> info@.</p>
+  <details class="tips"><summary>Before you send (Germany)</summary><ul>
+    <li>Use this for <b>job applications only</b>, one email per person. Pitching freelance or agency services by cold email counts as advertising under UWG § 7 and needs prior consent.</li>
+    <li>Founder and director emails are personal data (GDPR). Keep the list to yourself, don't build mailing lists, and stop when someone says no.</li>
+    <li>Formal <i>Sie</i> is the safe default for the Mittelstand. Many Berlin startups are fine with <i>du</i> or English, so check their careers page.</li>
+    <li>Edit the [bracketed] lines. A specific sentence about the company beats a long CV summary. Attach or link a PDF CV.</li>
+    <li><b>guess</b> addresses can bounce. Send a few, watch for bounces, and switch to the <b>jobs inbox</b> when unsure.</li>
+  </ul></details>
+</section>
+
+<section class="panel">
+  <h2>3. Find companies</h2>
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" data-tab="yc">YC startups (DACH)</button>
+    <button type="button" role="tab" data-tab="an">Jobs: Arbeitnow <small>(English, visa)</small></button>
+    <button type="button" role="tab" data-tab="ba">Jobs: Bundesagentur</button>
+    <button type="button" role="tab" data-tab="list">My list</button>
+  </div>
+  <div class="tab" data-tab="yc"><div class="row2">
+    <select id="yc_region" aria-label="Region"><option>Germany</option><option>Austria</option><option>Switzerland</option></select>
+    <label class="chk"><input type="checkbox" id="yc_hiring"> hiring only</label>
+    <button class="primary go" type="button">Load companies</button></div>
+    <p class="ph">Y Combinator companies based here. Founders come from each company's YC page, managing directors and emails from its Impressum.</p></div>
+  <div class="tab" data-tab="an" hidden><div class="row2">
+    <input id="an_q" placeholder="Keywords, e.g. python, react, AI engineer" aria-label="Keywords">
+    <label class="chk"><input type="checkbox" id="an_visa" checked> visa sponsorship</label>
+    <label class="chk"><input type="checkbox" id="an_remote"> remote</label>
+    <button class="primary go" type="button">Search jobs</button></div>
+    <p class="ph">English-friendly roles in Germany from arbeitnow.com, grouped by company. Every keyword must appear in the job.</p></div>
+  <div class="tab" data-tab="ba" hidden><div class="row2">
+    <input id="ba_was" placeholder="Job title, e.g. Softwareentwickler" aria-label="Job title">
+    <input id="ba_wo" placeholder="City, e.g. München" aria-label="Place">
+    <select id="ba_umkreis" aria-label="Radius"><option value="0">exact place</option><option value="10">+10 km</option><option value="25" selected>+25 km</option><option value="50">+50 km</option><option value="100">+100 km</option><option value="200">+200 km</option></select>
+    <select id="ba_art" aria-label="Type"><option value="1">Job</option><option value="34">Internship / trainee</option><option value="4">Ausbildung / dual study</option></select>
+    <select id="ba_days" aria-label="Posted within"><option value="7">last 7 days</option><option value="30" selected>last 30 days</option><option value="100">last 100 days</option></select>
+    <button class="primary go" type="button">Search jobs</button></div>
+    <p class="ph">Germany's largest job database (Bundesagentur für Arbeit), without temp agencies and private recruiters. The employer's website comes from the job ad.</p></div>
+  <div class="tab" data-tab="list" hidden>
+    <textarea id="list_text" class="list" placeholder="One company per line: name, website (or just one of them)&#10;Flowbase, https://flowbase.de&#10;https://www.example-startup.de&#10;Müller Maschinenbau GmbH"></textarea>
+    <div class="row2" style="margin-top:8px"><button class="primary go" type="button">Load list</button></div>
+    <p class="ph">Paste companies from anywhere: LinkedIn, Berlin Startup Map, startbase.de, a job fair list. Without a website, it's guessed from the name and checked against the homepage.</p></div>
+  <p class="status" id="loadStatus"></p>
+</section>
+
+<section class="panel">
+  <h2>4. Find verified emails <small>(optional)</small></h2>
+  <p class="ph" style="margin:0 0 10px">Without this you get emails from the company's site and Impressum plus pattern guesses. For verified addresses, paste your own
+    <a href="https://console.apify.com/settings/integrations" target="_blank" rel="noopener">Apify API token</a>. Lookups run from your browser straight to Apify on your account. The token is never sent to this tool's server and isn't saved.</p>
+  <div class="row2">
+    <label class="f" style="flex:2">Apify token<input id="token" type="password" placeholder="apify_api_..." autocomplete="off"></label>
+    <label class="f" style="flex:1">Max USD per run (50 people)<input id="cap" type="number" min="0.1" step="0.1" value="1"></label>
+    <button id="enrich" type="button" disabled>Find emails</button>
+  </div>
+  <p class="status" id="enrichStatus"></p>
+</section>
+
+<div class="bar">
+  <input id="q" placeholder="Search company, person or job" aria-label="Search">
+  <select id="st" aria-label="Email type"><option value="">All</option><option value="verified">Verified</option><option value="found">Found on site / in ad</option><option value="guess">Guess or pattern</option><option value="inbox">Inbox only</option><option value="none">No email</option><option value="unchecked">Not checked yet</option></select>
+  <label class="chk"><input type="checkbox" id="hideSent"> hide sent</label>
+  <button id="all" type="button">Expand all</button>
+  <button id="csv" type="button">Export CSV</button>
+</div>
+<p class="sub" id="shown" style="margin:0 0 10px"></p>
+<div id="list"></div>
+<p style="text-align:center"><button id="more" class="primary" type="button" hidden>Find contacts</button> <button id="moreResults" type="button" hidden>More results</button></p>
+<footer>Open source, adapted from <a href="https://github.com/adityajha2005/yc-outreach" target="_blank" rel="noopener">yc-outreach</a>. Data comes from YC's directory, arbeitnow.com, the Bundesagentur für Arbeit and companies' own websites. Write to people one at a time, keep it short, and take "no" for an answer.</footer>
+</main>
+<script>
+const TEMPLATES = {
+  de: { subject: "Bewerbung als {position} – {my_name}", body: `{greeting}
+
+{hook}
+
+[1–2 Sätze über dich: was du gerade machst und was du gebaut hast.]
+
+[1 Satz zu relevanter Erfahrung: Tech-Stack, Projekte, messbare Ergebnisse.]
+
+Frühestmöglicher Eintritt: {start_date}
+Gehaltsvorstellung: {salary}
+Standort: {location}
+Arbeitserlaubnis: {work_permit}
+
+Lebenslauf: {cv}
+LinkedIn: {linkedin}
+GitHub: {github}
+Portfolio: {portfolio}
+
+Über ein kurzes Kennenlerngespräch würde ich mich sehr freuen.
+
+{closing}
+{my_name}
+{phone}` },
+  en: { subject: "{position} at {company} – {my_name}", body: `{greeting}
+
+{hook}
+
+[1–2 lines about you: what you're doing now and what you've built.]
+
+[1 line on relevant experience: stack, projects, measurable results.]
+
+Based in: {location}
+Earliest start: {start_date}
+Work permit: {work_permit}
+
+CV: {cv}
+LinkedIn: {linkedin}
+GitHub: {github}
+Portfolio: {portfolio}
+
+Happy to chat whenever suits you.
+
+{closing}
+{my_name}
+{phone}` },
+};
+const DETAILS = ["my_name", "role", "phone", "linkedin", "github", "portfolio", "cv", "location", "start_date", "salary", "work_permit"];
+const KEY = "de-outreach-v1";
+const PAGE = 10;
+const ACTOR = "snipercoder~email-finder-by-name-and-domain";
+const APIFY = "https://api.apify.com/v2";
+const LABEL = { valid: ["verified", "ok"], unknown: ["unverified", "warn"], site: ["on site", "site"], jobad: ["in job ad", "site"],
+  pattern: ["pattern", "warn"], guess: ["guess", "warn"], jobs: ["jobs inbox", "inbox"], mgmt: ["mgmt inbox", "inbox"],
+  other: ["on site (other)", "inbox"], generic: ["generic", "none"], none: ["no email", "none"], unchecked: ["not checked", "none"],
+  loading: ["checking…", "none"], error: ["error", "err"] };
+const RANK = { valid: 0, unknown: 1, site: 2, jobad: 3, pattern: 4, guess: 5, jobs: 6, mgmt: 7, other: 8, generic: 9 };
+const GROUP = { valid: "verified", unknown: "verified", site: "found", jobad: "found", pattern: "guess", guess: "guess", jobs: "inbox",
+  mgmt: "inbox", other: "inbox", generic: "inbox", none: "none", error: "none", unchecked: "unchecked", loading: "unchecked" };
+const SOURCE = { yc: "YC", impressum: "Impressum", "job ad": "job ad" };
+
+const store = { get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d } catch { return d } },
+                set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)) } catch {} } };
+let S = Object.assign({ lang: "de", tone: "sie", tab: "yc" }, Object.fromEntries(DETAILS.map(k => [k, ""])),
+  { de_subject: TEMPLATES.de.subject, de_body: TEMPLATES.de.body, en_subject: TEMPLATES.en.subject, en_body: TEMPLATES.en.body },
+  store.get(KEY, {}));
+let sent = new Set(store.get(KEY + "-sent", []));
+let CHOSEN = store.get(KEY + "-chosen", {});
+let DS = { key: "", source: "", next: null, total: 0, items: [] };
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const url = s => /^https?:\/\//i.test(s || "") ? esc(s) : "";
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const say = (id, msg, err) => { $(id).textContent = msg; $(id).classList.toggle("err", !!err) };
+const saveS = () => store.set(KEY, S);
+const host = s => { try { return new URL(/^https?:/i.test(s) ? s : "https://" + s).hostname.replace(/^www\./, "").toLowerCase() } catch { return "" } };
+const hash = s => { let h = 5381; for (const ch of s) h = (h * 33 + ch.codePointAt(0)) >>> 0; return h.toString(36) };
+const coName = n => (n || "").replace(/\s*,?\s+(GmbH\s*&\s*Co\.?\s*KG(aA)?|gGmbH|GmbH|AG|SE|UG(\s*\(haftungsbeschränkt\))?|KGaA|KG|OHG|GbR|e\.\s?K\.|Inc\.?|Ltd\.?|LLC|B\.V\.)$/i, "").trim() || n || "";
+const cleanTitle = t => (t || "").replace(/\s*[([]\s*(?:[mwdfxi]|div|all genders?|alle geschlechter)(?:\s*[/|,]\s*(?:[mwdfxi]|div))*\s*[)\]]/gi, "").replace(/\s{2,}/g, " ").trim();
+const lowerFirst = s => /^[A-ZÄÖÜ][a-zäöüß]/.test(s) ? s[0].toLowerCase() + s.slice(1) : s;
+const sentKey = c => (c.info?.domain || host(c.website) || c.name || "").toLowerCase();
+
+async function api(params, body) {
+  const r = await fetch("/api/de" + (body ? "" : "?" + new URLSearchParams(params)),
+    body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : undefined);
+  const j = await r.json().catch(() => ({ error: `HTTP ${r.status}` }));
+  if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
+  return j;
+}
+
+// ------------------------------------------------------------------ recipients
+
+function candidates(c) {
+  const info = c.info && !c.info.error ? c.info : null, out = [], seen = new Set();
+  if (!info) return out;
+  for (const p of info.people || []) {
+    const ap = p.apify_email ? [{ email: p.apify_email, label: p.apify_status === "valid" ? "valid" : "unknown" }] : [];
+    for (const e of [...ap, ...(p.emails || [])]) out.push({ ...e, person: p });
+  }
+  for (const e of info.inboxes || []) out.push({ ...e, person: null });
+  return out.filter(x => !seen.has(x.email) && seen.add(x.email));
+}
+function best(c) {
+  return candidates(c).map((x, i) => [x, i]).sort((a, b) => (RANK[a[0].label] - RANK[b[0].label]) || (a[1] - b[1]))[0]?.[0] || null;
+}
+function chosen(c) { return candidates(c).find(x => x.email === CHOSEN[c.id]) || best(c) }
+
+// ------------------------------------------------------------------ template
+
+function vars(c, to) {
+  const p = to?.person, de = S.lang === "de", sie = S.tone === "sie";
+  const company = /\./.test(c.name) && !/\s/.test(c.name) && c.info?.legal_name ? coName(c.info.legal_name) : coName(c.name);
+  const job = cleanTitle((c.jobs || [])[0]?.title), one = (c.one_liner || c.info?.one_liner || "").trim().replace(/\.$/, "");
+  const first = p?.first || "", last = p?.last && p.last !== p.first ? p.last : "", title = p?.title ? p.title + " " : "";
+  let greeting;
+  if (de && sie) greeting = !p ? "Sehr geehrte Damen und Herren," : !last ? `Guten Tag ${first},`
+    : p.gender === "m" ? `Sehr geehrter Herr ${title}${last},` : p.gender === "f" ? `Sehr geehrte Frau ${title}${last},` : `Guten Tag ${title}${first} ${last},`;
+  else if (de) greeting = p ? `Hallo ${first},` : `Hallo ${company}-Team,`;
+  else if (sie) greeting = p ? `Dear ${[first, last].filter(Boolean).join(" ")},` : `Dear ${company} team,`;
+  else greeting = p ? `Hi ${first},` : `Hi ${company} team,`;
+  const role = S.role.trim();
+  let hook;
+  if (de) hook = job ? `ich habe gesehen, dass ${sie ? "Sie" : "ihr"} bei ${company} eine Stelle als ${job} ausgeschrieben ${sie ? "haben" : "habt"}, und möchte mich gern darauf bewerben.`
+    : one ? `ich bin auf ${company} aufmerksam geworden – „${one}“ hat mich direkt angesprochen. Deshalb bewerbe ich mich initiativ${role ? ` als ${role}` : ""}.`
+    : `ich bin auf ${company} aufmerksam geworden und bewerbe mich initiativ${role ? ` als ${role}` : ""}.`;
+  else hook = job ? `I saw that ${company} is hiring – the ${job} role caught my eye and I'd love to apply.`
+    : one ? `I came across ${company} – ${lowerFirst(one)} really stood out, so I wanted to reach out${role ? ` about joining as ${role}` : ""}.`
+    : `I came across ${company} and wanted to reach out${role ? ` about joining as ${role}` : ""}.`;
+  const closing = de ? (sie ? "Mit freundlichen Grüßen" : "Viele Grüße") : (sie ? "Best regards," : "Best,");
+  return { greeting, hook, closing, first_name: first || (de ? (sie ? "" : "zusammen") : "there"), last_name: last, company,
+    one_liner: one, job_title: job, position: job || role, city: c.info?.city || (c.jobs || [])[0]?.location || "",
+    ...Object.fromEntries(DETAILS.map(k => [k, (S[k] || "").trim()])) };
+}
+
+// Fill placeholders; drop a line whose placeholder is empty (e.g. "Gehaltsvorstellung: {salary}")
+function fill(text, c, to, oneLine) {
+  const v = vars(c, to), tok = /\{(\w+)\}/g;
+  const keep = line => ![...line.matchAll(tok)].some(m => m[1] in v && !v[m[1]]);
+  const lines = oneLine ? [text || ""] : (text || "").split("\n").filter(keep);
+  const out = lines.join("\n").replace(tok, (m, k) => k in v ? v[k] : m);
+  return oneLine ? out.replace(/\s{2,}/g, " ").replace(/^[\s–-]+|[\s–-]+$/g, "").trim() : out.replace(/\n{3,}/g, "\n\n").trim();
+}
+
+// ------------------------------------------------------------------ list
+
+function card(c, i, open) {
+  const info = c.info && !c.info.error ? c.info : null, to = info ? chosen(c) : null;
+  const kind = c.state === "loading" ? "loading" : !c.info ? "unchecked" : c.info.error ? "error" : to ? to.label : "none";
+  const people = info?.people || [], cands = candidates(c), jobs = c.jobs || [];
+  const metaTop = to?.person?.name || people[0]?.name || "";
+  const metaSub = [c.batch, jobs.length ? `${jobs.length} job${jobs.length > 1 ? "s" : ""}` : "", info?.city || jobs[0]?.location || ""].filter(Boolean).join(" · ");
+  const key = [c.name, ...people.map(p => p.name), ...jobs.map(j => j.title)].join(" ").toLowerCase();
+  const site = info?.website || c.website || "";
+  const links = [
+    url(site) && `<a class="lnk" href="${url(site)}" target="_blank" rel="noopener">website</a>`,
+    url(info?.impressum_url) && `<a class="lnk" href="${url(info.impressum_url)}" target="_blank" rel="noopener">Impressum</a>`,
+    url(info?.careers_url) && `<a class="lnk" href="${url(info.careers_url)}" target="_blank" rel="noopener">careers</a>`,
+    c.yc_slug && `<a class="lnk" href="https://www.ycombinator.com/companies/${encodeURIComponent(c.yc_slug)}" target="_blank" rel="noopener">YC</a>`,
+    url(info?.linkedin) && `<a class="lnk" href="${url(info.linkedin)}" target="_blank" rel="noopener">LinkedIn</a>`,
+  ].filter(Boolean).join(" · ");
+  const facts = [info?.legal_name, info?.register, info?.mx_provider && `mail: ${info.mx_provider}`,
+    info?.pattern && `pattern ${info.pattern} (seen: ${info.pattern_from})`, info?.website_guessed && "website guessed from name"].filter(Boolean);
+  const body = !c.info ? `<div class="r"><span class="muted">${c.state === "loading" ? "Looking up Impressum, careers page and emails…" : "Contacts not looked up yet."}</span>${c.state === "loading" ? "" : `<button data-a="lookup" type="button">Find contacts</button>`}</div>`
+    : c.info.error ? `<p class="status err">${esc(c.info.error)} <button data-a="lookup" type="button">Try again</button></p>`
+    : `${people.map(p => `<div class="r"><b>${p === to?.person ? "To" : "Person"}</b><span>${esc(p.title ? p.title + " " : "")}${esc(p.name)} <span class="muted">(${esc(p.role)}, ${esc(SOURCE[p.source] || p.source)})</span>${url(p.linkedin) ? ` · <a class="lnk" href="${url(p.linkedin)}" target="_blank" rel="noopener">LinkedIn</a>` : ""}</span></div>`).join("")}
+       ${cands.length ? `<div class="r"><b>Send to</b><select class="to" aria-label="Recipient">${cands.map(x => `<option value="${esc(x.email)}" ${x.email === to?.email ? "selected" : ""}>${esc(x.person ? x.person.name + " · " : "")}${esc(x.email)} (${esc(LABEL[x.label]?.[0] || x.label)})</option>`).join("")}</select></div>`
+         : `<div class="r"><b>Send to</b><span class="muted">no email found. Try the careers page or LinkedIn.</span></div>`}
+       ${facts.length ? `<p class="one">${facts.map(esc).join(" · ")}</p>` : ""}
+       ${(info.notes || []).map(n => `<p class="note">${esc(n)}</p>`).join("")}`;
+  return `<details data-i="${i}" data-id="${esc(c.id)}" data-k="${esc(key)}" data-s="${GROUP[kind]}" class="${sent.has(sentKey(c)) ? "sent" : ""}"${open ? " open" : ""}>
+    <summary><span class="name">${esc(c.name)}</span><span class="badge ${LABEL[kind][1]}">${esc(LABEL[kind][0])}</span>
+    <span class="meta">${esc(metaTop)}<br>${esc(metaSub)}</span></summary>
+    <div class="body">
+      ${c.one_liner || info?.one_liner || links ? `<p class="one">${esc(c.one_liner || info?.one_liner || "")}${(c.one_liner || info?.one_liner) && links ? " · " : ""}${links}</p>` : ""}
+      ${jobs.length ? `<ul class="jobs">${jobs.slice(0, 5).map(j => `<li>${url(j.url) ? `<a href="${url(j.url)}" target="_blank" rel="noopener">${esc(j.title)}</a>` : esc(j.title)} <span class="muted">${esc([j.location, j.date, j.remote ? "remote" : ""].filter(Boolean).join(" · "))}</span></li>`).join("")}${jobs.length > 5 ? `<li class="muted">+${jobs.length - 5} more</li>` : ""}</ul>` : ""}
+      ${body}
+      <div class="r"><b>Website</b><input class="website" value="${esc(site)}" placeholder="https://… (add or fix, then check)" aria-label="Website"><button data-a="recheck" type="button">Check again</button></div>
+      <div class="r"><b>Subject</b><span class="subj"></span></div>
+      <pre></pre>
+      <div class="acts">
+        <button class="primary" data-a="body" type="button">Copy body</button><button data-a="to" type="button">Copy email</button><button data-a="subject" type="button">Copy subject</button>
+        <a class="btn mail" href="#">Open in mail app</a><a class="btn gmail" href="#" target="_blank" rel="noopener">Gmail</a>
+        <label class="chk"><input type="checkbox" data-a="sent" ${sent.has(sentKey(c)) ? "checked" : ""}> sent</label>
+      </div>
+    </div></details>`;
+}
+
+function render() {
+  const open = new Set([...document.querySelectorAll("#list details[open]")].map(d => d.dataset.id));
+  $("list").innerHTML = DS.items.map((c, i) => card(c, i, open.has(c.id))).join("");
+  update(); filter(); progress();
+}
+
+// Drafts are filled when a card opens, and refreshed for open cards when the template changes
+function draft(d) {
+  const c = DS.items[d.dataset.i];
+  if (!c) return;
+  const to = c.info && !c.info.error ? chosen(c) : null, email = to?.email || "";
+  const subject = fill(S[S.lang + "_subject"], c, to, true), body = fill(S[S.lang + "_body"], c, to);
+  d.querySelector(".subj").textContent = subject;
+  d.querySelector("pre").textContent = body;
+  d.querySelector(".mail").href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  d.querySelector(".gmail").href = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+function update() { document.querySelectorAll("#list details[open]").forEach(draft) }
+
+function filter() {
+  const q = $("q").value.trim().toLowerCase(), st = $("st").value, hide = $("hideSent").checked;
+  let n = 0;
+  document.querySelectorAll("#list details").forEach(d => {
+    const ok = (!q || d.dataset.k.includes(q)) && (!st || d.dataset.s === st) && !(hide && d.classList.contains("sent"));
+    d.style.display = ok ? "" : "none"; n += ok;
+  });
+  $("shown").textContent = DS.items.length ? `${n} of ${DS.items.length} shown · ${sent.size} sent` : "";
+}
+
+function progress() {
+  const n = DS.items.length, done = DS.items.filter(c => c.info).length, failed = DS.items.filter(c => c.info?.error).length;
+  const loading = DS.items.some(c => c.state === "loading"), left = n - done;
+  if (n && !loading) say("loadStatus", `${n} compan${n === 1 ? "y" : "ies"}${DS.total ? ` from ${DS.total} matching jobs` : ""} · contacts looked up for ${done}${failed ? ` (${failed} failed)` : ""}.`, false);
+  $("more").hidden = !left || loading;
+  $("more").textContent = `Find contacts for next ${Math.min(PAGE, left)} (${left} left)`;
+  $("moreResults").hidden = !DS.next || loading;
+  $("enrich").disabled = loading || !done;
+}
+
+const busy = on => document.querySelectorAll(".go, #more, #moreResults, #enrich").forEach(b => b.disabled = on);
+
+// ------------------------------------------------------------------ data sets (one per search, last 6 kept)
+
+function saveDS() {
+  if (!DS.key) return;
+  store.set(`${KEY}-ds-${DS.key}`, { ...DS, items: DS.items.map(({ state, ...c }) => c) });
+  const recent = [DS.key, ...store.get(KEY + "-recent", []).filter(k => k !== DS.key)];
+  recent.slice(6).forEach(k => { try { localStorage.removeItem(`${KEY}-ds-${k}`) } catch {} });
+  store.set(KEY + "-recent", recent.slice(0, 6));
+  store.set(KEY + "-last", DS.key);
+}
+
+function params(tab) {
+  if (tab === "yc") return { region: $("yc_region").value, hiring: $("yc_hiring").checked };
+  if (tab === "an") return { q: $("an_q").value.trim(), visa: $("an_visa").checked, remote: $("an_remote").checked };
+  if (tab === "ba") return { was: $("ba_was").value.trim(), wo: $("ba_wo").value.trim(), umkreis: $("ba_umkreis").value, art: $("ba_art").value, days: $("ba_days").value };
+  return { text: $("list_text").value };
+}
+
+function addJobs(jobs, source, kind) {
+  const byKey = new Map(DS.items.map(c => [c.id, c]));
+  for (const j of jobs) {
+    const id = `${source}:${j.company.toLowerCase().replace(/\W+/g, " ").trim()}`;
+    let c = byKey.get(id);
+    if (!c) { c = { id, name: j.company, kind, website: "", emails: [], ba_refnr: "", jobs: [] }; byKey.set(id, c); DS.items.push(c) }
+    if (!c.jobs.some(x => x.url === j.url)) c.jobs.push({ title: j.title, url: j.url, location: j.location, date: j.date, remote: j.remote });
+    c.website = c.website || j.website || "";
+    c.emails = [...new Set([...(c.emails || []), ...(j.emails || [])])].slice(0, 10);
+    c.ba_refnr = c.ba_refnr || j.refnr || "";
+  }
+}
+
+function parseList(text) {
+  const out = [], seen = new Set();
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) continue;
+    const parts = line.split(/\s*[,;\t]\s*/).filter(Boolean);
+    const site = parts.find(p => /^(https?:\/\/)?[\w-]+(\.[\w-]+)+(\/\S*)?$/i.test(p)) || "";
+    const name = parts.filter(p => p !== site).join(", ") || host(site);
+    const id = "list:" + (host(site) || name.toLowerCase());
+    if (!seen.has(id)) { seen.add(id); out.push({ id, name, website: site, kind: "" }) }
+  }
+  return out.slice(0, 500);
+}
+
+async function search(fresh) {
+  const tab = fresh ? S.tab : DS.source, p = fresh ? params(tab) : DS.params;
+  if (tab === "ba" && !p.was && !p.wo) return say("loadStatus", "Enter a job title or a place.", true);
+  if (tab === "list" && !p.text.trim()) return say("loadStatus", "Paste at least one company.", true);
+  let prevItems = [];
+  if (fresh) {
+    const key = tab + "-" + hash(JSON.stringify(p));
+    prevItems = store.get(`${KEY}-ds-${key}`, null)?.items || [];
+    DS = { key, source: tab, params: p, next: tab === "an" || tab === "ba" ? 1 : null, total: 0, items: [] };
+  }
+  busy(true);
+  say("loadStatus", tab === "list" ? "Reading your list…" : "Searching…");
+  try {
+    if (tab === "yc") DS.items = (await api({ action: "yc_companies", region: p.region })).filter(c => !p.hiring || c.hiring).sort((a, b) => b.launched_at - a.launched_at);
+    else if (tab === "an") { const r = await api({ action: "arbeitnow", q: p.q, visa: p.visa ? 1 : "", remote: p.remote ? 1 : "", page: DS.next }); addJobs(r.jobs, "an", "startup"); DS.next = r.next_page }
+    else if (tab === "ba") { const r = await api({ action: "ba_jobs", was: p.was, wo: p.wo, umkreis: p.umkreis, angebotsart: p.art, days: p.days, page: DS.next }); addJobs(r.jobs, "ba", "company"); DS.next = r.next_page; DS.total = r.total }
+    else DS.items = parseList(p.text);
+  } catch (e) {
+    busy(false); progress();
+    return say("loadStatus", `Couldn't load: ${e.message}`, true);
+  }
+  // Keep contacts already looked up in an earlier run of the same search
+  const prev = new Map(prevItems.filter(c => c.info && !c.info.error).map(c => [c.id, c]));
+  DS.items.forEach(c => { const o = prev.get(c.id); if (o && !c.info) { c.info = o.info; c.website = o.website || c.website } });
+  if (!DS.items.length) { busy(false); render(); return say("loadStatus", "Nothing found. Try broader keywords or another place.", true) }
+  saveDS(); render(); busy(false);
+  if (!DS.items.slice(0, PAGE).every(c => c.info)) await enrichNext();
+}
+
+function payload(c) {
+  return { id: c.id, name: c.name || "", website: c.website || "", yc_slug: c.yc_slug || "", ba_refnr: c.ba_refnr || "",
+           emails: (c.emails || []).slice(0, 10), kind: c.kind || "" };
+}
+
+async function enrichNext() {
+  const next = DS.items.filter(c => !c.info && c.state !== "loading").slice(0, PAGE);
+  if (next.length) await lookup(next);
+}
+
+// Contacts come from each company's own site, so look up PAGE at a time: 5 per request, 2 requests at once
+async function lookup(items) {
+  busy(true);
+  items.forEach(c => { c.state = "loading"; c.info = null });
+  render();
+  say("loadStatus", `Reading Impressum and careers pages for ${items.length} compan${items.length === 1 ? "y" : "ies"}… (10–30 s)`);
+  const chunks = [];
+  for (let i = 0; i < items.length; i += 5) chunks.push(items.slice(i, i + 5));
+  await Promise.all(chunks.map(async chunk => {
+    try {
+      const res = new Map((await api(null, { action: "enrich", companies: chunk.map(payload) })).map(r => [r.id, r]));
+      chunk.forEach(c => { c.info = res.get(c.id) || { error: "No result" }; c.state = "" });
+    } catch (e) { chunk.forEach(c => { c.info = { error: `Lookup failed: ${e.message}` }; c.state = "" }) }
+    render();
+  }));
+  saveDS(); busy(false); progress();
+}
+
+// ------------------------------------------------------------------ Apify (optional, runs in the browser)
+
+async function apify(method, path, token, body) {
+  const r = await fetch(APIFY + path, { method, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+                                        body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error?.message || `Apify HTTP ${r.status}`);
+  return j;
+}
+
+async function verify() {
+  const token = $("token").value.trim(), cap = Math.max(0.1, +$("cap").value || 1);
+  if (!token) return say("enrichStatus", "Paste your Apify token first.", true);
+  const people = DS.items.flatMap(c => (c.info?.people || []).filter(p => p.name && c.info.mail_domain && !p.apify_checked)
+    .map(p => ({ p, name: p.name, domain: c.info.mail_domain })));
+  if (!people.length) return say("enrichStatus", "Nobody left to look up. Find contacts first.");
+  const runs = Math.ceil(people.length / 50);
+  if (!confirm(`Look up ${people.length} people on your Apify account? That's ${runs} run${runs > 1 ? "s" : ""}, each capped at $${cap}.`)) return;
+  busy(true);
+  let found = 0;
+  try {
+    for (let i = 0; i < people.length; i += 50) {
+      const chunk = people.slice(i, i + 50);
+      say("enrichStatus", `Run ${i / 50 + 1}/${runs}: starting…`);
+      let run = (await apify("POST", `/acts/${ACTOR}/runs?maxTotalChargeUsd=${cap}&memory=1024`, token,
+                             { names: chunk.map(x => x.name), domains: chunk.map(x => x.domain) })).data;
+      while (["READY", "RUNNING"].includes(run.status)) {
+        say("enrichStatus", `Run ${i / 50 + 1}/${runs}: ${run.status.toLowerCase()}…`);
+        await sleep(5000);
+        run = (await apify("GET", `/actor-runs/${run.id}`, token)).data;
+      }
+      if (run.status !== "SUCCEEDED") throw new Error(`Apify run ended as ${run.status}`);
+      const items = await apify("GET", `/datasets/${run.defaultDatasetId}/items?clean=true&format=json`, token);
+      for (const x of chunk) {
+        const hit = items.find(it => it.Found && it.Email && String(it.Name).toLowerCase() === x.name.toLowerCase() && String(it.Domain).toLowerCase() === x.domain);
+        x.p.apify_checked = true;
+        if (hit) { x.p.apify_email = String(hit.Email).toLowerCase(); x.p.apify_status = hit.Validation || ""; found++ }
+      }
+      saveDS(); render();
+    }
+    say("enrichStatus", `Done: found ${found} of ${people.length} emails.`);
+  } catch (e) {
+    say("enrichStatus", `Stopped: ${e.message}. Found ${found} so far; press again to continue.`, true);
+  } finally { busy(false); progress() }
+}
+
+// ------------------------------------------------------------------ CSV
+
+function exportCsv() {
+  if (!DS.items.length) return;
+  const cols = ["company", "source", "website", "jobs", "contact", "role", "email", "email_label", "other_found_emails", "jobs_inbox", "impressum", "legal_name", "city", "sent"];
+  const cell = v => { const s = String(v ?? ""); return `"${(/^[=+\-@\t\r]/.test(s) ? "'" + s : s).replace(/"/g, '""')}"` };
+  const rows = DS.items.map(c => {
+    const info = c.info && !c.info.error ? c.info : {}, to = c.info && !c.info.error ? chosen(c) : null;
+    return [c.name, DS.source, info.website || c.website, (c.jobs || []).map(j => j.title).join(" | "), to?.person?.name, to?.person?.role,
+      to?.email, to ? LABEL[to.label]?.[0] : "", candidates(c).filter(x => x !== to && ["site", "jobad", "valid", "unknown", "other"].includes(x.label)).map(x => x.email).join(" "),
+      (info.inboxes || []).filter(x => x.label === "jobs").map(x => x.email).join(" "), info.impressum_url, info.legal_name, info.city, sent.has(sentKey(c)) ? "yes" : ""];
+  });
+  const csv = "﻿" + [cols, ...rows].map(r => r.map(cell).join(",")).join("\r\n");
+  const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })),
+    download: `de-outreach-${DS.source}-${new Date().toISOString().slice(0, 10)}.csv` });
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+// ------------------------------------------------------------------ events
+
+$("list").addEventListener("toggle", e => { if (e.target.open) draft(e.target) }, true);
+$("list").addEventListener("change", e => {
+  const d = e.target.closest("details"); if (!d) return;
+  const c = DS.items[d.dataset.i];
+  if (e.target.matches("select.to")) { CHOSEN[c.id] = e.target.value; store.set(KEY + "-chosen", CHOSEN); render() }
+  if (e.target.matches('[data-a="sent"]')) {
+    e.target.checked ? sent.add(sentKey(c)) : sent.delete(sentKey(c));
+    d.classList.toggle("sent", e.target.checked); store.set(KEY + "-sent", [...sent]); filter();
+  }
+});
+$("list").addEventListener("click", e => {
+  const b = e.target.closest("button[data-a]"); if (!b) return;
+  const d = b.closest("details"), c = DS.items[d.dataset.i];
+  if (b.dataset.a === "lookup") return lookup([c]);
+  if (b.dataset.a === "recheck") {
+    const v = d.querySelector("input.website").value.trim();
+    if (v && !host(v)) return alert("That doesn't look like a website.");
+    c.website = v; return lookup([c]);
+  }
+  const to = c.info && !c.info.error ? chosen(c) : null;
+  const txt = b.dataset.a === "body" ? d.querySelector("pre").textContent : b.dataset.a === "subject" ? d.querySelector(".subj").textContent : to?.email || "";
+  navigator.clipboard.writeText(txt).then(() => { const o = b.textContent; b.textContent = "Copied"; setTimeout(() => b.textContent = o, 1200) });
+});
+["q", "st", "hideSent"].forEach(id => $(id).addEventListener(id === "q" ? "input" : "change", filter));
+$("all").onclick = e => {
+  const open = e.target.textContent === "Expand all";
+  document.querySelectorAll("#list details").forEach(d => { if (d.style.display !== "none") d.open = open });
+  e.target.textContent = open ? "Collapse all" : "Expand all";
+};
+$("csv").onclick = exportCsv;
+$("more").onclick = enrichNext;
+$("moreResults").onclick = () => search(false);
+$("enrich").onclick = verify;
+document.querySelectorAll(".go").forEach(b => b.onclick = () => search(true));
+
+// Your details and template, saved as you type
+document.querySelectorAll("[data-k]").forEach(el => {
+  el.value = S[el.dataset.k] || "";
+  el.addEventListener("input", () => { S[el.dataset.k] = el.value; saveS(); update() });
+});
+const tplFields = () => document.querySelectorAll("[data-t]");
+function showTemplate() {
+  tplFields().forEach(el => { el.value = S[`${S.lang}_${el.dataset.t}`] });
+  for (const id of ["lang", "tone"]) $(id).querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === S[id]));
+  document.documentElement.lang = S.lang;
+}
+tplFields().forEach(el => el.addEventListener("input", () => { S[`${S.lang}_${el.dataset.t}`] = el.value; saveS(); update() }));
+for (const id of ["lang", "tone"]) $(id).addEventListener("click", e => {
+  const v = e.target.closest("button")?.dataset.v; if (!v) return;
+  S[id] = v; saveS(); showTemplate(); update();
+});
+let lastField = document.querySelector('textarea[data-t="body"]');
+tplFields().forEach(el => el.addEventListener("focus", () => lastField = el));
+$("vars").addEventListener("click", e => {
+  if (e.target.tagName !== "CODE") return;
+  const el = lastField, s = el.selectionStart ?? el.value.length;
+  el.value = el.value.slice(0, s) + e.target.textContent + el.value.slice(el.selectionEnd ?? s);
+  el.focus(); el.selectionStart = el.selectionEnd = s + e.target.textContent.length;
+  el.dispatchEvent(new Event("input"));
+});
+$("reset").onclick = () => {
+  if (!confirm(`Reset the ${S.lang === "de" ? "German" : "English"} template to the default?`)) return;
+  S[`${S.lang}_subject`] = TEMPLATES[S.lang].subject; S[`${S.lang}_body`] = TEMPLATES[S.lang].body; saveS(); showTemplate(); update();
+};
+
+// Tabs
+function showTab(tab) {
+  S.tab = tab; saveS();
+  document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === tab));
+  document.querySelectorAll(".tab").forEach(t => t.hidden = t.dataset.tab !== tab);
+}
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+document.querySelectorAll(".tab input, .tab select, .tab textarea").forEach(el => el.addEventListener("keydown", e => {
+  if (e.key === "Enter" && el.tagName !== "TEXTAREA") el.closest(".tab").querySelector(".go").click();
+}));
+
+// Restore the last search
+showTemplate(); showTab(S.tab);
+const last = store.get(KEY + "-last", "");
+const restored = last && store.get(`${KEY}-ds-${last}`, null);
+if (restored?.items?.length) {
+  DS = restored;
+  const p = DS.params || {};
+  if (DS.source === "yc") { $("yc_region").value = p.region || "Germany"; $("yc_hiring").checked = !!p.hiring }
+  if (DS.source === "an") { $("an_q").value = p.q || ""; $("an_visa").checked = !!p.visa; $("an_remote").checked = !!p.remote }
+  if (DS.source === "ba") { $("ba_was").value = p.was || ""; $("ba_wo").value = p.wo || ""; $("ba_umkreis").value = p.umkreis || "25"; $("ba_art").value = p.art || "1"; $("ba_days").value = p.days || "30" }
+  if (DS.source === "list") $("list_text").value = p.text || "";
+  showTab(DS.source);
+  render();
+}
+</script></body></html>
