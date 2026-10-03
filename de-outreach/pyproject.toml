@@ -1,8 +1,0 @@
-# Lint config only: the tool itself has no dependencies (Python 3.9+ standard library).
-[tool.ruff]
-line-length = 130
-target-version = "py39"
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "B", "UP"]
-ignore = ["E501"]
