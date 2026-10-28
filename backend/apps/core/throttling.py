@@ -74,6 +74,14 @@ class PasswordResetThrottle(_PinnedScopeThrottle):
     scope_name = "password_reset"
 
 
+class AccountExportThrottle(_PinnedScopeThrottle):
+    scope_name = "account_export"
+
+
+class AccountDeleteThrottle(_PinnedScopeThrottle):
+    scope_name = "account_delete"
+
+
 class TeamInviteThrottle(_PinnedScopeThrottle):
     """Only throttles POST — GET list stays on default user rate."""
 

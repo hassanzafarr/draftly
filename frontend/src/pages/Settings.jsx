@@ -19,7 +19,11 @@ import {
   Send,
   Trash2,
   MailOpen,
+  ShieldCheck,
+  Download,
+  AlertTriangle,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import api from "../api/client";
 import useAuthStore from "../store/auth";
@@ -60,6 +64,7 @@ const TABS = [
   { id: "organization", label: "Organization", icon: Building2 },
   { id: "team", label: "Team", icon: Users },
   { id: "security", label: "Security", icon: Lock },
+  { id: "privacy", label: "Privacy", icon: ShieldCheck },
 ];
 
 export default function Settings() {
@@ -670,9 +675,159 @@ export default function Settings() {
               </div>
             </motion.div>
           )}
+
+          {/* Privacy */}
+          {tab === "privacy" && <PrivacyTab user={user} />}
         </div>
       </div>
     </div>
+  );
+}
+
+function PrivacyTab({ user }) {
+  const navigate = useNavigate();
+  const logout = useAuthStore((s) => s.logout);
+  const isDemo = user?.org?.subscription_tier === "demo";
+
+  const [exporting, setExporting] = useState(false);
+  const [confirmValue, setConfirmValue] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const { data, headers } = await api.get("/auth/account/export/", {
+        responseType: "blob",
+      });
+      const match = /filename="?([^"]+)"?/.exec(headers["content-disposition"] || "");
+      const url = URL.createObjectURL(data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = match?.[1] || "draftly-export.zip";
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success("Your data export has downloaded.");
+    } catch (err) {
+      toast.error(
+        err.response?.status === 429 ? "Too many exports. Try again later." : "Export failed."
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      const body = user?.has_password
+        ? { password: confirmValue }
+        : { confirm_email: confirmValue };
+      await api.post("/auth/account/delete/", body);
+      logout();
+      toast.success("Your account has been deleted.");
+      navigate("/login", { replace: true });
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Could not delete your account.");
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <motion.div
+      key="privacy"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6"
+    >
+      {/* Export */}
+      <div className="glass rounded-2xl p-6">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan/15 ring-1 ring-cyan/40">
+            <Download className="h-4 w-4 text-cyan" />
+          </span>
+          <div>
+            <h3 className="font-display text-base font-semibold text-foreground">
+              Export your data
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              A zip of your account, organization, documents, RFPs and proposals, with the original
+              uploaded files.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          className="mt-5 flex items-center gap-2 rounded-xl border border-hairline bg-surface/60 px-5 py-2.5 text-sm font-medium text-foreground hover:bg-surface-2 disabled:opacity-50"
+        >
+          {exporting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="h-4 w-4" />
+          )}
+          Download export
+        </button>
+      </div>
+
+      {/* Delete */}
+      <div className="glass rounded-2xl border border-destructive/30 p-6">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-destructive/15 ring-1 ring-destructive/40">
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+          </span>
+          <div>
+            <h3 className="font-display text-base font-semibold text-foreground">Delete account</h3>
+            <p className="text-xs text-muted-foreground">This is permanent and cannot be undone.</p>
+          </div>
+        </div>
+
+        {isDemo ? (
+          <p className="mt-4 text-sm text-muted-foreground">
+            The shared demo account cannot be deleted.
+          </p>
+        ) : (
+          <>
+            <ul className="mt-4 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+              <li>
+                If you are the only member of {user?.org?.name || "your organization"}, the
+                organization and all its documents, RFPs and proposals are deleted, and any paid
+                subscription is cancelled.
+              </li>
+              <li>
+                If your organization has other members, only your account is removed. Content you
+                created stays with the organization.
+              </li>
+            </ul>
+            <label className="mt-5 mb-1.5 block text-xs font-medium text-muted-foreground">
+              {user?.has_password
+                ? "Enter your password to confirm"
+                : `Type ${user?.email} to confirm`}
+            </label>
+            <div className="flex flex-wrap gap-3">
+              <input
+                type={user?.has_password ? "password" : "email"}
+                value={confirmValue}
+                onChange={(e) => setConfirmValue(e.target.value)}
+                className="min-w-[220px] flex-1 rounded-xl border border-hairline bg-surface/60 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground backdrop-blur focus:border-destructive/40 focus:outline-none"
+                placeholder={user?.has_password ? "••••••••" : user?.email}
+              />
+              <button
+                onClick={handleDelete}
+                disabled={deleting || !confirmValue}
+                className="flex items-center gap-2 rounded-xl bg-destructive px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {deleting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                Delete my account
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </motion.div>
   );
 }
 

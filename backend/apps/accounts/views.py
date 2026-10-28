@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.db import transaction
+from django.http import FileResponse
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
@@ -18,6 +19,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from apps.core.permissions import IsOrgAdmin, IsOrgMember
 from apps.core.throttling import (
+    AccountDeleteThrottle,
+    AccountExportThrottle,
     AuthLoginThrottle,
     AuthRegisterThrottle,
     DemoLoginThrottle,
@@ -28,6 +31,7 @@ from apps.core.throttling import (
 
 from .demo import get_or_create_demo
 from .models import Invitation, Organization, User
+from .privacy import ErasureBlocked, ErasureFailed, build_export_archive, erase_account
 from .serializers import (
     InvitationSerializer,
     InviteAcceptSerializer,
@@ -291,6 +295,74 @@ def org_settings(request):
         org.name = name
         org.save(update_fields=["name"])
     return Response(OrganizationSerializer(org).data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AccountExportThrottle])
+def account_export(request):
+    """Download a zip of everything the user can access (GDPR access / portability)."""
+    archive = build_export_archive(request.user)
+    logger.info("Data export generated for user %s", request.user.pk)
+    filename = f"draftly-export-{timezone.now():%Y%m%d}.zip"
+    return FileResponse(
+        archive, as_attachment=True, filename=filename, content_type="application/zip"
+    )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AccountDeleteThrottle])
+def account_delete(request):
+    """Permanently erase the caller's account (GDPR right to erasure).
+
+    Re-authentication is required: the current password, or for Google-only
+    accounts the account email typed back as confirmation.
+    """
+    user = request.user
+    if user.has_usable_password():
+        if not user.check_password(request.data.get("password", "")):
+            return Response(
+                {"detail": "Password is incorrect."}, status=status.HTTP_400_BAD_REQUEST
+            )
+    elif request.data.get("confirm_email", "").strip().lower() != user.email.lower():
+        return Response(
+            {"detail": "Type your account email to confirm deletion."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    email = user.email
+    try:
+        scope = erase_account(user)
+    except ErasureBlocked as exc:
+        return Response({"detail": str(exc)}, status=status.HTTP_403_FORBIDDEN)
+    except ErasureFailed as exc:
+        logger.exception("Account erasure aborted")
+        return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+    try:
+        send_mail(
+            subject="Your Draftly account has been deleted",
+            message=(
+                "Hi,\n\n"
+                "Your Draftly account has been permanently deleted"
+                + (
+                    ", together with your organization and all of its documents, "
+                    "RFPs and proposals."
+                    if scope == "organization"
+                    else ". Content you created stays with your organization."
+                )
+                + "\n\nIf you didn't request this, reply to this email right away.\n\n"
+                "— Draftly"
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=True,
+        )
+    except Exception:
+        logger.exception("Failed to send account deletion confirmation")
+
+    return Response({"detail": "Your account has been deleted.", "scope": scope})
 
 
 def _org_seats_used(org):

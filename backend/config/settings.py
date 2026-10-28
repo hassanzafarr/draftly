@@ -247,6 +247,8 @@ REST_FRAMEWORK = {
         "password_reset": config("THROTTLE_PASSWORD_RESET", default="5/hour"),
         "team_invite": config("THROTTLE_TEAM_INVITE", default="20/hour"),
         "demo_login": config("THROTTLE_DEMO_LOGIN", default="20/hour"),
+        "account_export": config("THROTTLE_ACCOUNT_EXPORT", default="5/hour"),
+        "account_delete": config("THROTTLE_ACCOUNT_DELETE", default="5/hour"),
     },
 }
 
