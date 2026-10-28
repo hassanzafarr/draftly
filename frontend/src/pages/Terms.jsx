@@ -51,8 +51,8 @@ export default function Terms() {
             Terms of Service
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Effective date: <strong className="text-foreground">[EFFECTIVE_DATE]</strong> · Last
-            updated: <strong className="text-foreground">[LAST_UPDATED_DATE]</strong>
+            Effective date: <strong className="text-foreground">28 October 2026</strong> · Last
+            updated: <strong className="text-foreground">28 October 2026</strong>
           </p>
 
           <div className="mt-10 space-y-10 text-sm leading-relaxed text-muted-foreground">
@@ -83,7 +83,7 @@ export default function Terms() {
               </h2>
               <p>
                 Draftly is a proposal generation platform operated by{" "}
-                <strong className="text-foreground">[COMPANY_NAME]</strong>. The Service allows
+                <strong className="text-foreground">Hassan Zafar</strong>. The Service allows
                 organisations to upload reference documents, submit RFP (Request for Proposal) text,
                 and receive AI-generated proposal drafts using retrieval-augmented generation (RAG).
               </p>
@@ -110,10 +110,10 @@ export default function Terms() {
                 <li>
                   Notify us immediately at{" "}
                   <a
-                    href="mailto:[COMPANY_EMAIL]"
+                    href="mailto:hassanzafar619@gmail.com"
                     className="text-foreground underline underline-offset-2 transition hover:opacity-70"
                   >
-                    [COMPANY_EMAIL]
+                    hassanzafar619@gmail.com
                   </a>{" "}
                   if you suspect unauthorised access.
                 </li>
@@ -170,7 +170,9 @@ export default function Terms() {
               </p>
               <ul className="mt-3 list-disc space-y-1.5 pl-4">
                 <li>
-                  <strong className="text-foreground">Refunds:</strong> [REFUND_POLICY_DETAIL].
+                  <strong className="text-foreground">Refunds:</strong> Payments are not refunded
+                  for partially used billing periods, except where required by law (including the
+                  statutory right of withdrawal for consumers in the EU).
                 </li>
                 <li>
                   <strong className="text-foreground">Cancellation:</strong> You may cancel at any
@@ -179,7 +181,7 @@ export default function Terms() {
                 </li>
                 <li>
                   <strong className="text-foreground">Price changes:</strong> We will notify you at
-                  least <strong className="text-foreground">[X] days</strong> before any price
+                  least <strong className="text-foreground">30 days</strong> before any price
                   increase. Continued use after the effective date constitutes acceptance.
                 </li>
                 <li>
@@ -207,7 +209,7 @@ export default function Terms() {
                 <div>
                   <strong className="text-foreground">Our IP</strong> — the Draftly platform, UI,
                   brand, system prompts, and underlying technology remain the exclusive property of
-                  [COMPANY_NAME]. No rights are transferred to you except the licence to use the
+                  Hassan Zafar. No rights are transferred to you except the licence to use the
                   Service.
                 </div>
               </div>
@@ -228,10 +230,10 @@ export default function Terms() {
                 . By using the Service, you agree to that policy. For enterprise customers requiring
                 a Data Processing Agreement (DPA), contact{" "}
                 <a
-                  href="mailto:[LEGAL_EMAIL]"
+                  href="mailto:hassanzafar619@gmail.com"
                   className="text-foreground underline underline-offset-2 transition hover:opacity-70"
                 >
-                  [LEGAL_EMAIL]
+                  hassanzafar619@gmail.com
                 </a>
                 .
               </p>
@@ -259,7 +261,7 @@ export default function Terms() {
                 9. Limitation of Liability
               </h2>
               <p>
-                TO THE MAXIMUM EXTENT PERMITTED BY LAW, [COMPANY_NAME] SHALL NOT BE LIABLE FOR ANY
+                TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE OPERATOR SHALL NOT BE LIABLE FOR ANY
                 INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF
                 PROFITS, REVENUE, DATA, OR BUSINESS OPPORTUNITIES, ARISING FROM YOUR USE OF THE
                 SERVICE, EVEN IF WE HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
@@ -276,11 +278,13 @@ export default function Terms() {
                 10. Governing Law and Disputes
               </h2>
               <p>
-                These Terms are governed by the laws of{" "}
-                <strong className="text-foreground">[JURISDICTION]</strong>,{" "}
-                <strong className="text-foreground">[COUNTRY]</strong>, without regard to
-                conflict-of-law principles. Any disputes shall be resolved in the courts of{" "}
-                <strong className="text-foreground">[JURISDICTION]</strong>.
+                These Terms are governed by the laws of the{" "}
+                <strong className="text-foreground">Federal Republic of Germany</strong>, excluding
+                the UN Convention on Contracts for the International Sale of Goods. If you are a
+                consumer, this choice of law does not deprive you of the protection of mandatory
+                provisions of the law of the country where you live. For business customers, the
+                exclusive place of jurisdiction is{" "}
+                <strong className="text-foreground">Fulda, Germany</strong>.
               </p>
             </section>
 
@@ -290,7 +294,7 @@ export default function Terms() {
               </h2>
               <p>
                 We may update these Terms. We will notify you by email and/or in-app notice at least{" "}
-                <strong className="text-foreground">[X] days</strong> before material changes take
+                <strong className="text-foreground">30 days</strong> before material changes take
                 effect. Continued use of the Service after the effective date constitutes acceptance
                 of the updated Terms.
               </p>
@@ -307,16 +311,16 @@ export default function Terms() {
               <p>
                 For legal enquiries:
                 <br />
-                <strong className="text-foreground">[COMPANY_NAME]</strong>
+                <strong className="text-foreground">Hassan Zafar</strong>, operating as Draftly
                 <br />
-                <strong className="text-foreground">[COMPANY_ADDRESS]</strong>
+                Fulda, Germany
                 <br />
                 Email:{" "}
                 <a
-                  href="mailto:[LEGAL_EMAIL]"
+                  href="mailto:hassanzafar619@gmail.com"
                   className="text-foreground underline underline-offset-2 transition hover:opacity-70"
                 >
-                  [LEGAL_EMAIL]
+                  hassanzafar619@gmail.com
                 </a>
               </p>
             </section>
@@ -325,7 +329,7 @@ export default function Terms() {
 
         {/* Footer */}
         <footer className="border-t border-hairline py-8 text-center text-xs text-muted-foreground">
-          <span>© [YEAR] [COMPANY_NAME]. All rights reserved.</span>
+          <span>© 2026 Hassan Zafar. All rights reserved.</span>
           <span className="mx-3">·</span>
           <Link to="/terms" className="text-foreground">
             Terms of Service
